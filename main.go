@@ -13,6 +13,8 @@ import (
 	"time"
 )
 
+type Tokens map[string]string
+
 func main() {
 	forwardDest := os.Getenv("FORWARD_DEST")
 	if forwardDest == "" {
@@ -62,8 +64,8 @@ func main() {
 	}
 }
 
-func parseTokens() (map[string]string, error) {
-	tokens := make(map[string]string)
+func parseTokens() (Tokens, error) {
+	tokens := make(Tokens)
 
 	tokenMap := os.Getenv("TOKEN_MAP")
 	if tokenMap == "" {
@@ -81,7 +83,7 @@ func parseTokens() (map[string]string, error) {
 	return tokens, nil
 }
 
-func checkAuth(r *http.Request, tokens map[string]string) error {
+func checkAuth(r *http.Request, tokens Tokens) error {
 	header := r.Header.Get("Authorization")
 	if header == "" {
 		return errors.New("Authorization required")
