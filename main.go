@@ -1,16 +1,26 @@
 package main
 
 import (
+	"bytes"
+	"encoding/base64"
+	"errors"
 	"io/ioutil"
 	"log"
 	"net"
 	"net/http"
+	"os"
+	"strings"
 	"time"
 )
 
 func main() {
 	forwarder := NewForwarder()
 	forwarder.Start()
+
+	tokens, err := parseTokens()
+	if err != nil {
+		log.Fatalln("Unable to parse tokens:", err)
+	}
 
 	http.HandleFunc("/logs", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != "POST" {
@@ -22,6 +32,11 @@ func main() {
 			return
 		}
 
+		err := checkAuth(r, tokens)
+		if err != nil {
+			http.Error(w, err.Error(), 401)
+		}
+
 		b, err := ioutil.ReadAll(r.Body)
 		r.Body.Close()
 		if err != nil {
@@ -31,9 +46,67 @@ func main() {
 		forwarder.Receive(b)
 	})
 
-	if e := http.ListenAndServe(":5000", nil); e != nil {
-		log.Fatal("Unable to start HTTP server.")
+	if err := http.ListenAndServe(":5000", nil); err != nil {
+		log.Fatalln("Unable to start HTTP server:", err)
 	}
+}
+
+func parseTokens() (map[string]string, error) {
+	tokens := make(map[string]string)
+
+	tokenMap := os.Getenv("TOKEN_MAP")
+	if tokenMap == "" {
+		return tokens, errors.New("ENV[TOKEN_MAP] is required")
+	}
+
+	for _, userAndToken := range strings.Split(tokenMap, ",") {
+		userAndTokenParts := strings.SplitN(userAndToken, ":", 2)
+		if len(userAndTokenParts) != 2 {
+			return tokens, errors.New("ENV[TOKEN_MAP] not formatted properly")
+		}
+		tokens[userAndTokenParts[0]] = userAndTokenParts[1]
+	}
+
+	return tokens, nil
+}
+
+func checkAuth(r *http.Request, tokens map[string]string) error {
+	header := r.Header.Get("Authorization")
+	if header == "" {
+		return errors.New("Authorization required")
+	}
+	headerParts := strings.SplitN(header, " ", 2)
+	if len(headerParts) != 2 {
+		return errors.New("Authorization header is malformed")
+	}
+
+	method := headerParts[0]
+	if method != "Basic" {
+		return errors.New("Only Basic Authorization is accepted")
+	}
+
+	encodedUserPass := headerParts[1]
+	decodedUserPass, err := base64.StdEncoding.DecodeString(encodedUserPass)
+	if err != nil {
+		return errors.New("Authorization header is malformed")
+	}
+
+	userPassParts := bytes.SplitN(decodedUserPass, []byte{':'}, 2)
+	if len(userPassParts) != 2 {
+		return errors.New("Authorization header is malformed")
+	}
+
+	user := userPassParts[0]
+	pass := userPassParts[1]
+	token, ok := tokens[string(user)]
+	if !ok {
+		return errors.New("Unknown user")
+	}
+	if token != string(pass) {
+		return errors.New("Incorrect token")
+	}
+
+	return nil
 }
 
 type Forwarder struct {
