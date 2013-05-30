@@ -129,7 +129,7 @@ type Forwarder struct {
 
 func NewForwarder(dest string) *Forwarder {
 	forwarder := new(Forwarder)
-	forwarder.Inbox = make(chan []byte, 25*1024*1024)
+	forwarder.Inbox = make(chan []byte)
 	forwarder.Dest = dest
 	return forwarder
 }
