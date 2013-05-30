@@ -129,7 +129,7 @@ type Forwarder struct {
 
 func NewForwarder(dest string) *Forwarder {
 	forwarder := new(Forwarder)
-	forwarder.Inbox = make(chan []byte)
+	forwarder.Inbox = make(chan []byte, 1024)
 	forwarder.Dest = dest
 	return forwarder
 }
@@ -159,7 +159,7 @@ func (f *Forwarder) PeriodicStats() {
 		if f.c != nil {
 			connected = "yes"
 		}
-		log.Printf("ns=forwarder fn=periodic_stats at=emit connected=%s written=%d\n", connected, f.written)
+		log.Printf("ns=forwarder fn=periodic_stats at=emit connected=%s written=%d inbox_count=%d\n", connected, f.written, len(f.Inbox))
 	}
 }
 
