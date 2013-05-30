@@ -14,7 +14,12 @@ import (
 )
 
 func main() {
-	forwarder := NewForwarder()
+	forwardDest := os.Getenv("FORWARD_DEST")
+	if forwardDest == "" {
+		log.Fatalln("ENV[FORWARD_DEST] is required")
+	}
+
+	forwarder := NewForwarder(forwardDest)
 	forwarder.Start()
 
 	tokens, err := parseTokens()
@@ -35,18 +40,24 @@ func main() {
 		err := checkAuth(r, tokens)
 		if err != nil {
 			http.Error(w, err.Error(), 401)
+			return
 		}
 
 		b, err := ioutil.ReadAll(r.Body)
 		r.Body.Close()
 		if err != nil {
 			http.Error(w, "Invalid Request", 400)
+			return
 		}
 
 		forwarder.Receive(b)
 	})
 
-	if err := http.ListenAndServe(":5000", nil); err != nil {
+	port := os.Getenv("PORT")
+	if port == "" {
+		log.Fatalln("ENV[PORT] is required")
+	}
+	if err := http.ListenAndServe(":" + port, nil); err != nil {
 		log.Fatalln("Unable to start HTTP server:", err)
 	}
 }
@@ -111,13 +122,15 @@ func checkAuth(r *http.Request, tokens map[string]string) error {
 
 type Forwarder struct {
 	Inbox   chan []byte
+	Dest    string
 	c       net.Conn
 	written uint64
 }
 
-func NewForwarder() *Forwarder {
+func NewForwarder(dest string) *Forwarder {
 	forwarder := new(Forwarder)
 	forwarder.Inbox = make(chan []byte, 25*1024*1024)
+	forwarder.Dest = dest
 	return forwarder
 }
 
@@ -159,7 +172,7 @@ func (f *Forwarder) connect() {
 
 	for {
 		log.Println("ns=forwarder fn=connect at=start")
-		c, err := net.Dial("tcp", "localhost:5001")
+		c, err := net.Dial("tcp", f.Dest)
 		if err != nil {
 			log.Printf("ns=forwarder fn=connect at=error message=%q\n", err)
 			f.disconnect()
