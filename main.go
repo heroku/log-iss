@@ -57,7 +57,7 @@ func main() {
 	if port == "" {
 		log.Fatalln("ENV[PORT] is required")
 	}
-	if err := http.ListenAndServe(":" + port, nil); err != nil {
+	if err := http.ListenAndServe(":"+port, nil); err != nil {
 		log.Fatalln("Unable to start HTTP server:", err)
 	}
 }
