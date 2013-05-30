@@ -20,15 +20,39 @@ func main() {
 	if forwardDest == "" {
 		log.Fatalln("ENV[FORWARD_DEST] is required")
 	}
-
 	forwarder := NewForwarder(forwardDest)
 	forwarder.Start()
 
-	tokens, err := parseTokens()
+	port := os.Getenv("PORT")
+	if port == "" {
+		log.Fatalln("ENV[PORT] is required")
+	}
+	tokenMap := os.Getenv("TOKEN_MAP")
+	if tokenMap == "" {
+		log.Fatalln("ENV[TOKEN_MAP] is required")
+	}
+	tokens, err := parseTokenMap(tokenMap)
 	if err != nil {
 		log.Fatalln("Unable to parse tokens:", err)
 	}
+	startHttp(port, tokens, forwarder)
+}
 
+func parseTokenMap(tokenMap string) (Tokens, error) {
+	tokens := make(Tokens)
+
+	for _, userAndToken := range strings.Split(tokenMap, ",") {
+		userAndTokenParts := strings.SplitN(userAndToken, ":", 2)
+		if len(userAndTokenParts) != 2 {
+			return tokens, errors.New("ENV[TOKEN_MAP] not formatted properly")
+		}
+		tokens[userAndTokenParts[0]] = userAndTokenParts[1]
+	}
+
+	return tokens, nil
+}
+
+func startHttp(port string, tokens Tokens, forwarder *Forwarder) {
 	http.HandleFunc("/logs", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != "POST" {
 			http.Error(w, "Only POST is accepted", 400)
@@ -55,32 +79,9 @@ func main() {
 		forwarder.Receive(b)
 	})
 
-	port := os.Getenv("PORT")
-	if port == "" {
-		log.Fatalln("ENV[PORT] is required")
-	}
 	if err := http.ListenAndServe(":"+port, nil); err != nil {
 		log.Fatalln("Unable to start HTTP server:", err)
 	}
-}
-
-func parseTokens() (Tokens, error) {
-	tokens := make(Tokens)
-
-	tokenMap := os.Getenv("TOKEN_MAP")
-	if tokenMap == "" {
-		return tokens, errors.New("ENV[TOKEN_MAP] is required")
-	}
-
-	for _, userAndToken := range strings.Split(tokenMap, ",") {
-		userAndTokenParts := strings.SplitN(userAndToken, ":", 2)
-		if len(userAndTokenParts) != 2 {
-			return tokens, errors.New("ENV[TOKEN_MAP] not formatted properly")
-		}
-		tokens[userAndTokenParts[0]] = userAndTokenParts[1]
-	}
-
-	return tokens, nil
 }
 
 func checkAuth(r *http.Request, tokens Tokens) error {
