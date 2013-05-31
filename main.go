@@ -35,7 +35,7 @@ func main() {
 	if err != nil {
 		log.Fatalln("Unable to parse tokens:", err)
 	}
-	startHttp(port, tokens, forwarder)
+	startHttp(port, tokens, forwarder.Inbox)
 }
 
 func parseTokenMap(tokenMap string) (Tokens, error) {
@@ -52,7 +52,7 @@ func parseTokenMap(tokenMap string) (Tokens, error) {
 	return tokens, nil
 }
 
-func startHttp(port string, tokens Tokens, forwarder *Forwarder) {
+func startHttp(port string, tokens Tokens, outlet chan []byte) {
 	http.HandleFunc("/logs", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != "POST" {
 			http.Error(w, "Only POST is accepted", 400)
@@ -76,7 +76,7 @@ func startHttp(port string, tokens Tokens, forwarder *Forwarder) {
 			return
 		}
 
-		forwarder.Receive(b)
+		outlet <- b
 	})
 
 	if err := http.ListenAndServe(":"+port, nil); err != nil {
@@ -135,10 +135,6 @@ func NewForwarder(dest string) *Forwarder {
 	forwarder.Inbox = make(chan []byte, 1024)
 	forwarder.Dest = dest
 	return forwarder
-}
-
-func (f *Forwarder) Receive(b []byte) {
-	f.Inbox <- b
 }
 
 func (f *Forwarder) Start() {
@@ -200,7 +196,7 @@ func (f *Forwarder) write(b []byte) {
 		f.connect()
 		n, err := f.c.Write(b)
 		if err != nil {
-			log.Println("ns=forwarder fn=write at=error message=%q\n", err)
+			log.Printf("ns=forwarder fn=write at=error message=%q\n", err)
 			f.disconnect()
 		} else {
 			f.written += uint64(n)
