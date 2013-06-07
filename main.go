@@ -53,6 +53,10 @@ func parseTokenMap(tokenMap string) (Tokens, error) {
 }
 
 func startHttp(port string, tokens Tokens, outlet chan []byte) {
+	http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+		// check outlet depth?
+	})
+
 	http.HandleFunc("/logs", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != "POST" {
 			http.Error(w, "Only POST is accepted", 400)
