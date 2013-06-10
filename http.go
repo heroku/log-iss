@@ -9,13 +9,18 @@ import (
 	"strings"
 )
 
+type Payload struct {
+	SourceAddr string
+	Body       []byte
+}
+
 type HttpServer struct {
 	Port   string
 	Tokens Tokens
-	Outlet chan []byte
+	Outlet chan Payload
 }
 
-func NewHttpServer(port string, tokens Tokens, outlet chan []byte) *HttpServer {
+func NewHttpServer(port string, tokens Tokens, outlet chan Payload) *HttpServer {
 	return &HttpServer{port, tokens, outlet}
 }
 
@@ -46,7 +51,13 @@ func (s *HttpServer) Run() error {
 			return
 		}
 
-		s.Outlet <- b
+		remoteAddr := r.Header.Get("X-Forwarded-For")
+		if remoteAddr == "" {
+			remoteAddrParts := strings.Split(r.RemoteAddr, ":")
+			remoteAddr = strings.Join(remoteAddrParts[:len(remoteAddrParts)-1], ":")
+		}
+
+		s.Outlet <- Payload{remoteAddr, b}
 	})
 
 	if err := http.ListenAndServe(":"+s.Port, nil); err != nil {

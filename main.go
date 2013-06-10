@@ -13,6 +13,9 @@ func main() {
 	forwarder := NewForwarder(forwardDest)
 	forwarder.Start()
 
+	fixer := NewFixer(forwarder.Inbox)
+	fixer.Start()
+
 	port := os.Getenv("PORT")
 	if port == "" {
 		log.Fatalln("ENV[PORT] is required")
@@ -25,7 +28,7 @@ func main() {
 	if err != nil {
 		log.Fatalln("Unable to parse tokens:", err)
 	}
-	httpServer := NewHttpServer(port, tokens, forwarder.Inbox)
+	httpServer := NewHttpServer(port, tokens, fixer.Inbox)
 	err = httpServer.Run()
 	if err != nil {
 		log.Fatalln("Unable to start HTTP server:", err)

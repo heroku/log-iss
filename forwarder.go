@@ -7,7 +7,7 @@ import (
 )
 
 type Forwarder struct {
-	Inbox   chan []byte
+	Inbox   chan Message
 	Dest    string
 	c       net.Conn
 	written uint64
@@ -15,7 +15,7 @@ type Forwarder struct {
 
 func NewForwarder(dest string) *Forwarder {
 	forwarder := new(Forwarder)
-	forwarder.Inbox = make(chan []byte, 1024)
+	forwarder.Inbox = make(chan Message, 1024)
 	forwarder.Dest = dest
 	return forwarder
 }
