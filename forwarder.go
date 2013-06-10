@@ -54,8 +54,7 @@ func (f *Forwarder) connect() {
 
 	for {
 		log.Println("ns=forwarder fn=connect at=start")
-		c, err := net.Dial("tcp", f.Dest)
-		if err != nil {
+		if c, err := net.Dial("tcp", f.Dest); err != nil {
 			log.Printf("ns=forwarder fn=connect at=error message=%q\n", err)
 			f.disconnect()
 		} else {
@@ -77,8 +76,7 @@ func (f *Forwarder) disconnect() {
 func (f *Forwarder) write(b []byte) {
 	for {
 		f.connect()
-		n, err := f.c.Write(b)
-		if err != nil {
+		if n, err := f.c.Write(b); err != nil {
 			log.Printf("ns=forwarder fn=write at=error message=%q\n", err)
 			f.disconnect()
 		} else {

@@ -34,8 +34,7 @@ func (s *HttpServer) Run() error {
 			return
 		}
 
-		err := s.checkAuth(r)
-		if err != nil {
+		if err := s.checkAuth(r); err != nil {
 			http.Error(w, err.Error(), 401)
 			return
 		}
