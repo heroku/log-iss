@@ -5,12 +5,21 @@ import (
 	"encoding/base64"
 	"errors"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"strings"
 )
 
-func StartHttp(port string, tokens Tokens, outlet chan []byte) {
+type HttpServer struct {
+	Port   string
+	Tokens Tokens
+	Outlet chan []byte
+}
+
+func NewHttpServer(port string, tokens Tokens, outlet chan []byte) *HttpServer {
+	return &HttpServer{port, tokens, outlet}
+}
+
+func (s *HttpServer) Run() error {
 	http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		// check outlet depth?
 	})
@@ -25,7 +34,7 @@ func StartHttp(port string, tokens Tokens, outlet chan []byte) {
 			return
 		}
 
-		err := checkAuth(r, tokens)
+		err := s.checkAuth(r)
 		if err != nil {
 			http.Error(w, err.Error(), 401)
 			return
@@ -38,15 +47,17 @@ func StartHttp(port string, tokens Tokens, outlet chan []byte) {
 			return
 		}
 
-		outlet <- b
+		s.Outlet <- b
 	})
 
-	if err := http.ListenAndServe(":"+port, nil); err != nil {
-		log.Fatalln("Unable to start HTTP server:", err)
+	if err := http.ListenAndServe(":"+s.Port, nil); err != nil {
+		return err
 	}
+
+	return nil
 }
 
-func checkAuth(r *http.Request, tokens Tokens) error {
+func (s *HttpServer) checkAuth(r *http.Request) error {
 	header := r.Header.Get("Authorization")
 	if header == "" {
 		return errors.New("Authorization required")
@@ -74,7 +85,7 @@ func checkAuth(r *http.Request, tokens Tokens) error {
 
 	user := userPassParts[0]
 	pass := userPassParts[1]
-	token, ok := tokens[string(user)]
+	token, ok := s.Tokens[string(user)]
 	if !ok {
 		return errors.New("Unknown user")
 	}

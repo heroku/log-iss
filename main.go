@@ -25,5 +25,9 @@ func main() {
 	if err != nil {
 		log.Fatalln("Unable to parse tokens:", err)
 	}
-	StartHttp(port, tokens, forwarder.Inbox)
+	httpServer := NewHttpServer(port, tokens, forwarder.Inbox)
+	err = httpServer.Run()
+	if err != nil {
+		log.Fatalln("Unable to start HTTP server:", err)
+	}
 }
