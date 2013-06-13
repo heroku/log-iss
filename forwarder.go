@@ -7,10 +7,11 @@ import (
 )
 
 type Forwarder struct {
-	Inbox   chan Message
-	Dest    string
-	c       net.Conn
-	written uint64
+	Inbox           chan Message
+	Dest            string
+	c               net.Conn
+	messagesWritten uint64
+	bytesWritten    uint64
 }
 
 func NewForwarder(dest string) *Forwarder {
@@ -41,7 +42,7 @@ func (f *Forwarder) PeriodicStats() {
 		if f.c != nil {
 			connected = "yes"
 		}
-		log.Printf("ns=forwarder fn=periodic_stats at=emit connected=%s written=%d inbox_count=%d\n", connected, f.written, len(f.Inbox))
+		log.Printf("ns=forwarder fn=periodic_stats at=emit connected=%s messages_written=%d bytes_written=%d inbox_count=%d\n", connected, f.messagesWritten, f.bytesWritten, len(f.Inbox))
 	}
 }
 
@@ -80,7 +81,8 @@ func (f *Forwarder) write(b []byte) {
 			log.Printf("ns=forwarder fn=write at=error message=%q\n", err)
 			f.disconnect()
 		} else {
-			f.written += uint64(n)
+			f.messagesWritten += 1
+			f.bytesWritten += uint64(n)
 			break
 		}
 	}
