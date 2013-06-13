@@ -26,6 +26,7 @@ func NewHttpServer(config *IssConfig, outlet chan Payload) *HttpServer {
 func (s *HttpServer) Run() error {
 	http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		// check outlet depth?
+		Logf("measure.http.health.get=1")
 	})
 
 	http.HandleFunc("/logs", func(w http.ResponseWriter, r *http.Request) {
@@ -56,6 +57,7 @@ func (s *HttpServer) Run() error {
 			remoteAddr = strings.Join(remoteAddrParts[:len(remoteAddrParts)-1], ":")
 		}
 
+		Logf("measure.http.logs.post=1")
 		s.Outlet <- Payload{remoteAddr, b}
 	})
 

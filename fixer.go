@@ -2,7 +2,6 @@ package main
 
 import (
 	"bytes"
-	"fmt"
 	"github.com/bmizerany/lpx"
 	"io/ioutil"
 	"strconv"
@@ -74,7 +73,7 @@ func Fix(payload Payload) []Message {
 		messageWriter.WriteTo(&messageLenWriter)
 
 		if fullMessage, err := ioutil.ReadAll(&messageLenWriter); err != nil {
-			fmt.Println("error reading full message:", err)
+			Logf("measure.fixer.fix.error.readall=1 message=%q", err)
 			continue
 		} else {
 			messages = append(messages, fullMessage)
@@ -82,7 +81,7 @@ func Fix(payload Payload) []Message {
 	}
 
 	if lp.Err() != nil {
-		fmt.Println("error from lp:", lp.Err())
+		Logf("measure.fixer.fix.error.lpx=1 message=%q", lp.Err())
 	}
 
 	return messages

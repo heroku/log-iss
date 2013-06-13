@@ -9,7 +9,7 @@ var Config *IssConfig
 
 func Logf(format string, a ...interface{}) {
 	orig := fmt.Sprintf(format, a...)
-	fmt.Printf("app=log-iss source=%s %s", Config.Deploy, orig)
+	fmt.Printf("app=log-iss source=%s %s\n", Config.Deploy, orig)
 }
 
 func main() {

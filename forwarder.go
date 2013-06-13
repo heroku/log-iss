@@ -1,7 +1,6 @@
 package main
 
 import (
-	"log"
 	"net"
 	"time"
 )
@@ -23,27 +22,11 @@ func NewForwarder(config *IssConfig) *Forwarder {
 
 func (f *Forwarder) Start() {
 	go f.Run()
-	go f.PeriodicStats()
 }
 
 func (f *Forwarder) Run() {
 	for m := range f.Inbox {
 		f.write(m)
-	}
-}
-
-func (f *Forwarder) PeriodicStats() {
-	var connected int
-	t := time.Tick(1 * time.Second)
-
-	for {
-		<-t
-		connected = 0
-		if f.c != nil {
-			connected = 1
-		}
-		Logf("measure.forwarder.messages.written=%d measure.forwarder.bytes.written=%d measure.forwarder.inbox.depth=%d measure.forwarder.connected=%d\n",
-			f.messagesWritten, f.bytesWritten, len(f.Inbox), connected)
 	}
 }
 
@@ -53,14 +36,13 @@ func (f *Forwarder) connect() {
 	}
 
 	rate := time.Tick(200 * time.Millisecond)
-
 	for {
-		log.Println("ns=forwarder fn=connect at=start")
+		Logf("measure.forwarder.connect.attempt=1")
 		if c, err := net.Dial("tcp", f.Config.ForwardDest); err != nil {
-			Logf("measure.forwarder.connect.error message=%q\n", err)
+			Logf("measure.forwarder.connect.error=1 message=%q", err)
 			f.disconnect()
 		} else {
-			Logf("measure.forwarder.connect.success\n")
+			Logf("measure.forwarder.connect.success=1")
 			f.c = c
 			return
 		}
@@ -79,11 +61,10 @@ func (f *Forwarder) write(b []byte) {
 	for {
 		f.connect()
 		if n, err := f.c.Write(b); err != nil {
-			Logf("measure.forwarder.write.error message=%q\n", err)
+			Logf("measure.forwarder.write.error=1 message=%q", err)
 			f.disconnect()
 		} else {
-			f.messagesWritten += 1
-			f.bytesWritten += uint64(n)
+			Logf("measure.forwarder.write.messages=1 measure.forwarder.write.bytes=%d", n)
 			break
 		}
 	}
