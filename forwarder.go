@@ -7,16 +7,18 @@ import (
 
 type Forwarder struct {
 	Config          *IssConfig
+	Metrics         *Metrics
 	Inbox           chan Message
 	c               net.Conn
 	messagesWritten uint64
 	bytesWritten    uint64
 }
 
-func NewForwarder(config *IssConfig) *Forwarder {
+func NewForwarder(config *IssConfig, metrics *Metrics) *Forwarder {
 	forwarder := new(Forwarder)
 	forwarder.Inbox = make(chan Message, 1024)
 	forwarder.Config = config
+	forwarder.Metrics = metrics
 	return forwarder
 }
 
@@ -64,7 +66,8 @@ func (f *Forwarder) write(b []byte) {
 			Logf("measure.forwarder.write.error=1 message=%q", err)
 			f.disconnect()
 		} else {
-			Logf("measure.forwarder.write.messages=1 measure.forwarder.write.bytes=%d", n)
+			f.Metrics.Count("forwarder.write.messages")
+			f.Metrics.Sum("forwarder.write.bytes", uint64(n))
 			break
 		}
 	}

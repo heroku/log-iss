@@ -15,12 +15,13 @@ type Payload struct {
 }
 
 type HttpServer struct {
-	Config *IssConfig
-	Outlet chan Payload
+	Config  *IssConfig
+	Metrics *Metrics
+	Outlet  chan Payload
 }
 
-func NewHttpServer(config *IssConfig, outlet chan Payload) *HttpServer {
-	return &HttpServer{config, outlet}
+func NewHttpServer(config *IssConfig, outlet chan Payload, metrics *Metrics) *HttpServer {
+	return &HttpServer{config, metrics, outlet}
 }
 
 func (s *HttpServer) Run() error {
@@ -57,7 +58,7 @@ func (s *HttpServer) Run() error {
 			remoteAddr = strings.Join(remoteAddrParts[:len(remoteAddrParts)-1], ":")
 		}
 
-		Logf("measure.http.logs.post=1")
+		s.Metrics.Count("http.logs.post")
 		s.Outlet <- Payload{remoteAddr, b}
 	})
 

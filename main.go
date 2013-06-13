@@ -19,13 +19,16 @@ func main() {
 	}
 	Config = config
 
-	forwarder := NewForwarder(Config)
+	metrics := NewMetrics()
+	metrics.Start()
+
+	forwarder := NewForwarder(Config, metrics)
 	forwarder.Start()
 
 	fixer := NewFixer(Config, forwarder.Inbox)
 	fixer.Start()
 
-	httpServer := NewHttpServer(Config, fixer.Inbox)
+	httpServer := NewHttpServer(Config, fixer.Inbox, metrics)
 	err = httpServer.Run()
 	if err != nil {
 		log.Fatalln("Unable to start HTTP server:", err)
