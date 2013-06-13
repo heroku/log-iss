@@ -15,13 +15,12 @@ type Payload struct {
 }
 
 type HttpServer struct {
-	Port   string
-	Tokens Tokens
+	Config *Config
 	Outlet chan Payload
 }
 
-func NewHttpServer(port string, tokens Tokens, outlet chan Payload) *HttpServer {
-	return &HttpServer{port, tokens, outlet}
+func NewHttpServer(config *Config, outlet chan Payload) *HttpServer {
+	return &HttpServer{config, outlet}
 }
 
 func (s *HttpServer) Run() error {
@@ -60,7 +59,7 @@ func (s *HttpServer) Run() error {
 		s.Outlet <- Payload{remoteAddr, b}
 	})
 
-	if err := http.ListenAndServe(":"+s.Port, nil); err != nil {
+	if err := http.ListenAndServe(":"+s.Config.HttpPort, nil); err != nil {
 		return err
 	}
 
@@ -95,7 +94,7 @@ func (s *HttpServer) checkAuth(r *http.Request) error {
 
 	user := userPassParts[0]
 	pass := userPassParts[1]
-	token, ok := s.Tokens[string(user)]
+	token, ok := s.Config.Tokens[string(user)]
 	if !ok {
 		return errors.New("Unknown user")
 	}

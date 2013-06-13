@@ -11,12 +11,13 @@ import (
 type Message []byte
 
 type Fixer struct {
+	Config *Config
 	Inbox  chan Payload
 	Outlet chan Message
 }
 
-func NewFixer(outlet chan Message) *Fixer {
-	return &Fixer{make(chan Payload), outlet}
+func NewFixer(config *Config, outlet chan Message) *Fixer {
+	return &Fixer{config, make(chan Payload), outlet}
 }
 
 func (f *Fixer) Start() {

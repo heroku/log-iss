@@ -7,17 +7,17 @@ import (
 )
 
 type Forwarder struct {
+	Config          *Config
 	Inbox           chan Message
-	Dest            string
 	c               net.Conn
 	messagesWritten uint64
 	bytesWritten    uint64
 }
 
-func NewForwarder(dest string) *Forwarder {
+func NewForwarder(c *Config) *Forwarder {
 	forwarder := new(Forwarder)
 	forwarder.Inbox = make(chan Message, 1024)
-	forwarder.Dest = dest
+	forwarder.Config = c
 	return forwarder
 }
 
@@ -55,7 +55,7 @@ func (f *Forwarder) connect() {
 
 	for {
 		log.Println("ns=forwarder fn=connect at=start")
-		if c, err := net.Dial("tcp", f.Dest); err != nil {
+		if c, err := net.Dial("tcp", f.Config.ForwardDest); err != nil {
 			log.Printf("ns=forwarder fn=connect at=error message=%q\n", err)
 			f.disconnect()
 		} else {
