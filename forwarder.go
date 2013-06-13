@@ -7,17 +7,17 @@ import (
 )
 
 type Forwarder struct {
-	Config          *Config
+	Config          *IssConfig
 	Inbox           chan Message
 	c               net.Conn
 	messagesWritten uint64
 	bytesWritten    uint64
 }
 
-func NewForwarder(c *Config) *Forwarder {
+func NewForwarder(config *IssConfig) *Forwarder {
 	forwarder := new(Forwarder)
 	forwarder.Inbox = make(chan Message, 1024)
-	forwarder.Config = c
+	forwarder.Config = config
 	return forwarder
 }
 
@@ -33,16 +33,17 @@ func (f *Forwarder) Run() {
 }
 
 func (f *Forwarder) PeriodicStats() {
-	var connected string
+	var connected int
 	t := time.Tick(1 * time.Second)
 
 	for {
 		<-t
-		connected = "no"
+		connected = 0
 		if f.c != nil {
-			connected = "yes"
+			connected = 1
 		}
-		log.Printf("ns=forwarder fn=periodic_stats at=emit connected=%s messages_written=%d bytes_written=%d inbox_count=%d\n", connected, f.messagesWritten, f.bytesWritten, len(f.Inbox))
+		Logf("measure.forwarder.messages.written=%d measure.forwarder.bytes.written=%d measure.forwarder.inbox.depth=%d measure.forwarder.connected=%d\n",
+			f.messagesWritten, f.bytesWritten, len(f.Inbox), connected)
 	}
 }
 
@@ -56,10 +57,10 @@ func (f *Forwarder) connect() {
 	for {
 		log.Println("ns=forwarder fn=connect at=start")
 		if c, err := net.Dial("tcp", f.Config.ForwardDest); err != nil {
-			log.Printf("ns=forwarder fn=connect at=error message=%q\n", err)
+			Logf("measure.forwarder.connect.error message=%q\n", err)
 			f.disconnect()
 		} else {
-			log.Println("ns=forwarder fn=connect at=finish")
+			Logf("measure.forwarder.connect.success\n")
 			f.c = c
 			return
 		}
@@ -78,7 +79,7 @@ func (f *Forwarder) write(b []byte) {
 	for {
 		f.connect()
 		if n, err := f.c.Write(b); err != nil {
-			log.Printf("ns=forwarder fn=write at=error message=%q\n", err)
+			Logf("measure.forwarder.write.error message=%q\n", err)
 			f.disconnect()
 		} else {
 			f.messagesWritten += 1

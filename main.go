@@ -1,52 +1,31 @@
 package main
 
 import (
+	"fmt"
 	"log"
-	"os"
 )
 
-type Config struct {
-	Deploy      string
-	ForwardDest string
-	HttpPort    string
-	Tokens      Tokens
+var Config *IssConfig
+
+func Logf(format string, a ...interface{}) {
+	orig := fmt.Sprintf(format, a...)
+	fmt.Printf("app=log-iss source=%s %s", Config.Deploy, orig)
 }
 
 func main() {
-	deploy := os.Getenv("DEPLOY")
-	if deploy == "" {
-		log.Fatalln("ENV[DEPLOY] is required")
-	}
-	forwardDest := os.Getenv("FORWARD_DEST")
-	if forwardDest == "" {
-		log.Fatalln("ENV[FORWARD_DEST] is required")
-	}
-	port := os.Getenv("PORT")
-	if port == "" {
-		log.Fatalln("ENV[PORT] is required")
-	}
-	tokenMap := os.Getenv("TOKEN_MAP")
-	if tokenMap == "" {
-		log.Fatalln("ENV[TOKEN_MAP] is required")
-	}
-	tokens, err := ParseTokenMap(tokenMap)
+	config, err := NewIssConfig()
 	if err != nil {
-		log.Fatalln("Unable to parse tokens:", err)
+		log.Fatalln(err)
 	}
+	Config = config
 
-	config := new(Config)
-	config.Deploy = deploy
-	config.ForwardDest = forwardDest
-	config.HttpPort = port
-	config.Tokens = tokens
-
-	forwarder := NewForwarder(config)
+	forwarder := NewForwarder(Config)
 	forwarder.Start()
 
-	fixer := NewFixer(config, forwarder.Inbox)
+	fixer := NewFixer(Config, forwarder.Inbox)
 	fixer.Start()
 
-	httpServer := NewHttpServer(config, fixer.Inbox)
+	httpServer := NewHttpServer(Config, fixer.Inbox)
 	err = httpServer.Run()
 	if err != nil {
 		log.Fatalln("Unable to start HTTP server:", err)

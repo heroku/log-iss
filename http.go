@@ -15,11 +15,11 @@ type Payload struct {
 }
 
 type HttpServer struct {
-	Config *Config
+	Config *IssConfig
 	Outlet chan Payload
 }
 
-func NewHttpServer(config *Config, outlet chan Payload) *HttpServer {
+func NewHttpServer(config *IssConfig, outlet chan Payload) *HttpServer {
 	return &HttpServer{config, outlet}
 }
 

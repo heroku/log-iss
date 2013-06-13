@@ -11,12 +11,12 @@ import (
 type Message []byte
 
 type Fixer struct {
-	Config *Config
+	Config *IssConfig
 	Inbox  chan Payload
 	Outlet chan Message
 }
 
-func NewFixer(config *Config, outlet chan Message) *Fixer {
+func NewFixer(config *IssConfig, outlet chan Message) *Fixer {
 	return &Fixer{config, make(chan Payload), outlet}
 }
 
