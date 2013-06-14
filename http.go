@@ -58,7 +58,7 @@ func (s *HttpServer) Run() error {
 			remoteAddr = strings.Join(remoteAddrParts[:len(remoteAddrParts)-1], ":")
 		}
 
-		s.Metrics.Count("http.logs.post")
+		s.Metrics.Inbox <- NewCount("http.logs.post", 1)
 		s.Outlet <- Payload{remoteAddr, b}
 	})
 

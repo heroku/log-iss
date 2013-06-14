@@ -57,10 +57,6 @@ func (m *Metrics) RegisterFunc(f MetricsFunc) {
 	m.funcs = append(m.funcs, f)
 }
 
-func (m *Metrics) Sum(key string, n uint64) {
-	m.Inbox <- Measurement{Key: key, Val: n}
-}
-
-func (m *Metrics) Count(key string) {
-	m.Sum(key, 1)
+func NewCount(key string, n uint64) Measurement {
+	return Measurement{Key: key, Val: n}
 }

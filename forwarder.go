@@ -35,7 +35,7 @@ func (f *Forwarder) Run() {
 }
 
 func (f *Forwarder) InboxMetrics() Measurement {
-	return Measurement{Key: "forwarder.inbox.depth", Val: uint64(len(f.Inbox))}
+	return NewCount("forwarder.inbox.depth", uint64(len(f.Inbox)))
 }
 
 func (f *Forwarder) connect() {
@@ -72,8 +72,8 @@ func (f *Forwarder) write(b []byte) {
 			Logf("measure.forwarder.write.error=1 message=%q", err)
 			f.disconnect()
 		} else {
-			f.Metrics.Count("forwarder.write.messages")
-			f.Metrics.Sum("forwarder.write.bytes", uint64(n))
+			f.Metrics.Inbox <- NewCount("forwarder.write.messages", 1)
+			f.Metrics.Inbox <- NewCount("forwarder.write.bytes", uint64(n))
 			break
 		}
 	}
