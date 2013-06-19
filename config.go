@@ -3,13 +3,16 @@ package main
 import (
 	"fmt"
 	"os"
+	"strconv"
+	"time"
 )
 
 type IssConfig struct {
-	Deploy      string
-	ForwardDest string
-	HttpPort    string
-	Tokens      Tokens
+	Deploy                    string
+	ForwardDest               string
+	ForwardDestConnectTimeout time.Duration
+	HttpPort                  string
+	Tokens                    Tokens
 }
 
 func NewIssConfig() (*IssConfig, error) {
@@ -26,6 +29,18 @@ func NewIssConfig() (*IssConfig, error) {
 		return nil, err
 	}
 	config.ForwardDest = forwardDest
+
+	var forwardDestConnectTimeout int
+	forwardDestConnectTimeoutEnv := os.Getenv("FORWARD_DEST_CONNECT_TIMEOUT")
+	if forwardDestConnectTimeoutEnv != "" {
+		forwardDestConnectTimeout, err = strconv.Atoi(forwardDestConnectTimeoutEnv)
+		if err != nil {
+			return nil, fmt.Errorf("Unable to parse FORWARD_DEST_CONNECT_TIMEOUT: %s", err)
+		}
+	} else {
+		forwardDestConnectTimeout = 10
+	}
+	config.ForwardDestConnectTimeout = time.Duration(forwardDestConnectTimeout) * time.Second
 
 	httpPort, err := MustEnv("PORT")
 	if err != nil {

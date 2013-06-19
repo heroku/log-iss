@@ -46,7 +46,7 @@ func (f *Forwarder) connect() {
 	rate := time.Tick(200 * time.Millisecond)
 	for {
 		Logf("measure.forwarder.connect.attempt=1")
-		if c, err := net.Dial("tcp", f.Config.ForwardDest); err != nil {
+		if c, err := net.DialTimeout("tcp", f.Config.ForwardDest, f.Config.ForwardDestConnectTimeout); err != nil {
 			Logf("measure.forwarder.connect.error=1 message=%q", err)
 			f.disconnect()
 		} else {
