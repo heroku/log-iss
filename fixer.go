@@ -7,7 +7,12 @@ import (
 	"strconv"
 )
 
-type Message []byte
+type MessageBody []byte
+
+type Message struct {
+	Body   MessageBody
+	WaitCh chan bool
+}
 
 type Fixer struct {
 	Config *IssConfig
@@ -26,15 +31,22 @@ func (f *Fixer) Start() {
 func (f *Fixer) Run() {
 	for p := range f.Inbox {
 		for _, fixed := range Fix(p) {
-			f.Outlet <- fixed
+			f.sendAndWait(fixed)
 		}
+		p.WaitCh <- true
 	}
 }
 
-func Fix(payload Payload) []Message {
+func (f *Fixer) sendAndWait(messageBody MessageBody) {
+	waitCh := make(chan bool)
+	f.Outlet <- Message{messageBody, waitCh}
+	<-waitCh
+}
+
+func Fix(payload Payload) []MessageBody {
 	nilVal := []byte(`- `)
 
-	messages := make([]Message, 0)
+	messages := make([]MessageBody, 0)
 
 	lp := lpx.NewReader(bytes.NewBuffer(payload.Body))
 	for lp.Next() {

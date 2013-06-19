@@ -16,7 +16,7 @@ type Forwarder struct {
 
 func NewForwarder(config *IssConfig, metrics *Metrics) *Forwarder {
 	forwarder := new(Forwarder)
-	forwarder.Inbox = make(chan Message, 1024)
+	forwarder.Inbox = make(chan Message)
 	forwarder.Config = config
 	forwarder.Metrics = metrics
 	return forwarder
@@ -30,7 +30,8 @@ func (f *Forwarder) Run() {
 	f.Metrics.RegisterFunc(f.InboxMetrics)
 
 	for m := range f.Inbox {
-		f.write(m)
+		f.write(m.Body)
+		m.WaitCh <- true
 	}
 }
 

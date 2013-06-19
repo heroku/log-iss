@@ -12,6 +12,7 @@ import (
 type Payload struct {
 	SourceAddr string
 	Body       []byte
+	WaitCh     chan bool
 }
 
 type HttpServer struct {
@@ -73,7 +74,7 @@ func (s *HttpServer) Run() error {
 		}
 
 		s.Metrics.Inbox <- NewCount("http.logs.post", 1)
-		s.Outlet <- Payload{remoteAddr, b}
+		s.deliverAndWait(remoteAddr, b)
 	})
 
 	if err := http.ListenAndServe(":"+s.Config.HttpPort, nil); err != nil {
@@ -126,4 +127,10 @@ func (s *HttpServer) checkAuth(r *http.Request) error {
 	}
 
 	return nil
+}
+
+func (s *HttpServer) deliverAndWait(remoteAddr string, b []byte) {
+	waitCh := make(chan bool)
+	s.Outlet <- Payload{remoteAddr, b, waitCh}
+	<-waitCh
 }
