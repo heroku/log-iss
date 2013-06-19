@@ -70,9 +70,9 @@ func Fix(payload Payload) []MessageBody {
 		messageWriter.WriteString("\"]")
 
 		b := lp.Bytes()
-		if bytes.Equal(b[0:2], nilVal) {
+		if len(b) >= 2 && bytes.Equal(b[0:2], nilVal) {
 			messageWriter.Write(b[1:])
-		} else {
+		} else if len(b) > 0 {
 			if b[0] != '[' {
 				messageWriter.WriteString(" ")
 			}
