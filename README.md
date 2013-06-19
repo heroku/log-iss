@@ -12,6 +12,9 @@ receives a `POST` with log data and the backend TCP connection is healthy that t
 `POST`ed message(s) will be delivered. There is a finite in-memory buffer that is
 used when the backend TCP connection is unavailable.
 
+Upon receiving `SIGTERM` log-iss will stop ingesting logs and respond to all `POST`s
+with responses having status 503.
+
 ## Configuration
 
 log-iss is configured via the environment.

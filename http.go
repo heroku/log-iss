@@ -15,22 +15,36 @@ type Payload struct {
 }
 
 type HttpServer struct {
-	Config  *IssConfig
-	Metrics *Metrics
-	Outlet  chan Payload
+	Config         *IssConfig
+	Metrics        *Metrics
+	Outlet         chan Payload
+	ShutdownCh     chan int
+	isShuttingDown bool
 }
 
 func NewHttpServer(config *IssConfig, outlet chan Payload, metrics *Metrics) *HttpServer {
-	return &HttpServer{config, metrics, outlet}
+	return &HttpServer{config, metrics, outlet, make(chan int), false}
 }
 
 func (s *HttpServer) Run() error {
+	go s.awaitShutdown()
+
 	http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+		if s.isShuttingDown {
+			http.Error(w, "Shutting down", 503)
+			return
+		}
+
 		// check outlet depth?
 		Logf("measure.http.health.get=1")
 	})
 
 	http.HandleFunc("/logs", func(w http.ResponseWriter, r *http.Request) {
+		if s.isShuttingDown {
+			http.Error(w, "Shutting down", 503)
+			return
+		}
+
 		if r.Method != "POST" {
 			http.Error(w, "Only POST is accepted", 400)
 			return
@@ -67,6 +81,12 @@ func (s *HttpServer) Run() error {
 	}
 
 	return nil
+}
+
+func (s *HttpServer) awaitShutdown() {
+	<-s.ShutdownCh
+	Logf("ns=http at=shutdown")
+	s.isShuttingDown = true
 }
 
 func (s *HttpServer) checkAuth(r *http.Request) error {
