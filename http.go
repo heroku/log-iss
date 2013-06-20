@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"strings"
+	"time"
 )
 
 type Payload struct {
@@ -73,8 +74,13 @@ func (s *HttpServer) Run() error {
 			remoteAddr = strings.Join(remoteAddrParts[:len(remoteAddrParts)-1], ":")
 		}
 
-		s.Metrics.Inbox <- NewCount("http.logs.post", 1)
-		s.sendAndWait(remoteAddr, b)
+		if err := s.sendAndWait(remoteAddr, b); err != nil {
+			http.Error(w, "Problem delivering messages", 500)
+			Logf("measure.http.logs.post.error=1 message=%q", err)
+			return
+		}
+
+		s.Metrics.Inbox <- NewCount("http.logs.post.success", 1)
 	})
 
 	if err := http.ListenAndServe(":"+s.Config.HttpPort, nil); err != nil {
@@ -129,8 +135,14 @@ func (s *HttpServer) checkAuth(r *http.Request) error {
 	return nil
 }
 
-func (s *HttpServer) sendAndWait(remoteAddr string, b []byte) {
+func (s *HttpServer) sendAndWait(remoteAddr string, b []byte) error {
 	waitCh := make(chan bool)
+	deadlineCh := time.After(time.Duration(5) * time.Second)
 	s.Outlet <- Payload{remoteAddr, b, waitCh}
-	<-waitCh
+	select {
+	case <-waitCh:
+		return nil
+	case <-deadlineCh:
+		return errors.New("Delivery timed out")
+	}
 }
