@@ -149,7 +149,13 @@ func (s *HttpServer) sendAndWait(remoteAddr string, b []byte) error {
 
 	waitCh := make(chan bool)
 	deadlineCh := time.After(time.Duration(5) * time.Second)
-	s.Outlet <- Payload{remoteAddr, b, waitCh}
+
+	select {
+	case s.Outlet <- Payload{remoteAddr, b, waitCh}:
+	case <-deadlineCh:
+		return errors.New("Delivery timed out")
+	}
+
 	select {
 	case <-waitCh:
 		return nil
