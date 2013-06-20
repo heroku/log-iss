@@ -30,14 +30,12 @@ func TestFix(t *testing.T) {
 			[][]byte{
 				[]byte("87 <13>1 2013-06-07T13:17:49.468822+00:00 host heroku web.7 - [origin ip=\"1.2.3.4\"] hello\n"),
 			},
-
 		},
 		InputOutput{
 			[]byte("58 <13>1 2013-06-07T13:17:49.468822+00:00 host heroku web.7 - "),
 			[][]byte{
 				[]byte("80 <13>1 2013-06-07T13:17:49.468822+00:00 host heroku web.7 - [origin ip=\"1.2.3.4\"]"),
 			},
-
 		},
 	}
 

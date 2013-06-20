@@ -74,7 +74,7 @@ func (s *HttpServer) Run() error {
 		}
 
 		s.Metrics.Inbox <- NewCount("http.logs.post", 1)
-		s.deliverAndWait(remoteAddr, b)
+		s.sendAndWait(remoteAddr, b)
 	})
 
 	if err := http.ListenAndServe(":"+s.Config.HttpPort, nil); err != nil {
@@ -129,7 +129,7 @@ func (s *HttpServer) checkAuth(r *http.Request) error {
 	return nil
 }
 
-func (s *HttpServer) deliverAndWait(remoteAddr string, b []byte) {
+func (s *HttpServer) sendAndWait(remoteAddr string, b []byte) {
 	waitCh := make(chan bool)
 	s.Outlet <- Payload{remoteAddr, b, waitCh}
 	<-waitCh
