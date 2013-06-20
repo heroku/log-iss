@@ -5,13 +5,15 @@ import (
 	"github.com/bmizerany/lpx"
 	"io/ioutil"
 	"strconv"
+	"time"
 )
 
 type MessageBody []byte
 
 type Message struct {
-	Body   MessageBody
-	WaitCh chan bool
+	Body      MessageBody
+	RequestId string
+	WaitCh    chan bool
 }
 
 type Fixer struct {
@@ -31,15 +33,17 @@ func (f *Fixer) Start() {
 func (f *Fixer) Run() {
 	for p := range f.Inbox {
 		for _, fixed := range Fix(p) {
-			f.sendAndWait(fixed)
+			start := time.Now()
+			f.sendAndWait(fixed, p.RequestId)
+			Logf("measure.fixer.process.duration=%dms request_id=%q", time.Since(start)/time.Millisecond, p.RequestId)
 		}
 		p.WaitCh <- true
 	}
 }
 
-func (f *Fixer) sendAndWait(messageBody MessageBody) {
+func (f *Fixer) sendAndWait(messageBody MessageBody, requestId string) {
 	waitCh := make(chan bool)
-	f.Outlet <- Message{messageBody, waitCh}
+	f.Outlet <- Message{messageBody, requestId, waitCh}
 	<-waitCh
 }
 

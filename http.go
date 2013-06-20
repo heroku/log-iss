@@ -14,22 +14,21 @@ import (
 type Payload struct {
 	SourceAddr string
 	Body       []byte
+	RequestId  string
 	WaitCh     chan bool
 }
 
 type HttpServer struct {
 	Config         *IssConfig
-	Metrics        *Metrics
 	Outlet         chan Payload
 	InFlightWg     sync.WaitGroup
 	ShutdownCh     ShutdownCh
 	isShuttingDown bool
 }
 
-func NewHttpServer(config *IssConfig, outlet chan Payload, metrics *Metrics) *HttpServer {
+func NewHttpServer(config *IssConfig, outlet chan Payload) *HttpServer {
 	return &HttpServer{
 		Config:         config,
-		Metrics:        metrics,
 		Outlet:         outlet,
 		ShutdownCh:     make(chan int),
 		isShuttingDown: false,
@@ -50,6 +49,12 @@ func (s *HttpServer) Run() error {
 	})
 
 	http.HandleFunc("/logs", func(w http.ResponseWriter, r *http.Request) {
+		start := time.Now()
+
+		// We either don't need the body or read it fully below, don't bother
+		// trying to do anything more with it after this func returns.
+		r.Header.Add("Connection", "close")
+
 		if s.isShuttingDown {
 			http.Error(w, "Shutting down", 503)
 			return
@@ -59,6 +64,7 @@ func (s *HttpServer) Run() error {
 			http.Error(w, "Only POST is accepted", 400)
 			return
 		}
+
 		if r.Header.Get("Content-Type") != "application/logplex-1" {
 			http.Error(w, "Only Content-Type application/logplex-1 is accepted", 400)
 			return
@@ -70,7 +76,6 @@ func (s *HttpServer) Run() error {
 		}
 
 		b, err := ioutil.ReadAll(r.Body)
-		r.Body.Close()
 		if err != nil {
 			http.Error(w, "Invalid Request", 400)
 			return
@@ -82,13 +87,19 @@ func (s *HttpServer) Run() error {
 			remoteAddr = strings.Join(remoteAddrParts[:len(remoteAddrParts)-1], ":")
 		}
 
-		if err := s.sendAndWait(remoteAddr, b); err != nil {
+		requestId := r.Header.Get("Heroku-Request-Id")
+
+		defer func() {
+			Logf("measure.http.logs.post.duration=%dms request_id=%q", time.Since(start)/time.Millisecond, requestId)
+		}()
+
+		if err := s.sendAndWait(remoteAddr, b, requestId); err != nil {
 			http.Error(w, "Problem delivering messages", 504)
-			Logf("measure.http.logs.post.error=1 message=%q", err)
+			Logf("measure.http.logs.post.error=1 message=%q request_id=%q", err, requestId)
 			return
 		}
 
-		s.Metrics.Inbox <- NewCount("http.logs.post.success", 1)
+		Logf("measure.http.logs.post.success=1 request_id=%q", requestId)
 	})
 
 	if err := http.ListenAndServe(":"+s.Config.HttpPort, nil); err != nil {
@@ -143,23 +154,31 @@ func (s *HttpServer) checkAuth(r *http.Request) error {
 	return nil
 }
 
-func (s *HttpServer) sendAndWait(remoteAddr string, b []byte) error {
+func (s *HttpServer) sendAndWait(remoteAddr string, b []byte, requestId string) error {
 	s.InFlightWg.Add(1)
 	defer s.InFlightWg.Done()
 
 	waitCh := make(chan bool)
+	p := Payload{remoteAddr, b, requestId, waitCh}
 	deadlineCh := time.After(time.Duration(5) * time.Second)
 
+	var start time.Time
+
+	start = time.Now()
 	select {
-	case s.Outlet <- Payload{remoteAddr, b, waitCh}:
+	case s.Outlet <- p:
 	case <-deadlineCh:
 		return errors.New("Delivery timed out")
 	}
+	Logf("measure.http.logs.send.duration=%dms request_id=%q", time.Since(start)/time.Millisecond, requestId)
 
+	start = time.Now()
 	select {
 	case <-waitCh:
+		Logf("measure.http.logs.wait.duration=%dms request_id=%q", time.Since(start)/time.Millisecond, requestId)
 		return nil
 	case <-deadlineCh:
+		Logf("measure.http.logs.wait.duration=%dms request_id=%q", time.Since(start)/time.Millisecond, requestId)
 		return errors.New("Delivery timed out")
 	}
 }

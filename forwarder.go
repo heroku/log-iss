@@ -5,21 +5,36 @@ import (
 	"time"
 )
 
-type Forwarder struct {
-	Config          *IssConfig
-	Metrics         *Metrics
-	Inbox           chan Message
-	c               net.Conn
-	messagesWritten uint64
-	bytesWritten    uint64
+type ForwarderSet struct {
+	Config *IssConfig
+	Inbox  chan Message
 }
 
-func NewForwarder(config *IssConfig, metrics *Metrics) *Forwarder {
-	forwarder := new(Forwarder)
-	forwarder.Inbox = make(chan Message)
-	forwarder.Config = config
-	forwarder.Metrics = metrics
-	return forwarder
+type Forwarder struct {
+	Id  int
+	Set *ForwarderSet
+	c   net.Conn
+}
+
+func NewForwarderSet(config *IssConfig) *ForwarderSet {
+	return &ForwarderSet{
+		Config: config,
+		Inbox:  make(chan Message, 1000),
+	}
+}
+
+func (fs *ForwarderSet) Start() {
+	for i := 0; i < 4; i++ {
+		forwarder := NewForwarder(fs, i)
+		forwarder.Start()
+	}
+}
+
+func NewForwarder(set *ForwarderSet, id int) *Forwarder {
+	return &Forwarder{
+		Id:  id,
+		Set: set,
+	}
 }
 
 func (f *Forwarder) Start() {
@@ -27,9 +42,11 @@ func (f *Forwarder) Start() {
 }
 
 func (f *Forwarder) Run() {
-	for m := range f.Inbox {
+	for m := range f.Set.Inbox {
+		start := time.Now()
 		f.write(m.Body)
 		m.WaitCh <- true
+		Logf("measure.forwarder.process.duration=%dms id=%d request_id=%q", time.Since(start)/time.Millisecond, f.Id, m.RequestId)
 	}
 }
 
@@ -40,12 +57,14 @@ func (f *Forwarder) connect() {
 
 	rate := time.Tick(200 * time.Millisecond)
 	for {
-		Logf("measure.forwarder.connect.attempt=1")
-		if c, err := net.DialTimeout("tcp", f.Config.ForwardDest, f.Config.ForwardDestConnectTimeout); err != nil {
-			Logf("measure.forwarder.connect.error=1 message=%q", err)
+		start := time.Now()
+		Logf("measure.forwarder.connect.attempt=1 id=%d", f.Id)
+		if c, err := net.DialTimeout("tcp", f.Set.Config.ForwardDest, f.Set.Config.ForwardDestConnectTimeout); err != nil {
+			Logf("measure.forwarder.connect.error=1 id=%d message=%q", f.Id, err)
 			f.disconnect()
 		} else {
-			Logf("measure.forwarder.connect.success=1")
+			Logf("measure.forwarder.connect.duration=%dms id=%d", time.Since(start)/time.Millisecond, f.Id)
+			Logf("measure.forwarder.connect.success=1 id=%d", f.Id)
 			f.c = c
 			return
 		}
@@ -58,18 +77,23 @@ func (f *Forwarder) disconnect() {
 		f.c.Close()
 	}
 	f.c = nil
+	Logf("measure.forwarder.disconnect.success=1 id=%d", f.Id)
 }
 
 func (f *Forwarder) write(b []byte) {
-	for {
+	var written int
+
+	for written < len(b) {
 		f.connect()
-		if n, err := f.c.Write(b); err != nil {
-			Logf("measure.forwarder.write.error=1 message=%q", err)
+
+		if n, err := f.c.Write(b[written:]); err != nil {
+			Logf("measure.forwarder.write.error=1 id=%d message=%q", f.Id, err)
 			f.disconnect()
 		} else {
-			f.Metrics.Inbox <- NewCount("forwarder.write.messages", 1)
-			f.Metrics.Inbox <- NewCount("forwarder.write.bytes", uint64(n))
-			break
+			written += n
 		}
 	}
+
+	Logf("measure.forwarder.write.success.messages=1 id=%d", f.Id)
+	Logf("measure.forwarder.write.success.bytes=%d id=%d", written, f.Id)
 }
