@@ -11,9 +11,9 @@ Log delivery is synchronous, with a five second timeout. If log-iss is unable to
 write `POST`ed messages to the backend TCP connection within the timeout it will
 respond with status 504.
 
-Upon receiving `SIGTERM` or `SIGINT` log-iss will stop ingesting logs, respond to all
-`POST`s with responses having status 503, wait for pending deliveries to drain, then
-exit.
+Upon receiving `SIGTERM` or `SIGINT` log-iss will stop ingesting logs, respond to
+all `POST`s with status 503, wait for pending deliveries (subject to the five
+second timeout) to drain, then exit.
 
 ## Configuration
 
