@@ -27,16 +27,10 @@ func (f *Forwarder) Start() {
 }
 
 func (f *Forwarder) Run() {
-	f.Metrics.RegisterFunc(f.InboxMetrics)
-
 	for m := range f.Inbox {
 		f.write(m.Body)
 		m.WaitCh <- true
 	}
-}
-
-func (f *Forwarder) InboxMetrics() Measurement {
-	return NewCount("forwarder.inbox.depth", uint64(len(f.Inbox)))
 }
 
 func (f *Forwarder) connect() {
