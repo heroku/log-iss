@@ -7,13 +7,13 @@ might be listening.
 
 An example submitter to log-iss is [log-shuttle](http://log-shuttle.io/).
 
-Currently log delivery is best-effort. It can be reasonably assumed that if log-iss
-receives a `POST` with log data and the backend TCP connection is healthy that the
-`POST`ed message(s) will be delivered. There is a finite in-memory buffer that is
-used when the backend TCP connection is unavailable.
+Log delivery is synchronous, with a five second timeout. If log-iss is unable to
+write `POST`ed messages to the backend TCP connection within the timeout it will
+respond with status 504.
 
-Upon receiving `SIGTERM` log-iss will stop ingesting logs and respond to all `POST`s
-with responses having status 503.
+Upon receiving `SIGTERM` or `SIGINT` log-iss will stop ingesting logs, respond to all
+`POST`s with responses having status 503, wait for pending deliveries to drain, then
+exit.
 
 ## Configuration
 

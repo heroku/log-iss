@@ -83,7 +83,7 @@ func (s *HttpServer) Run() error {
 		}
 
 		if err := s.sendAndWait(remoteAddr, b); err != nil {
-			http.Error(w, "Problem delivering messages", 500)
+			http.Error(w, "Problem delivering messages", 504)
 			Logf("measure.http.logs.post.error=1 message=%q", err)
 			return
 		}
