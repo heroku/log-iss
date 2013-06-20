@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -20,12 +21,19 @@ type HttpServer struct {
 	Config         *IssConfig
 	Metrics        *Metrics
 	Outlet         chan Payload
+	InFlightWg     sync.WaitGroup
 	ShutdownCh     chan int
 	isShuttingDown bool
 }
 
 func NewHttpServer(config *IssConfig, outlet chan Payload, metrics *Metrics) *HttpServer {
-	return &HttpServer{config, metrics, outlet, make(chan int), false}
+	return &HttpServer{
+		Config:         config,
+		Metrics:        metrics,
+		Outlet:         outlet,
+		ShutdownCh:     make(chan int),
+		isShuttingDown: false,
+	}
 }
 
 func (s *HttpServer) Run() error {
@@ -136,6 +144,9 @@ func (s *HttpServer) checkAuth(r *http.Request) error {
 }
 
 func (s *HttpServer) sendAndWait(remoteAddr string, b []byte) error {
+	s.InFlightWg.Add(1)
+	defer s.InFlightWg.Done()
+
 	waitCh := make(chan bool)
 	deadlineCh := time.After(time.Duration(5) * time.Second)
 	s.Outlet <- Payload{remoteAddr, b, waitCh}
