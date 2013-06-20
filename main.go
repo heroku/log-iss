@@ -17,11 +17,11 @@ func Logf(format string, a ...interface{}) {
 	fmt.Printf("app=log-iss source=%s %s\n", Config.Deploy, orig)
 }
 
-func awaitSigterm(chs []ShutdownCh) {
+func awaitShutdownSignals(chs []ShutdownCh) {
 	sigCh := make(chan os.Signal)
-	signal.Notify(sigCh, syscall.SIGTERM)
-	<-sigCh
-	Logf("ns=main at=sigterm")
+	signal.Notify(sigCh, syscall.SIGTERM, syscall.SIGINT)
+	sig := <-sigCh
+	Logf("ns=main at=shutdown-signal signal=%q", sig)
 	for _, ch := range chs {
 		ch <- 1
 	}
@@ -47,7 +47,7 @@ func main() {
 
 	httpServer := NewHttpServer(Config, fixer.Inbox, metrics)
 
-	go awaitSigterm([]ShutdownCh{httpServer.ShutdownCh, shutdownCh})
+	go awaitShutdownSignals([]ShutdownCh{httpServer.ShutdownCh, shutdownCh})
 
 	go func() {
 		if err := httpServer.Run(); err != nil {
@@ -55,6 +55,9 @@ func main() {
 		}
 	}()
 
+	Logf("ns=main at=start")
 	<-shutdownCh
+	Logf("ns=main at=drain")
 	httpServer.InFlightWg.Wait()
+	Logf("ns=main at=exit")
 }

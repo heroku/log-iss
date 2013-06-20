@@ -22,7 +22,7 @@ type HttpServer struct {
 	Metrics        *Metrics
 	Outlet         chan Payload
 	InFlightWg     sync.WaitGroup
-	ShutdownCh     chan int
+	ShutdownCh     ShutdownCh
 	isShuttingDown bool
 }
 
