@@ -35,7 +35,7 @@ func (f *Fixer) Run() {
 		for _, fixed := range Fix(p) {
 			start := time.Now()
 			f.sendAndWait(fixed, p.RequestId)
-			Logf("measure.fixer.process.duration=%dms request_id=%q", time.Since(start)/time.Millisecond, p.RequestId)
+			Logf("measure.log-iss.fixer.process.duration=%dms request_id=%q", time.Since(start)/time.Millisecond, p.RequestId)
 		}
 		p.WaitCh <- true
 	}
@@ -89,7 +89,7 @@ func Fix(payload Payload) []MessageBody {
 		messageWriter.WriteTo(&messageLenWriter)
 
 		if fullMessage, err := ioutil.ReadAll(&messageLenWriter); err != nil {
-			Logf("measure.fixer.fix.error.readall=1 message=%q", err)
+			Logf("measure.log-iss.fixer.fix.error.readall=1 message=%q", err)
 			continue
 		} else {
 			messages = append(messages, fullMessage)
@@ -97,7 +97,7 @@ func Fix(payload Payload) []MessageBody {
 	}
 
 	if lp.Err() != nil {
-		Logf("measure.fixer.fix.error.lpx=1 message=%q", lp.Err())
+		Logf("measure.log-iss.fixer.fix.error.lpx=1 message=%q", lp.Err())
 	}
 
 	return messages

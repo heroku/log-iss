@@ -46,7 +46,7 @@ func (f *Forwarder) Run() {
 		start := time.Now()
 		f.write(m.Body)
 		m.WaitCh <- true
-		Logf("measure.forwarder.process.duration=%dms id=%d request_id=%q", time.Since(start)/time.Millisecond, f.Id, m.RequestId)
+		Logf("measure.log-iss.forwarder.process.duration=%dms id=%d request_id=%q", time.Since(start)/time.Millisecond, f.Id, m.RequestId)
 	}
 }
 
@@ -58,13 +58,13 @@ func (f *Forwarder) connect() {
 	rate := time.Tick(200 * time.Millisecond)
 	for {
 		start := time.Now()
-		Logf("measure.forwarder.connect.attempt=1 id=%d", f.Id)
+		Logf("measure.log-iss.forwarder.connect.attempt=1 id=%d", f.Id)
 		if c, err := net.DialTimeout("tcp", f.Set.Config.ForwardDest, f.Set.Config.ForwardDestConnectTimeout); err != nil {
-			Logf("measure.forwarder.connect.error=1 id=%d message=%q", f.Id, err)
+			Logf("measure.log-iss.forwarder.connect.error=1 id=%d message=%q", f.Id, err)
 			f.disconnect()
 		} else {
-			Logf("measure.forwarder.connect.duration=%dms id=%d", time.Since(start)/time.Millisecond, f.Id)
-			Logf("measure.forwarder.connect.success=1 id=%d", f.Id)
+			Logf("measure.log-iss.forwarder.connect.duration=%dms id=%d", time.Since(start)/time.Millisecond, f.Id)
+			Logf("measure.log-iss.forwarder.connect.success=1 id=%d", f.Id)
 			f.c = c
 			return
 		}
@@ -77,7 +77,7 @@ func (f *Forwarder) disconnect() {
 		f.c.Close()
 	}
 	f.c = nil
-	Logf("measure.forwarder.disconnect.success=1 id=%d", f.Id)
+	Logf("measure.log-iss.forwarder.disconnect.success=1 id=%d", f.Id)
 }
 
 func (f *Forwarder) write(b []byte) {
@@ -87,13 +87,13 @@ func (f *Forwarder) write(b []byte) {
 		f.connect()
 
 		if n, err := f.c.Write(b[written:]); err != nil {
-			Logf("measure.forwarder.write.error=1 id=%d message=%q", f.Id, err)
+			Logf("measure.log-iss.forwarder.write.error=1 id=%d message=%q", f.Id, err)
 			f.disconnect()
 		} else {
 			written += n
 		}
 	}
 
-	Logf("measure.forwarder.write.success.messages=1 id=%d", f.Id)
-	Logf("measure.forwarder.write.success.bytes=%d id=%d", written, f.Id)
+	Logf("measure.log-iss.forwarder.write.success.messages=1 id=%d", f.Id)
+	Logf("measure.log-iss.forwarder.write.success.bytes=%d id=%d", written, f.Id)
 }

@@ -45,7 +45,7 @@ func (s *HttpServer) Run() error {
 		}
 
 		// check outlet depth?
-		Logf("measure.http.health.get=1")
+		Logf("measure.log-iss.http.health.get=1")
 	})
 
 	http.HandleFunc("/logs", func(w http.ResponseWriter, r *http.Request) {
@@ -95,16 +95,16 @@ func (s *HttpServer) Run() error {
 		requestId := r.Header.Get("Heroku-Request-Id")
 
 		defer func() {
-			Logf("measure.http.logs.post.duration=%dms request_id=%q", time.Since(start)/time.Millisecond, requestId)
+			Logf("measure.log-iss.http.logs.post.duration=%dms request_id=%q", time.Since(start)/time.Millisecond, requestId)
 		}()
 
 		if err := s.sendAndWait(remoteAddr, b, requestId); err != nil {
 			http.Error(w, "Problem delivering messages", 504)
-			Logf("measure.http.logs.post.error=1 message=%q request_id=%q", err, requestId)
+			Logf("measure.log-iss.http.logs.post.error=1 message=%q request_id=%q", err, requestId)
 			return
 		}
 
-		Logf("measure.http.logs.post.success=1 request_id=%q", requestId)
+		Logf("measure.log-iss.http.logs.post.success=1 request_id=%q", requestId)
 	})
 
 	if err := http.ListenAndServe(":"+s.Config.HttpPort, nil); err != nil {
@@ -175,15 +175,15 @@ func (s *HttpServer) sendAndWait(remoteAddr string, b []byte, requestId string) 
 	case <-deadlineCh:
 		return errors.New("Delivery timed out")
 	}
-	Logf("measure.http.logs.send.duration=%dms request_id=%q", time.Since(start)/time.Millisecond, requestId)
+	Logf("measure.log-iss.http.logs.send.duration=%dms request_id=%q", time.Since(start)/time.Millisecond, requestId)
 
 	start = time.Now()
 	select {
 	case <-waitCh:
-		Logf("measure.http.logs.wait.duration=%dms request_id=%q", time.Since(start)/time.Millisecond, requestId)
+		Logf("measure.log-iss.http.logs.wait.duration=%dms request_id=%q", time.Since(start)/time.Millisecond, requestId)
 		return nil
 	case <-deadlineCh:
-		Logf("measure.http.logs.wait.duration=%dms request_id=%q", time.Since(start)/time.Millisecond, requestId)
+		Logf("measure.log-iss.http.logs.wait.duration=%dms request_id=%q", time.Since(start)/time.Millisecond, requestId)
 		return errors.New("Delivery timed out")
 	}
 }
