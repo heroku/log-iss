@@ -24,3 +24,4 @@ log-iss is configured via the environment.
 * `FORWARD_DEST`: TCP host and port to forward received logs to. Example: `FORWARD_DEST=127.0.0.1:5001`
 * `FORWARD_DEST_CONNECT_TIMEOUT`: Time in seconds to wait for a connection to `FORWARD_DEST`, default is `10`
 * `TOKEN_MAP`: A `,`-separated, `:`-separated list of usernames and tokens to accept. Example: `TOKEN_MAP=dan:logthis,system:islogging`
+* `ENFORCE_SSL`: If set to `1`, respond with 400 to any `POST`s where the `X-Forwarded-Proto` request header is not `https`

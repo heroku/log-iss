@@ -55,6 +55,11 @@ func (s *HttpServer) Run() error {
 		// trying to do anything more with it after this func returns.
 		r.Header.Add("Connection", "close")
 
+		if s.Config.EnforceSsl && r.Header.Get("X-Forwarded-Proto") != "https" {
+			http.Error(w, "Only SSL requests accepted", 400)
+			return
+		}
+
 		if s.isShuttingDown {
 			http.Error(w, "Shutting down", 503)
 			return

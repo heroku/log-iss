@@ -13,6 +13,7 @@ type IssConfig struct {
 	ForwardDestConnectTimeout time.Duration
 	HttpPort                  string
 	Tokens                    Tokens
+	EnforceSsl                bool
 }
 
 func NewIssConfig() (*IssConfig, error) {
@@ -57,6 +58,10 @@ func NewIssConfig() (*IssConfig, error) {
 		return nil, fmt.Errorf("Unable to parse tokens: %s", err)
 	}
 	config.Tokens = tokens
+
+	if os.Getenv("ENFORCE_SSL") == "1" {
+		config.EnforceSsl = true
+	}
 
 	return config, nil
 }
