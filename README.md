@@ -25,3 +25,26 @@ log-iss is configured via the environment.
 * `FORWARD_DEST_CONNECT_TIMEOUT`: Time in seconds to wait for a connection to `FORWARD_DEST`, default is `10`
 * `TOKEN_MAP`: A `,`-separated, `:`-separated list of usernames and tokens to accept. Example: `TOKEN_MAP=dan:logthis,system:islogging`
 * `ENFORCE_SSL`: If set to `1`, respond with 400 to any `POST`s where the `X-Forwarded-Proto` request header is not `https`
+
+## Running locally
+
+Assumes working [Go](http://golang.org/doc/install) installation with
+`$GOPATH/bin` in `$PATH` as well as something listening at port 5001 (could be
+`nc -l -k 5001` for very simple testing).
+
+```bash
+$ go get github.com/heroku/log-iss
+$ DEPLOY=local PORT=5000 FORWARD_DEST=localhost:5001 TOKEN_MAP=test:token log-iss
+# in another shell
+$ echo "64 <13>1 2013-06-07T13:17:49.468822+00:00 host heroku web.7 - - hi" | curl -v -u test:token -H "Content-Type: application/logplex-1" --data-binary @/dev/stdin http://localhost:5000/logs
+```
+
+## Running on the platform
+
+```bash
+$ DEPLOY=`whoami`
+$ heroku create log-iss-$DEPLOY -r $DEPLOY --buildpack https://codon-buildpacks.s3.amazonaws.com/buildpacks/kr/go.tgz
+$ heroku config:set -r log-iss-$DEPLOY DEPLOY=$DEPLOY ENFORCE_SSL=1 FORWARD_DEST=my-syslog-host.com:601 TOKEN_MAP=syslog:$(openssl rand -hex 20)
+$ git push $DEPLOY master
+$ echo "64 <13>1 2013-06-07T13:17:49.468822+00:00 host heroku web.7 - - hi" | curl -v -u syslog:<generated token> -H "Content-Type: application/logplex-1" --data-binary @/dev/stdin https://log-iss-$DEPLOY.herokuapp.com/logs
+```
