@@ -45,6 +45,7 @@ $ echo "64 <13>1 2013-06-07T13:17:49.468822+00:00 host heroku web.7 - - hi" | cu
 $ DEPLOY=`whoami`
 $ heroku create log-iss-$DEPLOY -r $DEPLOY --buildpack https://codon-buildpacks.s3.amazonaws.com/buildpacks/kr/go.tgz
 $ heroku config:set -r log-iss-$DEPLOY DEPLOY=$DEPLOY ENFORCE_SSL=1 FORWARD_DEST=my-syslog-host.com:601 TOKEN_MAP=syslog:$(openssl rand -hex 20)
+$ heroku labs:enable -r log-iss-$DEPLOY http-request-id
 $ git push $DEPLOY master
 $ echo "64 <13>1 2013-06-07T13:17:49.468822+00:00 host heroku web.7 - - hi" | curl -v -u syslog:<generated token> -H "Content-Type: application/logplex-1" --data-binary @/dev/stdin https://log-iss-$DEPLOY.herokuapp.com/logs
 ```
