@@ -37,12 +37,9 @@ func main() {
 	forwarderSet := NewForwarderSet(Config)
 	forwarderSet.Start()
 
-	fixer := NewFixer(Config, forwarderSet.Inbox)
-	fixer.Start()
-
 	shutdownCh := make(ShutdownCh)
 
-	httpServer := NewHttpServer(Config, fixer.Inbox)
+	httpServer := NewHttpServer(Config, Fix, forwarderSet.Inbox)
 
 	go awaitShutdownSignals([]ShutdownCh{httpServer.ShutdownCh, shutdownCh})
 

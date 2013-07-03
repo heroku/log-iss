@@ -1,63 +1,25 @@
 package main
 
 import (
+	"bufio"
 	"bytes"
 	"github.com/bmizerany/lpx"
+	"io"
 	"io/ioutil"
 	"strconv"
-	"time"
 )
 
-type MessageBody []byte
-
-type Message struct {
-	Body      MessageBody
-	RequestId string
-	WaitCh    chan bool
-}
-
-type Fixer struct {
-	Config *IssConfig
-	Inbox  chan Payload
-	Outlet chan Message
-}
-
-func NewFixer(config *IssConfig, outlet chan Message) *Fixer {
-	return &Fixer{config, make(chan Payload), outlet}
-}
-
-func (f *Fixer) Start() {
-	go f.Run()
-}
-
-func (f *Fixer) Run() {
-	for p := range f.Inbox {
-		for _, fixed := range Fix(p) {
-			start := time.Now()
-			f.sendAndWait(fixed, p.RequestId)
-			Logf("measure.log-iss.fixer.process.duration=%dms request_id=%q", time.Since(start)/time.Millisecond, p.RequestId)
-		}
-		p.WaitCh <- true
-	}
-}
-
-func (f *Fixer) sendAndWait(messageBody MessageBody, requestId string) {
-	waitCh := make(chan bool)
-	f.Outlet <- Message{messageBody, requestId, waitCh}
-	<-waitCh
-}
-
-func Fix(payload Payload) []MessageBody {
+func Fix(r io.Reader, remoteAddr string, requestId string) ([]byte, error) {
 	nilVal := []byte(`- `)
 
-	messages := make([]MessageBody, 0)
+	var messageWriter bytes.Buffer
+	var messageLenWriter bytes.Buffer
 
-	lp := lpx.NewReader(bytes.NewBuffer(payload.Body))
+	lp := lpx.NewReader(bufio.NewReader(r))
 	for lp.Next() {
 		header := lp.Header()
 
 		// LEN SP PRI VERSION SP TIMESTAMP SP HOSTNAME SP APP-NAME SP PROCID SP MSGID SP STRUCTURED-DATA MSG
-		var messageWriter bytes.Buffer
 		messageWriter.Write(header.PrivalVersion)
 		messageWriter.WriteString(" ")
 		messageWriter.Write(header.Time)
@@ -70,7 +32,7 @@ func Fix(payload Payload) []MessageBody {
 		messageWriter.WriteString(" ")
 		messageWriter.Write(header.Msgid)
 		messageWriter.WriteString(" [origin ip=\"")
-		messageWriter.WriteString(payload.SourceAddr)
+		messageWriter.WriteString(remoteAddr)
 		messageWriter.WriteString("\"]")
 
 		b := lp.Bytes()
@@ -83,22 +45,20 @@ func Fix(payload Payload) []MessageBody {
 			messageWriter.Write(b)
 		}
 
-		var messageLenWriter bytes.Buffer
 		messageLenWriter.WriteString(strconv.Itoa(messageWriter.Len()))
 		messageLenWriter.WriteString(" ")
 		messageWriter.WriteTo(&messageLenWriter)
-
-		if fullMessage, err := ioutil.ReadAll(&messageLenWriter); err != nil {
-			Logf("measure.log-iss.fixer.fix.error.readall=1 message=%q", err)
-			continue
-		} else {
-			messages = append(messages, fullMessage)
-		}
 	}
 
 	if lp.Err() != nil {
-		Logf("measure.log-iss.fixer.fix.error.lpx=1 message=%q", lp.Err())
+		Logf("measure.log-iss.fixer.fix.error.lpx=1 request_id=%q message=%q", requestId, lp.Err())
+		return nil, lp.Err()
 	}
 
-	return messages
+	if fullMessage, err := ioutil.ReadAll(&messageLenWriter); err != nil {
+		Logf("measure.log-iss.fixer.fix.error.readall=1 request_id=%q message=%q", requestId, err)
+		return nil, err
+	} else {
+		return fullMessage, nil
+	}
 }

@@ -7,7 +7,7 @@ import (
 
 type ForwarderSet struct {
 	Config *IssConfig
-	Inbox  chan Message
+	Inbox  chan *Payload
 }
 
 type Forwarder struct {
@@ -19,7 +19,7 @@ type Forwarder struct {
 func NewForwarderSet(config *IssConfig) *ForwarderSet {
 	return &ForwarderSet{
 		Config: config,
-		Inbox:  make(chan Message, 1000),
+		Inbox:  make(chan *Payload, 1000),
 	}
 }
 
@@ -42,11 +42,11 @@ func (f *Forwarder) Start() {
 }
 
 func (f *Forwarder) Run() {
-	for m := range f.Set.Inbox {
+	for p := range f.Set.Inbox {
 		start := time.Now()
-		f.write(m.Body)
-		m.WaitCh <- true
-		Logf("measure.log-iss.forwarder.process.duration=%dms id=%d request_id=%q", time.Since(start)/time.Millisecond, f.Id, m.RequestId)
+		f.write(p.Body)
+		p.WaitCh <- true
+		Logf("measure.log-iss.forwarder.process.duration=%dms id=%d request_id=%q", time.Since(start)/time.Millisecond, f.Id, p.RequestId)
 	}
 }
 
