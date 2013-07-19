@@ -44,7 +44,7 @@ func (f *Forwarder) Start() {
 func (f *Forwarder) Run() {
 	for p := range f.Set.Inbox {
 		start := time.Now()
-		f.write(p.Body)
+		f.write(p)
 		p.WaitCh <- true
 		Logf("measure.log-iss.forwarder.process.duration=%dms id=%d request_id=%q", time.Since(start)/time.Millisecond, f.Id, p.RequestId)
 	}
@@ -80,20 +80,14 @@ func (f *Forwarder) disconnect() {
 	Logf("measure.log-iss.forwarder.disconnect.success=1 id=%d", f.Id)
 }
 
-func (f *Forwarder) write(b []byte) {
-	var written int
+func (f *Forwarder) write(p *Payload) {
+	f.connect()
 
-	for written < len(b) {
-		f.connect()
-
-		if n, err := f.c.Write(b[written:]); err != nil {
-			Logf("measure.log-iss.forwarder.write.error=1 id=%d message=%q", f.Id, err)
-			f.disconnect()
-		} else {
-			written += n
-		}
+	if n, err := f.c.Write(p.Body); err != nil {
+		Logf("measure.log-iss.forwarder.write.error=1 id=%d request_id=%q message=%q", f.Id, p.RequestId, err)
+		f.disconnect()
+	} else {
+		Logf("measure.log-iss.forwarder.write.success.messages=1 id=%d request_id=%q", f.Id, p.RequestId)
+		Logf("measure.log-iss.forwarder.write.success.bytes=%d id=%d request_id=%q", n, f.Id, p.RequestId)
 	}
-
-	Logf("measure.log-iss.forwarder.write.success.messages=1 id=%d", f.Id)
-	Logf("measure.log-iss.forwarder.write.success.bytes=%d id=%d", written, f.Id)
 }
