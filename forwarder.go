@@ -81,13 +81,16 @@ func (f *Forwarder) disconnect() {
 }
 
 func (f *Forwarder) write(p *Payload) {
-	f.connect()
+	for {
+		f.connect()
 
-	if n, err := f.c.Write(p.Body); err != nil {
-		Logf("measure.log-iss.forwarder.write.error=1 id=%d request_id=%q message=%q", f.Id, p.RequestId, err)
-		f.disconnect()
-	} else {
-		Logf("measure.log-iss.forwarder.write.success.messages=1 id=%d request_id=%q remote_addr=%s", f.Id, p.RequestId, f.c.RemoteAddr().String())
-		Logf("measure.log-iss.forwarder.write.success.bytes=%d id=%d request_id=%q remote_addr=%s", n, f.Id, p.RequestId, f.c.RemoteAddr().String())
+		if n, err := f.c.Write(p.Body); err != nil {
+			Logf("measure.log-iss.forwarder.write.error=1 id=%d request_id=%q message=%q", f.Id, p.RequestId, err)
+			f.disconnect()
+		} else {
+			Logf("measure.log-iss.forwarder.write.success.messages=1 id=%d request_id=%q remote_addr=%s", f.Id, p.RequestId, f.c.RemoteAddr().String())
+			Logf("measure.log-iss.forwarder.write.success.bytes=%d id=%d request_id=%q remote_addr=%s", n, f.Id, p.RequestId, f.c.RemoteAddr().String())
+			return
+		}
 	}
 }
