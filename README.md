@@ -15,6 +15,9 @@ Upon receiving `SIGTERM` or `SIGINT` log-iss will stop ingesting logs, respond t
 all `POST`s with status 503, wait for pending deliveries (subject to the five
 second timeout) to drain, then exit.
 
+log-iss will use four persistent connections per process to the destination
+configured in `FORWARD_DEST`.
+
 ## Configuration
 
 log-iss is configured via the environment.
