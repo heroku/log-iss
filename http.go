@@ -170,13 +170,14 @@ func (s *HttpServer) process(r io.Reader, remoteAddr string, requestId string) (
 	}
 	Logf("measure.log-iss.http.logs.fixer-func.duration=%dms request_id=%q", time.Since(start)/time.Millisecond, requestId)
 
-	waitCh := make(chan bool)
+	waitCh := make(chan bool, 1)
 	deadlineCh := time.After(time.Duration(5) * time.Second)
 
 	start = time.Now()
 	select {
 	case s.Outlet <- &Payload{remoteAddr, requestId, fixedBody, waitCh}:
 	case <-deadlineCh:
+		Logf("measure.log-iss.http.logs.send.error=1 error=timeout request_id=%q", requestId)
 		return errors.New("Problem delivering message"), 504
 	}
 	Logf("measure.log-iss.http.logs.send.duration=%dms request_id=%q", time.Since(start)/time.Millisecond, requestId)
@@ -185,6 +186,7 @@ func (s *HttpServer) process(r io.Reader, remoteAddr string, requestId string) (
 	select {
 	case <-waitCh:
 	case <-deadlineCh:
+		Logf("measure.log-iss.http.logs.wait.error=1 error=timeout request_id=%q", requestId)
 		return errors.New("Problem delivering message"), 504
 	}
 	Logf("measure.log-iss.http.logs.wait.duration=%dms request_id=%q", time.Since(start)/time.Millisecond, requestId)
