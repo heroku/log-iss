@@ -84,6 +84,7 @@ func (f *Forwarder) write(p *Payload) {
 	for {
 		f.connect()
 
+		f.c.SetWriteDeadline(time.Now().Add(1 * time.Second))
 		if n, err := f.c.Write(p.Body); err != nil {
 			Logf("measure.log-iss.forwarder.write.error=1 id=%d request_id=%q message=%q", f.Id, p.RequestId, err)
 			f.disconnect()
