@@ -18,6 +18,9 @@ second timeout) to drain, then exit.
 log-iss will use four persistent connections per process to the destination
 configured in `FORWARD_DEST`.
 
+log-iss uses the [`Heroku-Request-Id`](https://devcenter.heroku.com/articles/http-request-id)
+header in its logging to group operations by request.
+
 ## Configuration
 
 log-iss is configured via the environment.
