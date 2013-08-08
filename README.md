@@ -21,11 +21,13 @@ configured in `FORWARD_DEST`.
 log-iss uses the [`Heroku-Request-Id`](https://devcenter.heroku.com/articles/http-request-id)
 header in its logging to group operations by request.
 
+log-iss emits metrics using the [l2met convention](https://github.com/ryandotsmith/l2met/wiki/Usage#logging-convention).
+
 ## Configuration
 
 log-iss is configured via the environment.
 
-* `DEPLOY`: A label naming this instance of log-iss. Used as the `source` value for [l2met](https://github.com/ryandotsmith/l2met#log-conventions)-compatible log lines.
+* `DEPLOY`: A label naming this instance of log-iss. Used as the `source` value for [l2met](https://github.com/ryandotsmith/l2met/wiki/Usage#logging-convention)-compatible log lines.
 * `PORT`: TCP port number to make the endpoint available on. Given `PORT=5000`, the endpoint will be at `http://<host>:5000/logs`
 * `FORWARD_DEST`: TCP host and port to forward received logs to. Example: `FORWARD_DEST=127.0.0.1:5001`
 * `FORWARD_DEST_CONNECT_TIMEOUT`: Time in seconds to wait for a connection to `FORWARD_DEST`, default is `10`
@@ -50,8 +52,11 @@ $ echo "64 <13>1 2013-06-07T13:17:49.468822+00:00 host heroku web.7 - - hi" | cu
 ```bash
 $ DEPLOY=`whoami`
 $ heroku create log-iss-$DEPLOY -r $DEPLOY --buildpack https://codon-buildpacks.s3.amazonaws.com/buildpacks/kr/go.tgz
-$ heroku config:set -r log-iss-$DEPLOY DEPLOY=$DEPLOY ENFORCE_SSL=1 FORWARD_DEST=my-syslog-host.com:601 TOKEN_MAP=syslog:$(openssl rand -hex 20)
-$ heroku labs:enable -r log-iss-$DEPLOY http-request-id
+$ heroku config:set -r $DEPLOY DEPLOY=$DEPLOY ENFORCE_SSL=1 FORWARD_DEST=my-syslog-host.com:601 TOKEN_MAP=syslog:$(openssl rand -hex 20)
+$ heroku labs:enable -r $DEPLOY http-request-id
+$ heroku labs:enable -r $DEPLOY log-runtime-metrics
+# optional but ideal
+$ heroku drains:add -r $DEPLOY https://l2met.com/...
 $ git push $DEPLOY master
 $ echo "64 <13>1 2013-06-07T13:17:49.468822+00:00 host heroku web.7 - - hi" | curl -v -u syslog:<generated token> -H "Content-Type: application/logplex-1" --data-binary @/dev/stdin https://log-iss-$DEPLOY.herokuapp.com/logs
 ```
