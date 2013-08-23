@@ -46,7 +46,7 @@ func (f *Forwarder) Run() {
 		start := time.Now()
 		f.write(p)
 		p.WaitCh <- true
-		Logf("measure.log-iss.forwarder.process.duration=%dms id=%d request_id=%q", time.Since(start)/time.Millisecond, f.Id, p.RequestId)
+		Logf("measure#log-iss.forwarder.process.duration=%dms id=%d request_id=%q", time.Since(start)/time.Millisecond, f.Id, p.RequestId)
 	}
 }
 
@@ -58,12 +58,12 @@ func (f *Forwarder) connect() {
 	rate := time.Tick(200 * time.Millisecond)
 	for {
 		start := time.Now()
-		Logf("measure.log-iss.forwarder.connect.attempt=1 id=%d", f.Id)
+		Logf("count#log-iss.forwarder.connect.attempt=1 id=%d", f.Id)
 		if c, err := net.DialTimeout("tcp", f.Set.Config.ForwardDest, f.Set.Config.ForwardDestConnectTimeout); err != nil {
-			Logf("measure.log-iss.forwarder.connect.error=1 id=%d message=%q", f.Id, err)
+			Logf("count#log-iss.forwarder.connect.error=1 id=%d message=%q", f.Id, err)
 			f.disconnect()
 		} else {
-			Logf("measure.log-iss.forwarder.connect.success=1 measure.log-iss.forwarder.connect.duration=%dms id=%d remote_addr=%s", time.Since(start)/time.Millisecond, f.Id, c.RemoteAddr().String())
+			Logf("count#log-iss.forwarder.connect.success=1 measure#log-iss.forwarder.connect.duration=%dms id=%d remote_addr=%s", time.Since(start)/time.Millisecond, f.Id, c.RemoteAddr().String())
 			f.c = c
 			return
 		}
@@ -76,7 +76,7 @@ func (f *Forwarder) disconnect() {
 		f.c.Close()
 	}
 	f.c = nil
-	Logf("measure.log-iss.forwarder.disconnect.success=1 id=%d", f.Id)
+	Logf("count#log-iss.forwarder.disconnect.success=1 id=%d", f.Id)
 }
 
 func (f *Forwarder) write(p *Payload) {
@@ -85,10 +85,10 @@ func (f *Forwarder) write(p *Payload) {
 
 		f.c.SetWriteDeadline(time.Now().Add(1 * time.Second))
 		if n, err := f.c.Write(p.Body); err != nil {
-			Logf("measure.log-iss.forwarder.write.error=1 id=%d request_id=%q message=%q remote_addr=%s", f.Id, p.RequestId, err, f.c.RemoteAddr().String())
+			Logf("count#log-iss.forwarder.write.error=1 id=%d request_id=%q message=%q remote_addr=%s", f.Id, p.RequestId, err, f.c.RemoteAddr().String())
 			f.disconnect()
 		} else {
-			Logf("measure.log-iss.forwarder.write.success.messages=1 measure.log-iss.forwarder.write.success.bytes=%d id=%d request_id=%q remote_addr=%s", n, f.Id, p.RequestId, f.c.RemoteAddr().String())
+			Logf("count#log-iss.forwarder.write.success.messages=1 measure#log-iss.forwarder.write.success.bytes=%d id=%d request_id=%q remote_addr=%s", n, f.Id, p.RequestId, f.c.RemoteAddr().String())
 			return
 		}
 	}

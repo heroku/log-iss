@@ -49,7 +49,7 @@ func (s *HttpServer) Run() error {
 		}
 
 		// check outlet depth?
-		Logf("measure.log-iss.http.health.get=1")
+		Logf("count#log-iss.http.health.get=1")
 	})
 
 	http.HandleFunc("/logs", func(w http.ResponseWriter, r *http.Request) {
@@ -93,16 +93,16 @@ func (s *HttpServer) Run() error {
 		requestId := r.Header.Get("Heroku-Request-Id")
 
 		defer func() {
-			Logf("measure.log-iss.http.logs.post.duration=%dms request_id=%q", time.Since(start)/time.Millisecond, requestId)
+			Logf("measure#log-iss.http.logs.post.duration=%dms request_id=%q", time.Since(start)/time.Millisecond, requestId)
 		}()
 
 		if err, status := s.process(r.Body, remoteAddr, requestId); err != nil {
 			http.Error(w, err.Error(), status)
-			Logf("measure.log-iss.http.logs.post.error=1 message=%q request_id=%q status=%d", err, requestId, status)
+			Logf("count#log-iss.http.logs.post.error=1 message=%q request_id=%q status=%d", err, requestId, status)
 			return
 		}
 
-		Logf("measure.log-iss.http.logs.post.success=1 request_id=%q", requestId)
+		Logf("count#log-iss.http.logs.post.success=1 request_id=%q", requestId)
 	})
 
 	if err := http.ListenAndServe(":"+s.Config.HttpPort, nil); err != nil {
@@ -168,7 +168,7 @@ func (s *HttpServer) process(r io.Reader, remoteAddr string, requestId string) (
 	if err != nil {
 		return errors.New("Problem processing body"), 400
 	}
-	Logf("measure.log-iss.http.logs.fixer-func.duration=%dms request_id=%q", time.Since(start)/time.Millisecond, requestId)
+	Logf("measure#log-iss.http.logs.fixer-func.duration=%dms request_id=%q", time.Since(start)/time.Millisecond, requestId)
 
 	waitCh := make(chan bool, 1)
 	deadlineCh := time.After(time.Duration(5) * time.Second)
@@ -177,19 +177,19 @@ func (s *HttpServer) process(r io.Reader, remoteAddr string, requestId string) (
 	select {
 	case s.Outlet <- &Payload{remoteAddr, requestId, fixedBody, waitCh}:
 	case <-deadlineCh:
-		Logf("measure.log-iss.http.logs.send.error=1 error=timeout request_id=%q", requestId)
+		Logf("count#log-iss.http.logs.send.error=1 error=timeout request_id=%q", requestId)
 		return errors.New("Problem delivering message"), 504
 	}
-	Logf("measure.log-iss.http.logs.send.duration=%dms request_id=%q", time.Since(start)/time.Millisecond, requestId)
+	Logf("measure#log-iss.http.logs.send.duration=%dms request_id=%q", time.Since(start)/time.Millisecond, requestId)
 
 	start = time.Now()
 	select {
 	case <-waitCh:
 	case <-deadlineCh:
-		Logf("measure.log-iss.http.logs.wait.error=1 error=timeout request_id=%q", requestId)
+		Logf("count#log-iss.http.logs.wait.error=1 error=timeout request_id=%q", requestId)
 		return errors.New("Problem delivering message"), 504
 	}
-	Logf("measure.log-iss.http.logs.wait.duration=%dms request_id=%q", time.Since(start)/time.Millisecond, requestId)
+	Logf("measure#log-iss.http.logs.wait.duration=%dms request_id=%q", time.Since(start)/time.Millisecond, requestId)
 
 	return nil, 200
 }

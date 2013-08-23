@@ -51,12 +51,12 @@ func Fix(r io.Reader, remoteAddr string, requestId string) ([]byte, error) {
 	}
 
 	if lp.Err() != nil {
-		Logf("measure.log-iss.fixer.fix.error.lpx=1 request_id=%q message=%q", requestId, lp.Err())
+		Logf("count#log-iss.fixer.fix.error.lpx=1 request_id=%q message=%q", requestId, lp.Err())
 		return nil, lp.Err()
 	}
 
 	if fullMessage, err := ioutil.ReadAll(&messageLenWriter); err != nil {
-		Logf("measure.log-iss.fixer.fix.error.readall=1 request_id=%q message=%q", requestId, err)
+		Logf("count#log-iss.fixer.fix.error.readall=1 request_id=%q message=%q", requestId, err)
 		return nil, err
 	} else {
 		return fullMessage, nil
