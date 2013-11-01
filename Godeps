@@ -1,0 +1,10 @@
+{
+	"ImportPath": "github.com/dpiddy/log-iss",
+	"GoVersion": "go1.2rc3",
+	"Deps": [
+		{
+			"ImportPath": "github.com/bmizerany/lpx",
+			"Rev": "af85cf24c1567bcb5a2e4c21597cc049eab31f55"
+		}
+	]
+}
