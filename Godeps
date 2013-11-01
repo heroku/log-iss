@@ -1,5 +1,5 @@
 {
-	"ImportPath": "github.com/dpiddy/log-iss",
+	"ImportPath": "github.com/heroku/log-iss",
 	"GoVersion": "go1.2rc3",
 	"Deps": [
 		{
