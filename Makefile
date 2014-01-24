@@ -13,7 +13,7 @@ Architecture: amd64
 Maintainer: "Dan Peterson" <dan@heroku.com>
 Section: heroku
 Priority: optional
-Description: Move logs from the Dyno to the Logplex.
+Description: HTTP logs => syslog
 endef
 export DEB_CONTROL
 
