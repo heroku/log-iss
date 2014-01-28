@@ -90,7 +90,7 @@ func (s *HttpServer) Run() error {
 			remoteAddr = strings.Join(remoteAddrParts[:len(remoteAddrParts)-1], ":")
 		}
 
-		requestId := r.Header.Get("Heroku-Request-Id")
+		requestId := r.Header.Get("X-Request-ID")
 
 		defer func() {
 			Logf("measure#log-iss.http.logs.post.duration=%dms request_id=%q", time.Since(start)/time.Millisecond, requestId)
