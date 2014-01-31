@@ -15,7 +15,9 @@ func Fix(r io.Reader, remoteAddr string, requestId string) ([]byte, error) {
 	var messageWriter bytes.Buffer
 	var messageLenWriter bytes.Buffer
 
-	lp := lpx.NewReader(bufio.NewReader(r))
+	buf := bufio.NewReader(r)
+
+	lp := lpx.NewReader(buf)
 	for lp.Next() {
 		header := lp.Header()
 
@@ -52,6 +54,8 @@ func Fix(r io.Reader, remoteAddr string, requestId string) ([]byte, error) {
 
 	if lp.Err() != nil {
 		Logf("count#log-iss.fixer.fix.error.lpx=1 request_id=%q message=%q", requestId, lp.Err())
+		d, e := ioutil.ReadAll(buf)
+		Logf("data=\"%+v\", err=\"%+v\"", string(d), e)
 		return nil, lp.Err()
 	}
 
