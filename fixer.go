@@ -54,7 +54,11 @@ func Fix(r io.Reader, remoteAddr string, requestId string) ([]byte, error) {
 
 	if lp.Err() != nil {
 		Logf("count#log-iss.fixer.fix.error.lpx=1 request_id=%q message=%q", requestId, lp.Err())
-		Logf("request_id=%q readCopy=%q", requestId, readCopy.String())
+		tf, err := ioutil.TempFile("/tmp", "log-iss-debug")
+		if err == nil {
+			tf.Write(readCopy.Next(readCopy.Len()))
+			tf.Close()
+		}
 		return nil, lp.Err()
 	}
 
