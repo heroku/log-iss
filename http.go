@@ -18,7 +18,7 @@ type Payload struct {
 	WaitCh     chan bool
 }
 
-type FixerFunc func(io.Reader, string, string) ([]byte, error)
+type FixerFunc func(io.Reader, string, string, string) ([]byte, error)
 
 type HttpServer struct {
 	Config         *IssConfig
@@ -88,11 +88,13 @@ func (s *HttpServer) Run() error {
 
 		requestId := r.Header.Get("X-Request-Id")
 
+		logplexDrainToken := r.Header.Get("Logplex-Drain-Token")
+
 		defer func() {
 			Logf("measure#log-iss.http.logs.post.duration=%dms request_id=%q", time.Since(start)/time.Millisecond, requestId)
 		}()
 
-		if err, status := s.process(r.Body, remoteAddr, requestId); err != nil {
+		if err, status := s.process(r.Body, remoteAddr, requestId, logplexDrainToken); err != nil {
 			http.Error(w, err.Error(), status)
 			Logf("count#log-iss.http.logs.post.error=1 message=%q request_id=%q status=%d", err, requestId, status)
 			return
@@ -153,14 +155,14 @@ func (s *HttpServer) checkAuth(r *http.Request) error {
 	return nil
 }
 
-func (s *HttpServer) process(r io.Reader, remoteAddr string, requestId string) (error, int) {
+func (s *HttpServer) process(r io.Reader, remoteAddr string, requestId string, logplexDrainToken string) (error, int) {
 	s.InFlightWg.Add(1)
 	defer s.InFlightWg.Done()
 
 	var start time.Time
 
 	start = time.Now()
-	fixedBody, err := s.FixerFunc(r, remoteAddr, requestId)
+	fixedBody, err := s.FixerFunc(r, remoteAddr, requestId, logplexDrainToken)
 	if err != nil {
 		return errors.New("Problem processing body"), 400
 	}
