@@ -9,7 +9,11 @@ import (
 	"strconv"
 )
 
-func Fix(r io.Reader, remoteAddr string, requestId string) ([]byte, error) {
+const (
+	LOGPLEX_DEFAULT_HOST = "host" // https://github.com/heroku/logplex/blob/master/src/logplex_http_drain.erl#L443
+)
+
+func Fix(r io.Reader, remoteAddr string, requestId string, logplexDrainToken string) ([]byte, error) {
 	nilVal := []byte(`- `)
 
 	var messageWriter bytes.Buffer
@@ -26,7 +30,11 @@ func Fix(r io.Reader, remoteAddr string, requestId string) ([]byte, error) {
 		messageWriter.WriteString(" ")
 		messageWriter.Write(header.Time)
 		messageWriter.WriteString(" ")
-		messageWriter.Write(header.Hostname)
+		if string(header.Hostname) == LOGPLEX_DEFAULT_HOST && logplexDrainToken != "" {
+			messageWriter.WriteString(logplexDrainToken)
+		} else {
+			messageWriter.Write(header.Hostname)
+		}
 		messageWriter.WriteString(" ")
 		messageWriter.Write(header.Name)
 		messageWriter.WriteString(" ")
