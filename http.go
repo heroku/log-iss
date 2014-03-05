@@ -99,7 +99,7 @@ func (s *HttpServer) Run() error {
 		logplexDrainToken := r.Header.Get("Logplex-Drain-Token")
 		ctx.Add("logdrain_token", logplexDrainToken)
 
-		defer ctx.Measure("log-iss.http.logs.post.duration", time.Since(start))
+		defer func() { ctx.Measure("log-iss.http.logs.post.duration", time.Since(start)) }()
 
 		if err, status := s.process(r.Body, ctx, remoteAddr, requestId, logplexDrainToken); err != nil {
 			http.Error(w, err.Error(), status)
