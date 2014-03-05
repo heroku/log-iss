@@ -11,7 +11,7 @@ Sample use in a http.HandleFunc
     start := time.Now()
     ctx := slog.Context{}
     defer func() { fmt.Println(ctx) }
-    defer ctx.Measure("health.check.duration", time.Since(start))
+    defer func() { ctx.Measure("health.check.duration", time.Since(start)) }
 
     ctx.Count("health.check",1)
     ...stuff
@@ -101,6 +101,23 @@ func (c Context) Count(what string, value int) {
 // Pushes measure#what=value l2met formatted values onto the context
 func (c Context) Measure(what string, value interface{}) {
 	c[fmt.Sprintf("measure#%s", what)] = value
+}
+
+// Convenience wrapper for using defers to instrument method execution
+// times easily.
+//
+//  func Test() {
+//    ctx := Context{}
+//    defer func() { log.Print(ctx) }
+//    defer ctx.MeasureSince("duration", time.Now())
+//    time.Sleep(2 * time.Second)
+//  }
+//
+//  Outputs: measure#duration=2.00s
+//
+// Note: time.Now() is evaluated when the defer is declared
+func (c Context) MeasureSince(what string, when time.Time) {
+	c.Measure(what, time.Since(when))
 }
 
 // Pushes sample#what=value l2met formatted values onto the context

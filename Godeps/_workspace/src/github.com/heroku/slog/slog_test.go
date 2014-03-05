@@ -2,6 +2,8 @@ package slog
 
 import (
 	"fmt"
+	"regexp"
+	"testing"
 	"time"
 )
 
@@ -222,4 +224,28 @@ func ExampleContext_unique() {
 	//Output:
 	// unique#foo=12
 	// unique#foo=1
+}
+
+func TestMeasureSince(t *testing.T) {
+	testKey := "example.duration"
+	ctx := Context{}
+	when := time.Now()
+	ctx.MeasureSince(testKey, when)
+
+	expectedKey := "measure#" + testKey
+	duration, found := ctx["measure#example.duration"]
+	if !found {
+		t.Errorf("Expected key (%s) not found\n", expectedKey)
+	}
+
+	_, isDuration := duration.(time.Duration)
+	if !isDuration {
+		t.Errorf("Expected a time.Duration, but value wasn't")
+	}
+
+	resultPattern := regexp.MustCompile(fmt.Sprintf("%s=\\d+\\.\\d+s", expectedKey))
+	result := fmt.Sprint(ctx)
+	if !resultPattern.MatchString(result) {
+		t.Errorf("Expected pattern not found in output: %s", result)
+	}
 }

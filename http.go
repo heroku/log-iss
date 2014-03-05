@@ -57,7 +57,6 @@ func (s *HttpServer) Run() error {
 	})
 
 	http.HandleFunc("/logs", func(w http.ResponseWriter, r *http.Request) {
-		start := time.Now()
 		ctx := slog.Context{}
 		defer func() { LogContext(ctx) }()
 
@@ -86,6 +85,8 @@ func (s *HttpServer) Run() error {
 			return
 		}
 
+		defer ctx.MeasureSince("log-iss.http.logs.post.duration", time.Now())
+
 		remoteAddr := r.Header.Get("X-Forwarded-For")
 		if remoteAddr == "" {
 			remoteAddrParts := strings.Split(r.RemoteAddr, ":")
@@ -98,8 +99,6 @@ func (s *HttpServer) Run() error {
 
 		logplexDrainToken := r.Header.Get("Logplex-Drain-Token")
 		ctx.Add("logdrain_token", logplexDrainToken)
-
-		defer func() { ctx.Measure("log-iss.http.logs.post.duration", time.Since(start)) }()
 
 		if err, status := s.process(r.Body, ctx, remoteAddr, requestId, logplexDrainToken); err != nil {
 			http.Error(w, err.Error(), status)
@@ -185,7 +184,7 @@ func (s *HttpServer) process(r io.Reader, ctx slog.Context, remoteAddr string, r
 		ctx.Count("log-iss.http.logs.send.error", 1)
 		return errors.New("Timeout delivering message"), 504
 	}
-	ctx.Measure("log-iss.http.logs.send.duration", time.Since(start))
+	ctx.MeasureSince("log-iss.http.logs.send.duration", start)
 
 	start = time.Now()
 	select {
@@ -194,7 +193,7 @@ func (s *HttpServer) process(r io.Reader, ctx slog.Context, remoteAddr string, r
 		ctx.Count("log-iss.http.logs.wait.error", 1)
 		return errors.New("Timeout delivering message"), 504
 	}
-	ctx.Measure("log-iss.http.logs.wait.duration", time.Since(start))
+	ctx.MeasureSince("log-iss.http.logs.wait.duration", start)
 
 	return nil, 200
 }

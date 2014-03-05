@@ -16,8 +16,7 @@ const (
 )
 
 func Fix(r io.Reader, ctx slog.Context, remoteAddr string, logplexDrainToken string) ([]byte, error) {
-	start := time.Now()
-	defer func() { ctx.Measure("log-iss.http.logs.fixer-func.duration", time.Since(start)) }()
+	defer ctx.MeasureSince("log-iss.http.logs.fixer-func.duration", time.Now())
 	nilVal := []byte(`- `)
 
 	var messageWriter bytes.Buffer
