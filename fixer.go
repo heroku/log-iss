@@ -8,6 +8,7 @@ import (
 	"io"
 	"io/ioutil"
 	"strconv"
+	"time"
 )
 
 const (
@@ -15,6 +16,8 @@ const (
 )
 
 func Fix(r io.Reader, ctx slog.Context, remoteAddr string, logplexDrainToken string) ([]byte, error) {
+	start := time.Now()
+	defer func() { ctx.Measure("log-iss.http.logs.fixer-func.duration", time.Since(start)) }()
 	nilVal := []byte(`- `)
 
 	var messageWriter bytes.Buffer

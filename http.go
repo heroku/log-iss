@@ -170,12 +170,10 @@ func (s *HttpServer) process(r io.Reader, ctx slog.Context, remoteAddr string, r
 
 	var start time.Time
 
-	start = time.Now()
 	fixedBody, err := s.FixerFunc(r, ctx, remoteAddr, logplexDrainToken)
 	if err != nil {
 		return errors.New("Problem processing body"), 400
 	}
-	ctx.Measure("log-iss.http.logs.fixer-func.duration", time.Since(start))
 
 	waitCh := make(chan bool, 1)
 	deadlineCh := time.After(time.Duration(5) * time.Second)
