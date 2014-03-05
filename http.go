@@ -40,6 +40,13 @@ func NewHttpServer(config *IssConfig, fixerFunc FixerFunc, outlet chan *Payload)
 	}
 }
 
+func handleHTTPError(ctx slog.Context, w http.ResponseWriter, errMsg string, errCode int) {
+	ctx.Count("log-iss.http.logs.post.error", 1)
+	ctx.Add("post.error", errMsg)
+	ctx.Add("post.code", errCode)
+	http.Error(w, errMsg, errCode)
+}
+
 func (s *HttpServer) Run() error {
 	go s.awaitShutdown()
 
@@ -59,33 +66,32 @@ func (s *HttpServer) Run() error {
 	http.HandleFunc("/logs", func(w http.ResponseWriter, r *http.Request) {
 		ctx := slog.Context{}
 		defer func() { LogContext(ctx) }()
+		defer ctx.MeasureSince("log-iss.http.logs.post.duration", time.Now())
 
 		if s.Config.EnforceSsl && r.Header.Get("X-Forwarded-Proto") != "https" {
-			http.Error(w, "Only SSL requests accepted", 400)
+			handleHTTPError(ctx, w, "Only SSL requests accepted", 400)
 			return
 		}
 
 		if s.isShuttingDown {
-			http.Error(w, "Shutting down", 503)
+			handleHTTPError(ctx, w, "Shutting down", 503)
 			return
 		}
 
 		if r.Method != "POST" {
-			http.Error(w, "Only POST is accepted", 400)
+			handleHTTPError(ctx, w, "Only POST is accepted", 400)
 			return
 		}
 
 		if r.Header.Get("Content-Type") != "application/logplex-1" {
-			http.Error(w, "Only Content-Type application/logplex-1 is accepted", 400)
+			handleHTTPError(ctx, w, "Only Content-Type application/logplex-1 is accepted", 400)
 			return
 		}
 
 		if err := s.checkAuth(r); err != nil {
-			http.Error(w, err.Error(), 401)
+			handleHTTPError(ctx, w, err.Error(), 401)
 			return
 		}
-
-		defer ctx.MeasureSince("log-iss.http.logs.post.duration", time.Now())
 
 		remoteAddr := r.Header.Get("X-Forwarded-For")
 		if remoteAddr == "" {
@@ -101,10 +107,7 @@ func (s *HttpServer) Run() error {
 		ctx.Add("logdrain_token", logplexDrainToken)
 
 		if err, status := s.process(r.Body, ctx, remoteAddr, requestId, logplexDrainToken); err != nil {
-			http.Error(w, err.Error(), status)
-			ctx.Count("log-iss.http.logs.post.error", 1)
-			ctx.Add("post.error", err)
-			ctx.Add("status", status)
+			handleHTTPError(ctx, w, err.Error(), status)
 			return
 		}
 
