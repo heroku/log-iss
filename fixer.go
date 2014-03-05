@@ -63,13 +63,13 @@ func Fix(r io.Reader, ctx slog.Context, remoteAddr string, logplexDrainToken str
 
 	if lp.Err() != nil {
 		ctx.Count("log-iss.fixer.fix.error.lpx", 1)
-		ctx.Add("message", lp.Err())
+		ctx.Add("fixer.error", lp.Err())
 		return nil, lp.Err()
 	}
 
 	if fullMessage, err := ioutil.ReadAll(&messageLenWriter); err != nil {
 		ctx.Count("log-iss.fixer.fix.error.readall", 1)
-		ctx.Add("message", err)
+		ctx.Add("fixer.error", err)
 		return nil, err
 	} else {
 		return fullMessage, nil

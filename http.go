@@ -106,7 +106,7 @@ func (s *HttpServer) Run() error {
 		if err, status := s.process(r.Body, ctx, remoteAddr, requestId, logplexDrainToken); err != nil {
 			http.Error(w, err.Error(), status)
 			ctx.Count("log-iss.http.logs.post.error", 1)
-			ctx.Add("message", err)
+			ctx.Add("post.error", err)
 			ctx.Add("status", status)
 			return
 		}
