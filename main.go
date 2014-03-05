@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/heroku/slog"
 	"log"
 	"os"
 	"os/signal"
@@ -15,6 +16,12 @@ var Config *IssConfig
 func Logf(format string, a ...interface{}) {
 	orig := fmt.Sprintf(format, a...)
 	fmt.Printf("app=log-iss source=%s %s\n", Config.Deploy, orig)
+}
+
+func LogContext(ctx slog.Context) {
+	ctx["app"] = "log-iss"
+	ctx["source"] = Config.Deploy
+	fmt.Println(ctx)
 }
 
 func awaitShutdownSignals(chs []ShutdownCh) {
