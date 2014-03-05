@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/base64"
 	"errors"
+	"github.com/heroku/slog"
 	"io"
 	"net/http"
 	"strings"
@@ -18,7 +19,7 @@ type Payload struct {
 	WaitCh     chan bool
 }
 
-type FixerFunc func(io.Reader, string, string, string) ([]byte, error)
+type FixerFunc func(io.Reader, slog.Context, string, string) ([]byte, error)
 
 type HttpServer struct {
 	Config         *IssConfig
@@ -43,17 +44,22 @@ func (s *HttpServer) Run() error {
 	go s.awaitShutdown()
 
 	http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+		ctx := slog.Context{}
+		defer func() { LogContext(ctx) }()
+
 		if s.isShuttingDown {
 			http.Error(w, "Shutting down", 503)
 			return
 		}
 
 		// check outlet depth?
-		Logf("count#log-iss.http.health.get=1")
+		ctx.Count("log-iss.http.health.get", 1)
 	})
 
 	http.HandleFunc("/logs", func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
+		ctx := slog.Context{}
+		defer func() { LogContext(ctx) }()
 
 		if s.Config.EnforceSsl && r.Header.Get("X-Forwarded-Proto") != "https" {
 			http.Error(w, "Only SSL requests accepted", 400)
@@ -85,22 +91,27 @@ func (s *HttpServer) Run() error {
 			remoteAddrParts := strings.Split(r.RemoteAddr, ":")
 			remoteAddr = strings.Join(remoteAddrParts[:len(remoteAddrParts)-1], ":")
 		}
+		ctx.Add("remote_addr", remoteAddr)
 
 		requestId := r.Header.Get("X-Request-Id")
+		ctx.Add("request_id", requestId)
 
 		logplexDrainToken := r.Header.Get("Logplex-Drain-Token")
+		ctx.Add("logdrain_token", logplexDrainToken)
 
 		defer func() {
-			Logf("measure#log-iss.http.logs.post.duration=%dms request_id=%q", time.Since(start)/time.Millisecond, requestId)
+			ctx.Measure("log-iss.http.logs.post.duration", time.Since(start))
 		}()
 
-		if err, status := s.process(r.Body, remoteAddr, requestId, logplexDrainToken); err != nil {
+		if err, status := s.process(r.Body, ctx, remoteAddr, requestId, logplexDrainToken); err != nil {
 			http.Error(w, err.Error(), status)
-			Logf("count#log-iss.http.logs.post.error=1 message=%q request_id=%q status=%d", err, requestId, status)
+			ctx.Count("log-iss.http.logs.post.error", 1)
+			ctx.Add("message", err)
+			ctx.Add("status", status)
 			return
 		}
 
-		Logf("count#log-iss.http.logs.post.success=1 request_id=%q", requestId)
+		ctx.Add("log-iss.http.logs.post.success", 1)
 	})
 
 	if err := http.ListenAndServe(":"+s.Config.HttpPort, nil); err != nil {
@@ -155,18 +166,18 @@ func (s *HttpServer) checkAuth(r *http.Request) error {
 	return nil
 }
 
-func (s *HttpServer) process(r io.Reader, remoteAddr string, requestId string, logplexDrainToken string) (error, int) {
+func (s *HttpServer) process(r io.Reader, ctx slog.Context, remoteAddr string, requestId string, logplexDrainToken string) (error, int) {
 	s.InFlightWg.Add(1)
 	defer s.InFlightWg.Done()
 
 	var start time.Time
 
 	start = time.Now()
-	fixedBody, err := s.FixerFunc(r, remoteAddr, requestId, logplexDrainToken)
+	fixedBody, err := s.FixerFunc(r, ctx, remoteAddr, logplexDrainToken)
 	if err != nil {
 		return errors.New("Problem processing body"), 400
 	}
-	Logf("measure#log-iss.http.logs.fixer-func.duration=%dms request_id=%q", time.Since(start)/time.Millisecond, requestId)
+	ctx.Measure("log-iss.http.logs.fixer-func.duration", time.Since(start))
 
 	waitCh := make(chan bool, 1)
 	deadlineCh := time.After(time.Duration(5) * time.Second)
@@ -175,19 +186,19 @@ func (s *HttpServer) process(r io.Reader, remoteAddr string, requestId string, l
 	select {
 	case s.Outlet <- &Payload{remoteAddr, requestId, fixedBody, waitCh}:
 	case <-deadlineCh:
-		Logf("count#log-iss.http.logs.send.error=1 error=timeout request_id=%q", requestId)
-		return errors.New("Problem delivering message"), 504
+		ctx.Count("log-iss.http.logs.send.error", 1)
+		return errors.New("Timeout delivering message"), 504
 	}
-	Logf("measure#log-iss.http.logs.send.duration=%dms request_id=%q", time.Since(start)/time.Millisecond, requestId)
+	ctx.Measure("log-iss.http.logs.send.duration", time.Since(start))
 
 	start = time.Now()
 	select {
 	case <-waitCh:
 	case <-deadlineCh:
-		Logf("count#log-iss.http.logs.wait.error=1 error=timeout request_id=%q", requestId)
-		return errors.New("Problem delivering message"), 504
+		ctx.Count("log-iss.http.logs.wait.error", 1)
+		return errors.New("Timeout delivering message"), 504
 	}
-	Logf("measure#log-iss.http.logs.wait.duration=%dms request_id=%q", time.Since(start)/time.Millisecond, requestId)
+	ctx.Measure("log-iss.http.logs.wait.duration", time.Since(start))
 
 	return nil, 200
 }

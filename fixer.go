@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"github.com/bmizerany/lpx"
+	"github.com/heroku/slog"
 	"io"
 	"io/ioutil"
 	"strconv"
@@ -13,7 +14,7 @@ const (
 	LOGPLEX_DEFAULT_HOST = "host" // https://github.com/heroku/logplex/blob/master/src/logplex_http_drain.erl#L443
 )
 
-func Fix(r io.Reader, remoteAddr string, requestId string, logplexDrainToken string) ([]byte, error) {
+func Fix(r io.Reader, ctx slog.Context, remoteAddr string, logplexDrainToken string) ([]byte, error) {
 	nilVal := []byte(`- `)
 
 	var messageWriter bytes.Buffer
@@ -61,12 +62,14 @@ func Fix(r io.Reader, remoteAddr string, requestId string, logplexDrainToken str
 	}
 
 	if lp.Err() != nil {
-		Logf("count#log-iss.fixer.fix.error.lpx=1 request_id=%q message=%q", requestId, lp.Err())
+		ctx.Count("log-iss.fixer.fix.error.lpx", 1)
+		ctx.Add("message", lp.Err())
 		return nil, lp.Err()
 	}
 
 	if fullMessage, err := ioutil.ReadAll(&messageLenWriter); err != nil {
-		Logf("count#log-iss.fixer.fix.error.readall=1 request_id=%q message=%q", requestId, err)
+		ctx.Count("log-iss.fixer.fix.error.readall", 1)
+		ctx.Add("message", err)
 		return nil, err
 	} else {
 		return fullMessage, nil
