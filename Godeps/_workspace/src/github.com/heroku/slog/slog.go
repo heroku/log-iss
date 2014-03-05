@@ -1,10 +1,27 @@
 // Package slog provides some Strcutred Logging helpers
-//
-// ATM: Mostly used to hold some context for a http handler
-// and log at the end of a request
-//
-// Generally should provide the oposite of logfmt: https://github.com/kr/logfmt
-//
+/*
+ATM: Mostly used to hold some context for a http handler
+and log at the end of a request
+
+Generally should provide the oposite of logfmt: https://github.com/kr/logfmt
+
+Sample use in a http.HandleFunc
+
+  http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+    start := time.Now()
+    ctx := slog.Context{}
+    defer func() { fmt.Println(ctx) }
+    defer ctx.Measure("health.check.duration", time.Since(start))
+
+    ctx.Count("health.check",1)
+    ...stuff
+  })
+
+Produces a line like so for every request:
+
+  count#health.check=1 measure#health.check.duration=0.004s
+
+*/
 package slog
 
 import (
