@@ -18,8 +18,9 @@ second timeout) to drain, then exit.
 log-iss will use four persistent connections per process to the destination
 configured in `FORWARD_DEST`.
 
-log-iss uses the [`Heroku-Request-Id`](https://devcenter.heroku.com/articles/http-request-id)
-header in its logging to group operations by request.
+log-iss uses the `X-Request-ID` header, such as supported by the
+[Heroku router](https://devcenter.heroku.com/articles/http-request-id), in its logging
+to group operations by request.
 
 log-iss emits metrics using the [l2met convention](https://github.com/ryandotsmith/l2met/wiki/Usage#logging-convention).
 
