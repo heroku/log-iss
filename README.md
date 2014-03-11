@@ -5,7 +5,7 @@ log-iss offers a
 endpoint and forwards received logs to a TCP port, where syslog-ng or similar
 might be listening.
 
-An example submitter to log-iss is [log-shuttle](http://log-shuttle.io/).
+An example submitter to log-iss is [log-shuttle](http://github.com/heroku/log-shuttle).
 
 Log delivery is synchronous, with a five second timeout. If log-iss is unable to
 write `POST`ed messages to the backend TCP connection within the timeout it will
