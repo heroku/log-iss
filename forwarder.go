@@ -1,6 +1,7 @@
 package main
 
 import (
+	"crypto/tls"
 	"net"
 	"time"
 )
@@ -59,7 +60,17 @@ func (f *Forwarder) connect() {
 	for {
 		start := time.Now()
 		Logf("count#log-iss.forwarder.connect.attempt=1 id=%d", f.Id)
-		if c, err := net.DialTimeout("tcp", f.Set.Config.ForwardDest, f.Set.Config.ForwardDestConnectTimeout); err != nil {
+
+		var c net.Conn
+		var err error
+
+		if f.Set.Config.UseTls {
+			c, err = tls.Dial("tcp", f.Set.Config.ForwardDest, &f.Set.Config.TlsConfig)
+		} else {
+			c, err = net.DialTimeout("tcp", f.Set.Config.ForwardDest, f.Set.Config.ForwardDestConnectTimeout)
+		}
+
+		if err != nil {
 			Logf("count#log-iss.forwarder.connect.error=1 id=%d message=%q", f.Id, err)
 			f.disconnect()
 		} else {

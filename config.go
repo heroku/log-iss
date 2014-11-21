@@ -1,7 +1,9 @@
 package main
 
 import (
+	"crypto/tls"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"strconv"
 	"time"
@@ -14,6 +16,8 @@ type IssConfig struct {
 	HttpPort                  string
 	Tokens                    Tokens
 	EnforceSsl                bool
+	UseTls                    bool
+	TlsConfig                 tls.Config
 }
 
 func NewIssConfig() (*IssConfig, error) {
@@ -62,6 +66,18 @@ func NewIssConfig() (*IssConfig, error) {
 	if os.Getenv("ENFORCE_SSL") == "1" {
 		config.EnforceSsl = true
 	}
+
+	if os.Getenv("PEMFILE") != "" {
+		pem, err := ioutil.ReadFile(os.Getenv("PEMFILE"))
+		if err != nil {
+			return nil, fmt.Errorf("Unable to read pemfile: %s", err)
+		}
+		cert := tls.Certificate{Certificate: [][]byte{pem}}
+		config.TlsConfig = tls.Config{Certificates: []tls.Certificate{cert}}
+		config.UseTls = true
+	}
+
+	return config, nil
 
 	return config, nil
 }
