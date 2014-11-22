@@ -16,8 +16,7 @@ type IssConfig struct {
 	HttpPort                  string
 	Tokens                    Tokens
 	EnforceSsl                bool
-	UseTls                    bool
-	TlsConfig                 tls.Config
+	TlsConfig                 *tls.Config
 }
 
 func NewIssConfig() (*IssConfig, error) {
@@ -73,8 +72,7 @@ func NewIssConfig() (*IssConfig, error) {
 			return nil, fmt.Errorf("Unable to read pemfile: %s", err)
 		}
 		cert := tls.Certificate{Certificate: [][]byte{pem}}
-		config.TlsConfig = tls.Config{Certificates: []tls.Certificate{cert}}
-		config.UseTls = true
+		config.TlsConfig = &tls.Config{Certificates: []tls.Certificate{cert}}
 	}
 
 	return config, nil

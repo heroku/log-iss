@@ -64,8 +64,8 @@ func (f *Forwarder) connect() {
 		var c net.Conn
 		var err error
 
-		if f.Set.Config.UseTls {
-			c, err = tls.Dial("tcp", f.Set.Config.ForwardDest, &f.Set.Config.TlsConfig)
+		if f.Set.Config.TlsConfig != nil {
+			c, err = tls.Dial("tcp", f.Set.Config.ForwardDest, f.Set.Config.TlsConfig)
 		} else {
 			c, err = net.DialTimeout("tcp", f.Set.Config.ForwardDest, f.Set.Config.ForwardDestConnectTimeout)
 		}
