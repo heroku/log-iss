@@ -2,6 +2,7 @@ package main
 
 import (
 	"crypto/tls"
+	"encoding/pem"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -67,16 +68,17 @@ func NewIssConfig() (*IssConfig, error) {
 	}
 
 	if os.Getenv("PEMFILE") != "" {
-		pem, err := ioutil.ReadFile(os.Getenv("PEMFILE"))
+		pemFileData, err := ioutil.ReadFile(os.Getenv("PEMFILE"))
 		if err != nil {
 			return nil, fmt.Errorf("Unable to read pemfile: %s", err)
 		}
-		cert := tls.Certificate{Certificate: [][]byte{pem}}
+		parsed, _ := pem.Decode(pemFileData)
+		if parsed == nil {
+			return nil, fmt.Errorf("Error parsing PEM: %s", os.Getenv("PEMFILE"))
+		}
+		cert := tls.Certificate{Certificate: [][]byte{pemFileData}}
 		config.TlsConfig = &tls.Config{Certificates: []tls.Certificate{cert}}
 	}
-
-	return config, nil
-
 	return config, nil
 }
 
