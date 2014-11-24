@@ -34,6 +34,7 @@ log-iss is configured via the environment.
 * `FORWARD_DEST_CONNECT_TIMEOUT`: Time in seconds to wait for a connection to `FORWARD_DEST`, default is `10`
 * `TOKEN_MAP`: A `,`-separated, `:`-separated list of usernames and tokens to accept. Example: `TOKEN_MAP=dan:logthis,system:islogging`
 * `ENFORCE_SSL`: If set to `1`, respond with 400 to any `POST`s where the `X-Forwarded-Proto` request header is not `https`
+* `PEMFILE`: Location of a .pem bundle to use for sending logs via TLS
 
 ## Running locally
 

@@ -1,7 +1,10 @@
 package main
 
 import (
+	"crypto/tls"
+	"crypto/x509"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"strconv"
 	"time"
@@ -14,6 +17,7 @@ type IssConfig struct {
 	HttpPort                  string
 	Tokens                    Tokens
 	EnforceSsl                bool
+	TlsConfig                 *tls.Config
 }
 
 func NewIssConfig() (*IssConfig, error) {
@@ -63,6 +67,19 @@ func NewIssConfig() (*IssConfig, error) {
 		config.EnforceSsl = true
 	}
 
+	if pemFile := os.Getenv("PEMFILE"); pemFile != "" {
+		pemFileData, err := ioutil.ReadFile(pemFile)
+		if err != nil {
+			return nil, fmt.Errorf("Unable to read pemfile: %s", err)
+		}
+
+		cp := x509.NewCertPool()
+		if ok := cp.AppendCertsFromPEM(pemFileData); !ok {
+			return nil, fmt.Errorf("Error parsing PEM: %s", pemFile)
+		}
+
+		config.TlsConfig = &tls.Config{RootCAs: cp}
+	}
 	return config, nil
 }
 
