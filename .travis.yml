@@ -1,11 +1,12 @@
 language: go
 go:
- - 1.2
-
+- 1.2
 before_install:
- - go get github.com/kr/godep
- - export PATH=$HOME/gopath/bin:$PATH
-
-
+- go get github.com/kr/godep
+- export PATH=$HOME/gopath/bin:$PATH
 script:
- - godep go test -v ./...
+- godep go test -v ./...
+notifications:
+  hipchat:
+    rooms:
+      secure: YRRGVXTZRDNgrBSwflggVaLZk+NXR8dhKbaDgxGvf9ziFKdqYXX/vBh8UAw3OSu11/5/ahePNju/5LAGATu5L4qgR80THblCHax/X318raTxH2za8gIJKrDvCN/MAvWVGNo3Jo4rP6ZgXk0ao2RlND+L8z7lkW/89mJLtiZ8K2o=
