@@ -1,6 +1,6 @@
 {
 	"ImportPath": "github.com/heroku/log-iss",
-	"GoVersion": "go1.2",
+	"GoVersion": "go1.3.3",
 	"Deps": [
 		{
 			"ImportPath": "github.com/bmizerany/lpx",
