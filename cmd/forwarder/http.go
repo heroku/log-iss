@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/base64"
 	"errors"
-	"github.com/heroku/slog"
+	"github.com/heroku/log-iss/Godeps/_workspace/src/github.com/heroku/slog"
 	"io"
 	"net/http"
 	"strings"

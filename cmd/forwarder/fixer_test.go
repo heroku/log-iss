@@ -2,7 +2,7 @@ package main
 
 import (
 	"bytes"
-	"github.com/heroku/slog"
+	"github.com/heroku/log-iss/Godeps/_workspace/src/github.com/heroku/slog"
 	"testing"
 )
 

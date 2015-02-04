@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"github.com/heroku/slog"
+	"github.com/heroku/log-iss/Godeps/_workspace/src/github.com/heroku/slog"
 	"log"
 	"os"
 	"os/signal"

@@ -1,11 +1,8 @@
 language: go
 go:
-- 1.2
-before_install:
-- go get github.com/kr/godep
-- export PATH=$HOME/gopath/bin:$PATH
+- 1.4.1
 script:
-- godep go test -v ./...
+- make test
 notifications:
   hipchat:
     rooms:

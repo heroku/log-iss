@@ -3,8 +3,8 @@ package main
 import (
 	"bufio"
 	"bytes"
-	"github.com/bmizerany/lpx"
-	"github.com/heroku/slog"
+	"github.com/heroku/log-iss/Godeps/_workspace/src/github.com/bmizerany/lpx"
+	"github.com/heroku/log-iss/Godeps/_workspace/src/github.com/heroku/slog"
 	"io"
 	"io/ioutil"
 	"strconv"
