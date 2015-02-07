@@ -46,14 +46,6 @@
 			"Rev": "a98ad7ee00ec53921f08832bc06ecf7fd600e6a1"
 		},
 		{
-			"ImportPath": "golang.org/x/crypto/bcrypt",
-			"Rev": "88b65fb66346493d43e735adad931bf69dee4297"
-		},
-		{
-			"ImportPath": "golang.org/x/crypto/blowfish",
-			"Rev": "88b65fb66346493d43e735adad931bf69dee4297"
-		},
-		{
 			"ImportPath": "golang.org/x/crypto/nacl/secretbox",
 			"Rev": "88b65fb66346493d43e735adad931bf69dee4297"
 		},
