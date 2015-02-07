@@ -1,0 +1,6 @@
+{{ define "title" }}New User{{end}}
+
+{{ define "content" }}
+<p>New user added, here are the credentials:</p>
+<pre>https://{{.User}}:{{.Password}}@{{.URL}}</pre>
+{{end}}

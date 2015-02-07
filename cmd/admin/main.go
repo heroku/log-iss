@@ -9,10 +9,13 @@ import (
 	"github.com/heroku/log-iss/Godeps/_workspace/src/github.com/kr/secureheader"
 )
 
-var index = template.Must(template.ParseFiles("cmd/admin/ui/_base.tmpl", "cmd/admin/ui/index.tmpl"))
-var there = template.Must(template.ParseFiles("cmd/admin/ui/_base.tmpl", "cmd/admin/ui/there.tmpl"))
+var (
+	index = template.Must(template.ParseFiles("cmd/admin/ui/_base.tmpl", "cmd/admin/ui/index.tmpl"))
+	there = template.Must(template.ParseFiles("cmd/admin/ui/_base.tmpl", "cmd/admin/ui/there.tmpl"))
+	add   = template.Must(template.ParseFiles("cmd/admin/ui/_base.tmpl", "cmd/admin/ui/add.tmpl"))
+)
 
-func listData(w http.ResponseWriter, r *http.Request) {
+func indexHandler(w http.ResponseWriter, r *http.Request) {
 	if err := index.Execute(w, nil); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
@@ -24,12 +27,22 @@ func thereHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func addHandler(w http.ResponseWriter, r *http.Request) {
+	var new = struct {
+		User, Password, URL string
+	}{User: "test", Password: "password", URL: "google.com/foo"}
+	if err := add.Execute(w, new); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+}
+
 func main() {
 
 	mux := http.NewServeMux()
 
-	mux.HandleFunc("/", listData)
+	mux.HandleFunc("/", indexHandler)
 	mux.HandleFunc("/there/", thereHandler)
+	mux.HandleFunc("/add/", addHandler)
 
 	behindGoogleAuth := &googlegoauth.Handler{
 		RequireDomain: os.Getenv("REQUIRE_DOMAIN"),
