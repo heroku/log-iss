@@ -9,7 +9,7 @@ import (
 	"github.com/heroku/log-iss/Godeps/_workspace/src/github.com/kr/secureheader"
 )
 
-var templates = template.Must(template.ParseFiles("view.html"))
+var templates = template.Must(template.ParseFiles("cmd/admin/view.html"))
 
 func listData(w http.ResponseWriter, r *http.Request) {
 	err := templates.ExecuteTemplate(w, "view.html", nil)
