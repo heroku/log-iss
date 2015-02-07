@@ -8,7 +8,7 @@ import (
 )
 
 // FIXME: Add condition to not put user when the username already exists
-func NewUserInput(table, user, pwd, note string) dynamodb.PutItemInput {
+func NewUserItem(table, user, pwd, note string) dynamodb.PutItemInput {
 	return dynamodb.PutItemInput{
 		TableName: aws.String(table),
 		Item: map[string]dynamodb.AttributeValue{

@@ -18,10 +18,9 @@ const (
 )
 
 var (
-	dynamoDBTableName = aws.String("log-iss-users")
-	index             = template.Must(template.ParseFiles("cmd/admin/ui/_base.tmpl", "cmd/admin/ui/index.tmpl"))
-	there             = template.Must(template.ParseFiles("cmd/admin/ui/_base.tmpl", "cmd/admin/ui/there.tmpl"))
-	add               = template.Must(template.ParseFiles("cmd/admin/ui/_base.tmpl", "cmd/admin/ui/add.tmpl"))
+	index = template.Must(template.ParseFiles("cmd/admin/ui/_base.tmpl", "cmd/admin/ui/index.tmpl"))
+	there = template.Must(template.ParseFiles("cmd/admin/ui/_base.tmpl", "cmd/admin/ui/there.tmpl"))
+	add   = template.Must(template.ParseFiles("cmd/admin/ui/_base.tmpl", "cmd/admin/ui/add.tmpl"))
 
 	creds = aws.Creds(os.Getenv("AWS_KEY"), os.Getenv("AWS_SECRET"), "")
 )
@@ -45,17 +44,8 @@ func addHandler(w http.ResponseWriter, r *http.Request) {
 
 	ddb := dynamodb.New(creds, "us-east-1", nil)
 
-	item := make(map[string]dynamodb.AttributeValue)
-	item["UserName"] = dynamodb.AttributeValue{S: aws.String("")}
-	item["Password"] = dynamodb.AttributeValue{S: aws.String("")}
-
-	ddbreq := &dynamodb.PutItemInput{
-		TableName: dynamoDBTableName,
-		Item:      map[string]dynamodb.AttributeValue{"UserName": dynamodb.AttributeValue{S: aws.String("")}, "Password": dynamodb.AttributeValue{S: aws.String("")}},
-	}
-
 	ddbreq := logiss.NewUserItem(dynamoDBTableName, "test", "test", "This is a test")
-	ddbresp, err := ddb.PutItem(ddbreq)
+	ddbresp, err := ddb.PutItem(&ddbreq)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
