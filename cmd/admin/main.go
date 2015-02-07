@@ -76,7 +76,7 @@ func main() {
 
 	mux.HandleFunc("/", indexHandler)
 	mux.HandleFunc("/there/", thereHandler)
-	mux.HandleFunc("/add/", addHandler)
+	mux.HandleFunc("/add", addHandler)
 
 	behindGoogleAuth := &googlegoauth.Handler{
 		RequireDomain: os.Getenv("REQUIRE_DOMAIN"),
