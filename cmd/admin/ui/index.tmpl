@@ -1,14 +1,31 @@
 {{ define "title" }}Index{{end}}
 
 {{ define "content" }}
+<div class="panel panel-default">
+  <div class="panel-heading">Create a new log forwarding user</div>
+  <div class="panel-body">
   <form action="/add" method="POST">
-    <div class="input-group">
-      <span class="input-group-addon" id="basic-addon1">@</span>
-      <input type="text" class="form-control" placeholder="Username" aria-describedby="basic-addon1" name="name">
+    <div class="row">
+      <div class="col-md-4">
+        <div class="input-group">
+          <input type="text" class="form-control" placeholder="Username" aria-describedby="basic-addon1" name="name"/>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="input-group">
+          <input type="text" class="form-control" placeholder="Password" aria-describedby="basic-addon2" name="password"/>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="input-group">
+          <input type="text" class="form-control" placeholder="Note" aria-describedby="basic-addon3" name="note"/>
+          <span class="input-group-btn">
+            <button class="btn btn-default" type="submit">Add!</button>
+          </span>
+        </div>
+      </div>
     </div>
-    <p>Password: <input type="text" name="password"/></p>
-    <p>Note:<br/>
-      <textarea name="note" rows="10" cols="40"></textarea></p>
-    <p><button>Add New User</button></p>
   </form>
+  </div>
+</div>
 {{end}}
