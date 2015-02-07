@@ -2,9 +2,13 @@
 
 {{ define "content" }}
   <form action="/add" method="POST">
-    <p><input type="text" name="name"/></p>
-    <p><input type="text" name="password"/></p>
-    <p><textarea name="note" rows="10" cols="40"></textarea></p>
+    <div class="input-group">
+      <span class="input-group-addon" id="basic-addon1">@</span>
+      <input type="text" class="form-control" placeholder="Username" aria-describedby="basic-addon1" name="name">
+    </div>
+    <p>Password: <input type="text" name="password"/></p>
+    <p>Note:<br/>
+      <textarea name="note" rows="10" cols="40"></textarea></p>
     <p><button>Add New User</button></p>
   </form>
 {{end}}
