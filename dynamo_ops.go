@@ -1,6 +1,7 @@
 package logiss
 
 import (
+	"strconv"
 	"time"
 
 	"github.com/heroku/log-iss/Godeps/_workspace/src/github.com/awslabs/aws-sdk-go/aws"
@@ -22,7 +23,7 @@ func NewUserItem(table, user, pwd, note string) dynamodb.PutItemInput {
 				S: aws.String(note),
 			},
 			"Created": dynamodb.AttributeValue{
-				N: aws.String(time.Now().Format(time.RFC3339)),
+				N: aws.String(strconv.FormatInt(time.Now().Unix(), 10)),
 			},
 		},
 	}
