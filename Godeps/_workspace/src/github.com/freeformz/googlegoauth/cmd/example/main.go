@@ -8,22 +8,14 @@ import (
 	"github.com/heroku/log-iss/Godeps/_workspace/src/github.com/kr/secureheader"
 )
 
-func listData(w http.ResponseWriter, r *http.Request) {
-	w.WriteHeader(http.StatusOK)
-}
-
 func main() {
-
-	mux := http.NewServeMux()
-
-	mux.HandleFunc("/", listData)
 
 	behindGoogleAuth := &googlegoauth.Handler{
 		RequireDomain: os.Getenv("REQUIRE_DOMAIN"),
 		Key:           os.Getenv("KEY"),
 		ClientID:      os.Getenv("CLIENT_ID"),
 		ClientSecret:  os.Getenv("CLIENT_SECRET"),
-		Handler:       mux,
+		Handler:       http.FileServer(http.Dir(".")),
 	}
 
 	http.Handle("/", behindGoogleAuth)

@@ -6,12 +6,80 @@
 	],
 	"Deps": [
 		{
+			"ImportPath": "github.com/awslabs/aws-sdk-go/aws",
+			"Rev": "836c0f777155cb5570c6b8a4799cf64dc578e95f"
+		},
+		{
+			"ImportPath": "github.com/awslabs/aws-sdk-go/gen/dynamodb",
+			"Rev": "836c0f777155cb5570c6b8a4799cf64dc578e95f"
+		},
+		{
+			"ImportPath": "github.com/awslabs/aws-sdk-go/gen/endpoints",
+			"Rev": "836c0f777155cb5570c6b8a4799cf64dc578e95f"
+		},
+		{
 			"ImportPath": "github.com/bmizerany/lpx",
 			"Rev": "af85cf24c1567bcb5a2e4c21597cc049eab31f55"
 		},
 		{
+			"ImportPath": "github.com/freeformz/googlegoauth",
+			"Rev": "79c65f0ff1a9280f2aa1282fb2a4cedf40ab84c3"
+		},
+		{
 			"ImportPath": "github.com/heroku/slog",
 			"Rev": "5e466056983b2ce3870ed332178628dfe1bcc907"
+		},
+		{
+			"ImportPath": "github.com/kr/secureheader",
+			"Rev": "4e7145f3d23109d940aefff43bc4283ca4ffc2ef"
+		},
+		{
+			"ImportPath": "github.com/kr/session",
+			"Rev": "baa866e82c31195297c540d1ce6c823511868821"
+		},
+		{
+			"ImportPath": "github.com/technoweenie/grohl",
+			"Rev": "f4613feb389efa6e147b705e2671ad4e42bb7ac3"
+		},
+		{
+			"ImportPath": "github.com/vaughan0/go-ini",
+			"Rev": "a98ad7ee00ec53921f08832bc06ecf7fd600e6a1"
+		},
+		{
+			"ImportPath": "golang.org/x/crypto/bcrypt",
+			"Rev": "88b65fb66346493d43e735adad931bf69dee4297"
+		},
+		{
+			"ImportPath": "golang.org/x/crypto/blowfish",
+			"Rev": "88b65fb66346493d43e735adad931bf69dee4297"
+		},
+		{
+			"ImportPath": "golang.org/x/crypto/nacl/secretbox",
+			"Rev": "88b65fb66346493d43e735adad931bf69dee4297"
+		},
+		{
+			"ImportPath": "golang.org/x/crypto/poly1305",
+			"Rev": "88b65fb66346493d43e735adad931bf69dee4297"
+		},
+		{
+			"ImportPath": "golang.org/x/crypto/salsa20/salsa",
+			"Rev": "88b65fb66346493d43e735adad931bf69dee4297"
+		},
+		{
+			"ImportPath": "golang.org/x/net/context",
+			"Rev": "614fbbebc9fd409185656c66a2d860ad01907316"
+		},
+		{
+			"ImportPath": "golang.org/x/oauth2",
+			"Rev": "53c5ae1b315c6a27ac936e8c04dc6ccf73ce7e70"
+		},
+		{
+			"ImportPath": "google.golang.org/cloud/compute/metadata",
+			"Rev": "16dbcc9af7869d37fa7c8625733aab6628b7c2e4"
+		},
+		{
+			"ImportPath": "google.golang.org/cloud/internal",
+			"Rev": "16dbcc9af7869d37fa7c8625733aab6628b7c2e4"
 		}
 	]
 }
