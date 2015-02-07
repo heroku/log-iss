@@ -2,6 +2,9 @@
 
 {{ define "content" }}
   <form action="/add" method="POST">
-    <p><button>Add New User</botton></p>
+    <p><input type="text" name="name"/></p>
+    <p><input type="text" name="password"/></p>
+    <p><textarea name="note" rows="10" cols="40"/></p>
+    <p><button>Add New User</button></p>
   </form>
 {{end}}

@@ -15,6 +15,7 @@ import (
 
 const (
 	dynamoDBTableName = "log-iss-users"
+	region            = "us-east-1"
 )
 
 var (
@@ -38,13 +39,24 @@ func thereHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func addHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "POST" {
+		http.NotFound(w, r)
+		return
+	}
+
 	type user struct {
 		User, Password, URL string
 	}
 
-	ddb := dynamodb.New(creds, "us-east-1", nil)
+	u := user{
+		User:     r.FormValue("name"),
+		Password: r.FormValue("password"),
+		URL:      "google.com/logs",
+	}
 
-	ddbreq := logiss.NewUserItem(dynamoDBTableName, "test", "test", "This is a test")
+	ddb := dynamodb.New(creds, region, nil)
+
+	ddbreq := logiss.NewUserItem(dynamoDBTableName, u.User, u.Password, r.FormValue("note"))
 	ddbresp, err := ddb.PutItem(&ddbreq)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -53,7 +65,7 @@ func addHandler(w http.ResponseWriter, r *http.Request) {
 
 	fmt.Printf("%+q\n", ddbresp)
 
-	if err := add.Execute(w, nil); err != nil {
+	if err := add.Execute(w, u); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }
