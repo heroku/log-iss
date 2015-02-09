@@ -28,6 +28,9 @@ func NewUserItem(table, user, pwd, note string) dynamodb.PutItemInput {
 			"Note": dynamodb.AttributeValue{
 				S: aws.String(note),
 			},
+			"Version": dynamodb.AttributeValue{
+				N: aws.String("0"), // start with a version of 0
+			},
 			"Created": dynamodb.AttributeValue{
 				N: aws.String(strconv.FormatInt(time.Now().Unix(), 10)),
 			},
