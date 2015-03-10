@@ -37,12 +37,12 @@ func awaitShutdownSignals(chs []ShutdownCh) {
 }
 
 func main() {
-	config, err := NewIssConfig()
+	Config, err := NewIssConfig()
 	if err != nil {
 		log.Fatalln(err)
 	}
 
-	auth, err := authenticater.NewBasicAuthFromString(config.Tokens)
+	auth, err := authenticater.NewBasicAuthFromString(Config.Tokens)
 	if err != nil {
 		log.Fatalln(err)
 	}
