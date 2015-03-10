@@ -2,11 +2,13 @@ package main
 
 import (
 	"fmt"
-	"github.com/heroku/log-iss/Godeps/_workspace/src/github.com/heroku/slog"
 	"log"
 	"os"
 	"os/signal"
 	"syscall"
+
+	"github.com/heroku/log-iss/Godeps/_workspace/src/github.com/heroku/authenticater"
+	"github.com/heroku/log-iss/Godeps/_workspace/src/github.com/heroku/slog"
 )
 
 type ShutdownCh chan int
@@ -39,14 +41,18 @@ func main() {
 	if err != nil {
 		log.Fatalln(err)
 	}
-	Config = config
+
+	auth, err := authenticater.NewBasicAuthFromString(config.Tokens)
+	if err != nil {
+		log.Fatalln(err)
+	}
 
 	forwarderSet := NewForwarderSet(Config)
 	forwarderSet.Start()
 
 	shutdownCh := make(ShutdownCh)
 
-	httpServer := NewHttpServer(Config, Fix, forwarderSet.Inbox)
+	httpServer := NewHttpServer(Config, auth, Fix, forwarderSet.Inbox)
 
 	go awaitShutdownSignals([]ShutdownCh{httpServer.ShutdownCh, shutdownCh})
 

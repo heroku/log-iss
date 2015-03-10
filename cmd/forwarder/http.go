@@ -1,15 +1,15 @@
 package main
 
 import (
-	"bytes"
-	"encoding/base64"
 	"errors"
-	"github.com/heroku/log-iss/Godeps/_workspace/src/github.com/heroku/slog"
 	"io"
 	"net/http"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/heroku/log-iss/Godeps/_workspace/src/github.com/heroku/authenticater"
+	"github.com/heroku/log-iss/Godeps/_workspace/src/github.com/heroku/slog"
 )
 
 type Payload struct {
@@ -28,10 +28,12 @@ type HttpServer struct {
 	InFlightWg     sync.WaitGroup
 	ShutdownCh     ShutdownCh
 	isShuttingDown bool
+	auth           authenticater.Authenticater
 }
 
-func NewHttpServer(config *IssConfig, fixerFunc FixerFunc, outlet chan *Payload) *HttpServer {
+func NewHttpServer(config *IssConfig, auth authenticater.Authenticater, fixerFunc FixerFunc, outlet chan *Payload) *HttpServer {
 	return &HttpServer{
+		auth:           auth,
 		Config:         config,
 		FixerFunc:      fixerFunc,
 		Outlet:         outlet,
@@ -88,8 +90,8 @@ func (s *HttpServer) Run() error {
 			return
 		}
 
-		if err := s.checkAuth(r); err != nil {
-			handleHTTPError(ctx, w, err.Error(), 401)
+		if !s.auth.Authenticate(r) {
+			handleHTTPError(ctx, w, "Unable to authenticate request", 401)
 			return
 		}
 
@@ -125,45 +127,6 @@ func (s *HttpServer) awaitShutdown() {
 	<-s.ShutdownCh
 	Logf("ns=http at=shutdown")
 	s.isShuttingDown = true
-}
-
-func (s *HttpServer) checkAuth(r *http.Request) error {
-	header := r.Header.Get("Authorization")
-	if header == "" {
-		return errors.New("Authorization required")
-	}
-	headerParts := strings.SplitN(header, " ", 2)
-	if len(headerParts) != 2 {
-		return errors.New("Authorization header is malformed")
-	}
-
-	method := headerParts[0]
-	if method != "Basic" {
-		return errors.New("Only Basic Authorization is accepted")
-	}
-
-	encodedUserPass := headerParts[1]
-	decodedUserPass, err := base64.StdEncoding.DecodeString(encodedUserPass)
-	if err != nil {
-		return errors.New("Authorization header is malformed")
-	}
-
-	userPassParts := bytes.SplitN(decodedUserPass, []byte{':'}, 2)
-	if len(userPassParts) != 2 {
-		return errors.New("Authorization header is malformed")
-	}
-
-	user := userPassParts[0]
-	pass := userPassParts[1]
-	token, ok := s.Config.Tokens[string(user)]
-	if !ok {
-		return errors.New("Unknown user")
-	}
-	if token != string(pass) {
-		return errors.New("Incorrect token")
-	}
-
-	return nil
 }
 
 func (s *HttpServer) process(r io.Reader, ctx slog.Context, remoteAddr string, requestId string, logplexDrainToken string) (error, int) {
