@@ -6,4 +6,4 @@ script:
 notifications:
   hipchat:
     rooms:
-      secure: YRRGVXTZRDNgrBSwflggVaLZk+NXR8dhKbaDgxGvf9ziFKdqYXX/vBh8UAw3OSu11/5/ahePNju/5LAGATu5L4qgR80THblCHax/X318raTxH2za8gIJKrDvCN/MAvWVGNo3Jo4rP6ZgXk0ao2RlND+L8z7lkW/89mJLtiZ8K2o=
+      secure: c+La/hOq2AlOklDvseFvvYtBlbVJ+2iwQWx1+pm2talgN7wzqqnxW8FEFcN4iC7rgYQ7BYuOYQuBVClmh9/t82WOPv6vzNrSWMQ0PTFYWe9CVSN7NjbcQUIpgON5Ms9jnKOH19m21OmfQTqW2i8r5dMkei3pdvPEzj7Oyzyu1PI=
