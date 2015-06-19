@@ -67,6 +67,6 @@ func main() {
 	Logf("ns=main at=start")
 	<-shutdownCh
 	Logf("ns=main at=drain")
-	httpServer.InFlightWg.Wait()
+	httpServer.Wait()
 	Logf("ns=main at=exit")
 }

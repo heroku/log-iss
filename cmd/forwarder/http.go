@@ -25,10 +25,10 @@ type HttpServer struct {
 	Config         IssConfig
 	FixerFunc      FixerFunc
 	Outlet         chan *Payload
-	InFlightWg     sync.WaitGroup
 	ShutdownCh     ShutdownCh
 	isShuttingDown bool
 	auth           authenticater.Authenticater
+	sync.WaitGroup
 }
 
 func NewHttpServer(config IssConfig, auth authenticater.Authenticater, fixerFunc FixerFunc, outlet chan *Payload) *HttpServer {
@@ -130,8 +130,8 @@ func (s *HttpServer) awaitShutdown() {
 }
 
 func (s *HttpServer) process(r io.Reader, ctx slog.Context, remoteAddr string, requestId string, logplexDrainToken string) (error, int) {
-	s.InFlightWg.Add(1)
-	defer s.InFlightWg.Done()
+	s.Add(1)
+	defer s.Done()
 
 	var start time.Time
 
