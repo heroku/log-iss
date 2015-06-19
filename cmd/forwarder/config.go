@@ -5,83 +5,43 @@ import (
 	"crypto/x509"
 	"fmt"
 	"io/ioutil"
-	"os"
-	"strconv"
 	"time"
+
+	"github.com/heroku/log-iss/Godeps/_workspace/src/github.com/joeshaw/envdecode"
 )
 
 type IssConfig struct {
-	Deploy                    string
-	ForwardDest               string
-	ForwardDestConnectTimeout time.Duration
-	HttpPort                  string
-	Tokens                    string
-	EnforceSsl                bool
+	Deploy                    string        `env:"DEPLOY,required"`
+	ForwardDest               string        `env:"FORWARD_DEST,required"`
+	ForwardDestConnectTimeout time.Duration `env:"FORWARD_DEST_CONNECT_TIMEOUT,default=10s,required"`
+	ForwardCount              int           `env:"FORWARD_COUNT,default=4"`
+	HttpPort                  string        `env:"PORT,required"`
+	Tokens                    string        `env:"TOKEN_MAP,required"`
+	EnforceSsl                bool          `env:"ENFORCE_SSL,default=false"`
+	PemFile                   string        `env:"PEMFILE"`
 	TlsConfig                 *tls.Config
 }
 
 func NewIssConfig() (IssConfig, error) {
 	config := IssConfig{}
 
-	deploy, err := MustEnv("DEPLOY")
-	if err != nil {
-		return config, err
-	}
-	config.Deploy = deploy
-
-	forwardDest, err := MustEnv("FORWARD_DEST")
-	if err != nil {
-		return config, err
-	}
-	config.ForwardDest = forwardDest
-
-	var forwardDestConnectTimeout int
-	forwardDestConnectTimeoutEnv := os.Getenv("FORWARD_DEST_CONNECT_TIMEOUT")
-	if forwardDestConnectTimeoutEnv != "" {
-		forwardDestConnectTimeout, err = strconv.Atoi(forwardDestConnectTimeoutEnv)
-		if err != nil {
-			return config, fmt.Errorf("Unable to parse FORWARD_DEST_CONNECT_TIMEOUT: %s", err)
-		}
-	} else {
-		forwardDestConnectTimeout = 10
-	}
-	config.ForwardDestConnectTimeout = time.Duration(forwardDestConnectTimeout) * time.Second
-
-	httpPort, err := MustEnv("PORT")
-	if err != nil {
-		return config, err
-	}
-	config.HttpPort = httpPort
-
-	config.Tokens, err = MustEnv("TOKEN_MAP")
+	err := envdecode.Decode(&config)
 	if err != nil {
 		return config, err
 	}
 
-	if os.Getenv("ENFORCE_SSL") == "1" {
-		config.EnforceSsl = true
-	}
-
-	if pemFile := os.Getenv("PEMFILE"); pemFile != "" {
-		pemFileData, err := ioutil.ReadFile(pemFile)
+	if config.PemFile != "" {
+		pemFileData, err := ioutil.ReadFile(config.PemFile)
 		if err != nil {
 			return config, fmt.Errorf("Unable to read pemfile: %s", err)
 		}
 
 		cp := x509.NewCertPool()
 		if ok := cp.AppendCertsFromPEM(pemFileData); !ok {
-			return config, fmt.Errorf("Error parsing PEM: %s", pemFile)
+			return config, fmt.Errorf("Error parsing PEM: %s", config.PemFile)
 		}
 
 		config.TlsConfig = &tls.Config{RootCAs: cp}
 	}
 	return config, nil
-}
-
-func MustEnv(key string) (string, error) {
-	value := os.Getenv(key)
-	if value == "" {
-		return "", fmt.Errorf("ENV[%s] is required", key)
-	}
-	return value, nil
 }

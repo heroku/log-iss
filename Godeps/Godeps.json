@@ -16,6 +16,10 @@
 		{
 			"ImportPath": "github.com/heroku/slog",
 			"Rev": "5e466056983b2ce3870ed332178628dfe1bcc907"
+		},
+		{
+			"ImportPath": "github.com/joeshaw/envdecode",
+			"Rev": "8f3fa5fb853793067e184bdc4fe8ac0b3320a9a2"
 		}
 	]
 }
