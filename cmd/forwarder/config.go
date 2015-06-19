@@ -20,18 +20,18 @@ type IssConfig struct {
 	TlsConfig                 *tls.Config
 }
 
-func NewIssConfig() (*IssConfig, error) {
-	config := new(IssConfig)
+func NewIssConfig() (IssConfig, error) {
+	config := IssConfig{}
 
 	deploy, err := MustEnv("DEPLOY")
 	if err != nil {
-		return nil, err
+		return config, err
 	}
 	config.Deploy = deploy
 
 	forwardDest, err := MustEnv("FORWARD_DEST")
 	if err != nil {
-		return nil, err
+		return config, err
 	}
 	config.ForwardDest = forwardDest
 
@@ -40,7 +40,7 @@ func NewIssConfig() (*IssConfig, error) {
 	if forwardDestConnectTimeoutEnv != "" {
 		forwardDestConnectTimeout, err = strconv.Atoi(forwardDestConnectTimeoutEnv)
 		if err != nil {
-			return nil, fmt.Errorf("Unable to parse FORWARD_DEST_CONNECT_TIMEOUT: %s", err)
+			return config, fmt.Errorf("Unable to parse FORWARD_DEST_CONNECT_TIMEOUT: %s", err)
 		}
 	} else {
 		forwardDestConnectTimeout = 10
@@ -49,13 +49,13 @@ func NewIssConfig() (*IssConfig, error) {
 
 	httpPort, err := MustEnv("PORT")
 	if err != nil {
-		return nil, err
+		return config, err
 	}
 	config.HttpPort = httpPort
 
 	config.Tokens, err = MustEnv("TOKEN_MAP")
 	if err != nil {
-		return nil, err
+		return config, err
 	}
 
 	if os.Getenv("ENFORCE_SSL") == "1" {
@@ -65,12 +65,12 @@ func NewIssConfig() (*IssConfig, error) {
 	if pemFile := os.Getenv("PEMFILE"); pemFile != "" {
 		pemFileData, err := ioutil.ReadFile(pemFile)
 		if err != nil {
-			return nil, fmt.Errorf("Unable to read pemfile: %s", err)
+			return config, fmt.Errorf("Unable to read pemfile: %s", err)
 		}
 
 		cp := x509.NewCertPool()
 		if ok := cp.AppendCertsFromPEM(pemFileData); !ok {
-			return nil, fmt.Errorf("Error parsing PEM: %s", pemFile)
+			return config, fmt.Errorf("Error parsing PEM: %s", pemFile)
 		}
 
 		config.TlsConfig = &tls.Config{RootCAs: cp}

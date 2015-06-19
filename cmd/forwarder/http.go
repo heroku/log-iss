@@ -22,7 +22,7 @@ type Payload struct {
 type FixerFunc func(io.Reader, slog.Context, string, string) ([]byte, error)
 
 type HttpServer struct {
-	Config         *IssConfig
+	Config         IssConfig
 	FixerFunc      FixerFunc
 	Outlet         chan *Payload
 	InFlightWg     sync.WaitGroup
@@ -31,7 +31,7 @@ type HttpServer struct {
 	auth           authenticater.Authenticater
 }
 
-func NewHttpServer(config *IssConfig, auth authenticater.Authenticater, fixerFunc FixerFunc, outlet chan *Payload) *HttpServer {
+func NewHttpServer(config IssConfig, auth authenticater.Authenticater, fixerFunc FixerFunc, outlet chan *Payload) *HttpServer {
 	return &HttpServer{
 		auth:           auth,
 		Config:         config,

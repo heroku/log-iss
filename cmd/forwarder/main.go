@@ -13,7 +13,7 @@ import (
 
 type ShutdownCh chan int
 
-var Config *IssConfig
+var Config IssConfig
 
 func Logf(format string, a ...interface{}) {
 	orig := fmt.Sprintf(format, a...)

@@ -7,17 +7,18 @@ import (
 )
 
 type ForwarderSet struct {
-	Config *IssConfig
+	Config IssConfig
 	Inbox  chan *Payload
 }
 
 type Forwarder struct {
-	Id  int
-	Set *ForwarderSet
-	c   net.Conn
+	Id     int
+	Config IssConfig
+	Inbox  chan *Payload
+	c      net.Conn
 }
 
-func NewForwarderSet(config *IssConfig) *ForwarderSet {
+func NewForwarderSet(config IssConfig) *ForwarderSet {
 	return &ForwarderSet{
 		Config: config,
 		Inbox:  make(chan *Payload, 1000),
@@ -33,8 +34,9 @@ func (fs *ForwarderSet) Start() {
 
 func NewForwarder(set *ForwarderSet, id int) *Forwarder {
 	return &Forwarder{
-		Id:  id,
-		Set: set,
+		Id:     id,
+		Config: set.Config,
+		Inbox:  set.Inbox,
 	}
 }
 
@@ -43,7 +45,7 @@ func (f *Forwarder) Start() {
 }
 
 func (f *Forwarder) Run() {
-	for p := range f.Set.Inbox {
+	for p := range f.Inbox {
 		start := time.Now()
 		f.write(p)
 		p.WaitCh <- true
@@ -64,10 +66,10 @@ func (f *Forwarder) connect() {
 		var c net.Conn
 		var err error
 
-		if f.Set.Config.TlsConfig != nil {
-			c, err = tls.Dial("tcp", f.Set.Config.ForwardDest, f.Set.Config.TlsConfig)
+		if f.Config.TlsConfig != nil {
+			c, err = tls.Dial("tcp", f.Config.ForwardDest, f.Config.TlsConfig)
 		} else {
-			c, err = net.DialTimeout("tcp", f.Set.Config.ForwardDest, f.Set.Config.ForwardDestConnectTimeout)
+			c, err = net.DialTimeout("tcp", f.Config.ForwardDest, f.Config.ForwardDestConnectTimeout)
 		}
 
 		if err != nil {
