@@ -13,7 +13,7 @@ import (
 type IssConfig struct {
 	Deploy                    string        `env:"DEPLOY,required"`
 	ForwardDest               string        `env:"FORWARD_DEST,required"`
-	ForwardDestConnectTimeout time.Duration `env:"FORWARD_DEST_CONNECT_TIMEOUT,default=10s,required"`
+	ForwardDestConnectTimeout time.Duration `env:"FORWARD_DEST_CONNECT_TIMEOUT,default=10s"`
 	ForwardCount              int           `env:"FORWARD_COUNT,default=4"`
 	HttpPort                  string        `env:"PORT,required"`
 	Tokens                    string        `env:"TOKEN_MAP,required"`
