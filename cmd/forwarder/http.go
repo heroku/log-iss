@@ -116,11 +116,7 @@ func (s *HttpServer) Run() error {
 		ctx.Count("log-iss.http.logs.post.success", 1)
 	})
 
-	if err := http.ListenAndServe(":"+s.Config.HttpPort, nil); err != nil {
-		return err
-	}
-
-	return nil
+	return http.ListenAndServe(":"+s.Config.HttpPort, nil)
 }
 
 func (s *HttpServer) awaitShutdown() {
