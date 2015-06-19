@@ -26,13 +26,14 @@ func LogContext(ctx slog.Context) {
 	fmt.Println(ctx)
 }
 
-func awaitShutdownSignals(chs []ShutdownCh) {
+func awaitShutdownSignals(chs ...ShutdownCh) {
 	sigCh := make(chan os.Signal)
 	signal.Notify(sigCh, syscall.SIGTERM, syscall.SIGINT)
-	sig := <-sigCh
-	Logf("ns=main at=shutdown-signal signal=%q", sig)
-	for _, ch := range chs {
-		ch <- struct{}{}
+	for sig := range sigCh {
+		Logf("ns=main at=shutdown-signal signal=%q", sig)
+		for _, ch := range chs {
+			ch <- struct{}{}
+		}
 	}
 }
 
@@ -56,7 +57,7 @@ func main() {
 
 	httpServer := NewHttpServer(Config, auth, Fix, forwarderSet.Inbox)
 
-	go awaitShutdownSignals([]ShutdownCh{httpServer.ShutdownCh, shutdownCh})
+	go awaitShutdownSignals(httpServer.ShutdownCh, shutdownCh)
 
 	go func() {
 		if err := httpServer.Run(); err != nil {
