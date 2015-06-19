@@ -11,7 +11,7 @@ import (
 	"github.com/heroku/log-iss/Godeps/_workspace/src/github.com/heroku/slog"
 )
 
-type ShutdownCh chan int
+type ShutdownCh chan struct{}
 
 var Config IssConfig
 
@@ -32,7 +32,7 @@ func awaitShutdownSignals(chs []ShutdownCh) {
 	sig := <-sigCh
 	Logf("ns=main at=shutdown-signal signal=%q", sig)
 	for _, ch := range chs {
-		ch <- 1
+		ch <- struct{}{}
 	}
 }
 

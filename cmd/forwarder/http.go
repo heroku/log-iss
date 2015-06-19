@@ -37,7 +37,7 @@ func NewHttpServer(config IssConfig, auth authenticater.Authenticater, fixerFunc
 		Config:         config,
 		FixerFunc:      fixerFunc,
 		Outlet:         outlet,
-		ShutdownCh:     make(chan int),
+		ShutdownCh:     make(chan struct{}),
 		isShuttingDown: false,
 	}
 }
