@@ -28,7 +28,7 @@ func NewForwarderSet(config IssConfig) *ForwarderSet {
 func (fs *ForwarderSet) Start() {
 	for i := 0; i < fs.Config.ForwardCount; i++ {
 		forwarder := NewForwarder(fs, i)
-		forwarder.Start()
+		go forwarder.Start()
 	}
 }
 
@@ -41,7 +41,7 @@ func NewForwarder(set *ForwarderSet, id int) *Forwarder {
 }
 
 func (f *Forwarder) Start() {
-	go f.Run()
+	f.Run()
 }
 
 func (f *Forwarder) Run() {
