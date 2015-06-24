@@ -3,20 +3,18 @@ package main
 import (
 	"bufio"
 	"bytes"
-	"github.com/heroku/log-iss/Godeps/_workspace/src/github.com/bmizerany/lpx"
-	"github.com/heroku/log-iss/Godeps/_workspace/src/github.com/heroku/slog"
 	"io"
 	"io/ioutil"
 	"strconv"
-	"time"
+
+	"github.com/heroku/log-iss/Godeps/_workspace/src/github.com/bmizerany/lpx"
 )
 
 const (
 	LOGPLEX_DEFAULT_HOST = "host" // https://github.com/heroku/logplex/blob/master/src/logplex_http_drain.erl#L443
 )
 
-func Fix(r io.Reader, ctx slog.Context, remoteAddr string, logplexDrainToken string) ([]byte, error) {
-	defer ctx.MeasureSince("log-iss.http.logs.fixer-func.duration", time.Now())
+func Fix(r io.Reader, remoteAddr string, logplexDrainToken string) ([]byte, error) {
 	nilVal := []byte(`- `)
 
 	var messageWriter bytes.Buffer
@@ -64,14 +62,10 @@ func Fix(r io.Reader, ctx slog.Context, remoteAddr string, logplexDrainToken str
 	}
 
 	if lp.Err() != nil {
-		ctx.Count("log-iss.fixer.fix.error.lpx", 1)
-		ctx.Add("fixer.error", lp.Err())
 		return nil, lp.Err()
 	}
 
 	if fullMessage, err := ioutil.ReadAll(&messageLenWriter); err != nil {
-		ctx.Count("log-iss.fixer.fix.error.readall", 1)
-		ctx.Add("fixer.error", err)
 		return nil, err
 	} else {
 		return fullMessage, nil

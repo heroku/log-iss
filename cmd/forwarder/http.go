@@ -8,112 +8,133 @@ import (
 	"sync"
 	"time"
 
+	log "github.com/heroku/log-iss/Godeps/_workspace/src/github.com/Sirupsen/logrus"
 	"github.com/heroku/log-iss/Godeps/_workspace/src/github.com/heroku/authenticater"
-	"github.com/heroku/log-iss/Godeps/_workspace/src/github.com/heroku/slog"
+	metrics "github.com/heroku/log-iss/Godeps/_workspace/src/github.com/rcrowley/go-metrics"
 )
 
 type Payload struct {
 	SourceAddr string
 	RequestId  string
 	Body       []byte
-	WaitCh     chan bool
+	WaitCh     chan struct{}
 }
 
-type FixerFunc func(io.Reader, slog.Context, string, string) ([]byte, error)
+func NewPayload(sa string, ri string, b []byte) Payload {
+	return Payload{
+		SourceAddr: sa,
+		RequestId:  ri,
+		Body:       b,
+		WaitCh:     make(chan struct{}, 1),
+	}
+}
+
+type FixerFunc func(io.Reader, string, string) ([]byte, error)
 
 type HttpServer struct {
 	Config         IssConfig
 	FixerFunc      FixerFunc
-	Outlet         chan *Payload
 	ShutdownCh     ShutdownCh
+	deliverer      Deliverer
 	isShuttingDown bool
 	auth           authenticater.Authenticater
+	posts          metrics.Timer   // tracks metrics about posts
+	healthChecks   metrics.Timer   // tracks metrics about health checks
+	pErrors        metrics.Counter // tracks the count of post errors
+	pSuccesses     metrics.Counter // tracks the number of post successes
 	sync.WaitGroup
 }
 
-func NewHttpServer(config IssConfig, auth authenticater.Authenticater, fixerFunc FixerFunc, outlet chan *Payload) *HttpServer {
+func NewHttpServer(config IssConfig, auth authenticater.Authenticater, fixerFunc FixerFunc, deliverer Deliverer) *HttpServer {
 	return &HttpServer{
 		auth:           auth,
 		Config:         config,
 		FixerFunc:      fixerFunc,
-		Outlet:         outlet,
+		deliverer:      deliverer,
 		ShutdownCh:     make(chan struct{}),
+		posts:          metrics.GetOrRegisterTimer("log-iss.http.logs.posts", config.MetricsRegistry),
+		healthChecks:   metrics.GetOrRegisterTimer("log-iss.http.healthchecks", config.MetricsRegistry),
+		pErrors:        metrics.GetOrRegisterCounter("log-iss.http.logs.post.errors", config.MetricsRegistry),
+		pSuccesses:     metrics.GetOrRegisterCounter("log-iss.http.logs.post.successes", config.MetricsRegistry),
 		isShuttingDown: false,
 	}
 }
 
-func handleHTTPError(ctx slog.Context, w http.ResponseWriter, errMsg string, errCode int) {
-	ctx.Count("log-iss.http.logs.post.error", 1)
-	ctx.Add("post.error", errMsg)
-	ctx.Add("post.code", errCode)
+func (s *HttpServer) handleHTTPError(w http.ResponseWriter, errMsg string, errCode int, fields ...log.Fields) {
+	ff := log.Fields{"post.code": errCode}
+	for _, f := range fields {
+		for k, v := range f {
+			ff[k] = v
+		}
+	}
+
+	s.pErrors.Inc(1)
+	log.WithFields(ff).Error(errMsg)
 	http.Error(w, errMsg, errCode)
+}
+
+func extractRemoteAddr(r *http.Request) string {
+	remoteAddr := r.Header.Get("X-Forwarded-For")
+	if remoteAddr == "" {
+		remoteAddrParts := strings.Split(r.RemoteAddr, ":")
+		remoteAddr = strings.Join(remoteAddrParts[:len(remoteAddrParts)-1], ":")
+	}
+	return remoteAddr
 }
 
 func (s *HttpServer) Run() error {
 	go s.awaitShutdown()
 
+	//FXME: check outlet depth?
 	http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
-		ctx := slog.Context{}
-		defer func() { LogContext(ctx) }()
-
+		defer s.healthChecks.UpdateSince(time.Now())
 		if s.isShuttingDown {
 			http.Error(w, "Shutting down", 503)
 			return
 		}
 
-		// check outlet depth?
-		ctx.Count("log-iss.http.health.get", 1)
 	})
 
 	http.HandleFunc("/logs", func(w http.ResponseWriter, r *http.Request) {
-		ctx := slog.Context{}
-		defer func() { LogContext(ctx) }()
-		defer ctx.MeasureSince("log-iss.http.logs.post.duration", time.Now())
+		defer s.posts.UpdateSince(time.Now())
 
 		if s.Config.EnforceSsl && r.Header.Get("X-Forwarded-Proto") != "https" {
-			handleHTTPError(ctx, w, "Only SSL requests accepted", 400)
+			s.handleHTTPError(w, "Only SSL requests accepted", 400)
 			return
 		}
 
 		if s.isShuttingDown {
-			handleHTTPError(ctx, w, "Shutting down", 503)
+			s.handleHTTPError(w, "Shutting down", 503)
 			return
 		}
 
 		if r.Method != "POST" {
-			handleHTTPError(ctx, w, "Only POST is accepted", 400)
+			s.handleHTTPError(w, "Only POST is accepted", 400)
 			return
 		}
 
 		if r.Header.Get("Content-Type") != "application/logplex-1" {
-			handleHTTPError(ctx, w, "Only Content-Type application/logplex-1 is accepted", 400)
+			s.handleHTTPError(w, "Only Content-Type application/logplex-1 is accepted", 400)
 			return
 		}
 
 		if !s.auth.Authenticate(r) {
-			handleHTTPError(ctx, w, "Unable to authenticate request", 401)
+			s.handleHTTPError(w, "Unable to authenticate request", 401)
 			return
 		}
 
-		remoteAddr := r.Header.Get("X-Forwarded-For")
-		if remoteAddr == "" {
-			remoteAddrParts := strings.Split(r.RemoteAddr, ":")
-			remoteAddr = strings.Join(remoteAddrParts[:len(remoteAddrParts)-1], ":")
-		}
-		ctx.Add("remote_addr", remoteAddr)
-
+		remoteAddr := extractRemoteAddr(r)
 		requestId := r.Header.Get("X-Request-Id")
-		ctx.Add("request_id", requestId)
-
 		logplexDrainToken := r.Header.Get("Logplex-Drain-Token")
-		ctx.Add("logdrain_token", logplexDrainToken)
-
-		if err, status := s.process(r.Body, ctx, remoteAddr, requestId, logplexDrainToken); err != nil {
-			handleHTTPError(ctx, w, err.Error(), status)
+		if err, status := s.process(r.Body, remoteAddr, requestId, logplexDrainToken); err != nil {
+			s.handleHTTPError(
+				w, err.Error(), status,
+				log.Fields{"remote_addr": remoteAddr, "requestId": requestId, "logdrain_token": logplexDrainToken},
+			)
 			return
 		}
 
-		ctx.Count("log-iss.http.logs.post.success", 1)
+		s.pSuccesses.Inc(1)
 	})
 
 	return http.ListenAndServe(":"+s.Config.HttpPort, nil)
@@ -121,41 +142,23 @@ func (s *HttpServer) Run() error {
 
 func (s *HttpServer) awaitShutdown() {
 	<-s.ShutdownCh
-	Logf("ns=http at=shutdown")
 	s.isShuttingDown = true
+	log.WithFields(log.Fields{"ns": "http", "at": "shutdown"}).Info()
 }
 
-func (s *HttpServer) process(r io.Reader, ctx slog.Context, remoteAddr string, requestId string, logplexDrainToken string) (error, int) {
+func (s *HttpServer) process(r io.Reader, remoteAddr string, requestId string, logplexDrainToken string) (error, int) {
 	s.Add(1)
 	defer s.Done()
 
-	var start time.Time
-
-	fixedBody, err := s.FixerFunc(r, ctx, remoteAddr, logplexDrainToken)
+	fixedBody, err := s.FixerFunc(r, remoteAddr, logplexDrainToken)
 	if err != nil {
-		return errors.New("Problem processing body"), 400
+		return errors.New("Problem fixing body: " + err.Error()), http.StatusBadRequest
 	}
 
-	waitCh := make(chan bool, 1)
-	deadlineCh := time.After(time.Duration(5) * time.Second)
-
-	start = time.Now()
-	select {
-	case s.Outlet <- &Payload{remoteAddr, requestId, fixedBody, waitCh}:
-	case <-deadlineCh:
-		ctx.Count("log-iss.http.logs.send.error", 1)
-		return errors.New("Timeout delivering message"), 504
+	payload := NewPayload(remoteAddr, requestId, fixedBody)
+	if err := s.deliverer.Deliver(payload); err != nil {
+		return errors.New("Problem delivering body: " + err.Error()), http.StatusGatewayTimeout
 	}
-	ctx.MeasureSince("log-iss.http.logs.send.duration", start)
-
-	start = time.Now()
-	select {
-	case <-waitCh:
-	case <-deadlineCh:
-		ctx.Count("log-iss.http.logs.wait.error", 1)
-		return errors.New("Timeout delivering message"), 504
-	}
-	ctx.MeasureSince("log-iss.http.logs.wait.duration", start)
 
 	return nil, 200
 }

@@ -2,54 +2,98 @@ package main
 
 import (
 	"crypto/tls"
+	"fmt"
 	"net"
 	"time"
+
+	log "github.com/heroku/log-iss/Godeps/_workspace/src/github.com/Sirupsen/logrus"
+	metrics "github.com/heroku/log-iss/Godeps/_workspace/src/github.com/rcrowley/go-metrics"
 )
 
-type ForwarderSet struct {
-	Config IssConfig
-	Inbox  chan *Payload
+type Deliverer interface {
+	Deliver(p Payload) error
 }
 
-type Forwarder struct {
-	Id     int
-	Config IssConfig
-	Inbox  chan *Payload
-	c      net.Conn
+type ForwarderSet struct {
+	Config  IssConfig
+	Inbox   chan Payload
+	timeout metrics.Counter // counts how many times we times out waiting for delivery notification
+	full    metrics.Counter // counts how many times the queue was full
 }
 
 func NewForwarderSet(config IssConfig) *ForwarderSet {
 	return &ForwarderSet{
-		Config: config,
-		Inbox:  make(chan *Payload, 1000),
+		Config:  config,
+		Inbox:   make(chan Payload, 1000),
+		timeout: metrics.GetOrRegisterCounter("forwardset.deliver.timeout", config.MetricsRegistry),
+		full:    metrics.GetOrRegisterCounter("forwardset.deliver.full", config.MetricsRegistry),
 	}
 }
 
-func (fs *ForwarderSet) Start() {
+func (fs *ForwarderSet) Run() {
 	for i := 0; i < fs.Config.ForwardCount; i++ {
-		forwarder := NewForwarder(fs, i)
-		go forwarder.Start()
+		forwarder := NewForwarder(fs.Config, fs.Inbox, i)
+		go forwarder.Run()
 	}
 }
 
-func NewForwarder(set *ForwarderSet, id int) *Forwarder {
+func (fs *ForwarderSet) Deliver(p Payload) (err error) {
+	deadline := time.After(time.Second * 5)
+
+	select {
+	case fs.Inbox <- p:
+	case <-deadline:
+		fs.full.Inc(1)
+		return fmt.Errorf("ForwardSet queue full too long.")
+	}
+
+	select {
+	case <-p.WaitCh:
+		// FIXME: delivery duration?
+	case <-deadline:
+		fs.timeout.Inc(1)
+		return fmt.Errorf("Timed out awaiting delivery notification for payload")
+	}
+
+	return nil
+}
+
+type Forwarder struct {
+	Id           int
+	Config       IssConfig
+	Inbox        chan Payload
+	c            net.Conn
+	duration     metrics.Timer   // tracks how long it takes to forward messages
+	cDisconnects metrics.Counter // counts disconnects
+	cSuccesses   metrics.Counter // counts connection successes
+	cErrors      metrics.Counter // counts connection errors
+	wErrors      metrics.Counter // counts write errors
+	wSuccesses   metrics.Counter // counts write successes
+	wBytes       metrics.Counter // counts written bytes
+}
+
+func NewForwarder(config IssConfig, inbox chan Payload, id int) *Forwarder {
+	me := fmt.Sprintf("forwarder.%i", id)
 	return &Forwarder{
-		Id:     id,
-		Config: set.Config,
-		Inbox:  set.Inbox,
+		Id:           id,
+		Config:       config,
+		Inbox:        inbox,
+		duration:     metrics.GetOrRegisterTimer(me+".duration", config.MetricsRegistry),
+		cDisconnects: metrics.GetOrRegisterCounter(me+".disconnects", config.MetricsRegistry),
+		cSuccesses:   metrics.GetOrRegisterCounter(me+".connect.successes", config.MetricsRegistry),
+		cErrors:      metrics.GetOrRegisterCounter(me+".connect.errors", config.MetricsRegistry),
+		wErrors:      metrics.GetOrRegisterCounter(me+".write.errors", config.MetricsRegistry),
+		wSuccesses:   metrics.GetOrRegisterCounter(me+".write.successes", config.MetricsRegistry),
+		wBytes:       metrics.GetOrRegisterCounter(me+".write.bytes", config.MetricsRegistry),
 	}
-}
-
-func (f *Forwarder) Start() {
-	f.Run()
 }
 
 func (f *Forwarder) Run() {
 	for p := range f.Inbox {
 		start := time.Now()
 		f.write(p)
-		p.WaitCh <- true
-		Logf("measure#log-iss.forwarder.process.duration=%dms id=%d request_id=%q", time.Since(start)/time.Millisecond, f.Id, p.RequestId)
+		p.WaitCh <- struct{}{}
+		f.duration.UpdateSince(start)
 	}
 }
 
@@ -60,9 +104,6 @@ func (f *Forwarder) connect() {
 
 	rate := time.Tick(200 * time.Millisecond)
 	for {
-		start := time.Now()
-		Logf("count#log-iss.forwarder.connect.attempt=1 id=%d", f.Id)
-
 		var c net.Conn
 		var err error
 
@@ -73,10 +114,11 @@ func (f *Forwarder) connect() {
 		}
 
 		if err != nil {
-			Logf("count#log-iss.forwarder.connect.error=1 id=%d message=%q", f.Id, err)
+			f.cErrors.Inc(1)
+			log.WithFields(log.Fields{"id": f.Id, "message": err}).Error("Forwarder Connection Error")
 			f.disconnect()
 		} else {
-			Logf("count#log-iss.forwarder.connect.success=1 measure#log-iss.forwarder.connect.duration=%dms id=%d remote_addr=%s", time.Since(start)/time.Millisecond, f.Id, c.RemoteAddr().String())
+			log.WithFields(log.Fields{"id": f.Id, "remote_addr": c.RemoteAddr().String()}).Info("Forwarder Connection Success")
 			f.c = c
 			return
 		}
@@ -89,19 +131,21 @@ func (f *Forwarder) disconnect() {
 		f.c.Close()
 	}
 	f.c = nil
-	Logf("count#log-iss.forwarder.disconnect.success=1 id=%d", f.Id)
+	f.cDisconnects.Inc(1)
 }
 
-func (f *Forwarder) write(p *Payload) {
+func (f *Forwarder) write(p Payload) {
 	for {
 		f.connect()
 
 		f.c.SetWriteDeadline(time.Now().Add(1 * time.Second))
 		if n, err := f.c.Write(p.Body); err != nil {
-			Logf("count#log-iss.forwarder.write.error=1 id=%d request_id=%q message=%q remote_addr=%s", f.Id, p.RequestId, err, f.c.RemoteAddr().String())
+			f.wErrors.Inc(1)
+			log.WithFields(log.Fields{"id": f.Id, "request_id": p.RequestId, "err": err, "remote": f.c.RemoteAddr().String()}).Error("Error writing payload")
 			f.disconnect()
 		} else {
-			Logf("count#log-iss.forwarder.write.success.messages=1 measure#log-iss.forwarder.write.success.bytes=%d id=%d request_id=%q remote_addr=%s", n, f.Id, p.RequestId, f.c.RemoteAddr().String())
+			f.wSuccesses.Inc(1)
+			f.wBytes.Inc(int64(n))
 			return
 		}
 	}

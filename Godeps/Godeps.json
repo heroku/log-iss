@@ -6,6 +6,11 @@
 	],
 	"Deps": [
 		{
+			"ImportPath": "github.com/Sirupsen/logrus",
+			"Comment": "v0.8.2-10-g21d4508",
+			"Rev": "21d4508646ae56d79244bd9046c1df63a5fa8c37"
+		},
+		{
 			"ImportPath": "github.com/bmizerany/lpx",
 			"Rev": "af85cf24c1567bcb5a2e4c21597cc049eab31f55"
 		},
@@ -14,12 +19,24 @@
 			"Rev": "463c5fd4fa1798d3a421a44f76f404616ee3cda5"
 		},
 		{
+			"ImportPath": "github.com/heroku/rollrus",
+			"Rev": "9a0cd307107e494f43b880b9309a0b4874c85f23"
+		},
+		{
 			"ImportPath": "github.com/heroku/slog",
 			"Rev": "5e466056983b2ce3870ed332178628dfe1bcc907"
 		},
 		{
 			"ImportPath": "github.com/joeshaw/envdecode",
 			"Rev": "8f3fa5fb853793067e184bdc4fe8ac0b3320a9a2"
+		},
+		{
+			"ImportPath": "github.com/rcrowley/go-metrics",
+			"Rev": "a5cfc242a56ba7fa70b785f678d6214837bf93b9"
+		},
+		{
+			"ImportPath": "github.com/stvp/roll",
+			"Rev": "db998c21f9b63db530d1ec5f8e8ffa6e2b344ebf"
 		}
 	]
 }

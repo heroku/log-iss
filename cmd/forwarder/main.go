@@ -1,36 +1,27 @@
 package main
 
 import (
-	"fmt"
-	"log"
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
+	"github.com/rcrowley/go-metrics/librato"
+
+	log "github.com/heroku/log-iss/Godeps/_workspace/src/github.com/Sirupsen/logrus"
 	"github.com/heroku/log-iss/Godeps/_workspace/src/github.com/heroku/authenticater"
-	"github.com/heroku/log-iss/Godeps/_workspace/src/github.com/heroku/slog"
+	"github.com/heroku/log-iss/Godeps/_workspace/src/github.com/heroku/rollrus"
 )
 
 type ShutdownCh chan struct{}
 
 var Config IssConfig
 
-func Logf(format string, a ...interface{}) {
-	orig := fmt.Sprintf(format, a...)
-	fmt.Printf("app=log-iss source=%s %s\n", Config.Deploy, orig)
-}
-
-func LogContext(ctx slog.Context) {
-	ctx["app"] = "log-iss"
-	ctx["source"] = Config.Deploy
-	fmt.Println(ctx)
-}
-
 func awaitShutdownSignals(chs ...ShutdownCh) {
 	sigCh := make(chan os.Signal)
 	signal.Notify(sigCh, syscall.SIGTERM, syscall.SIGINT)
 	for sig := range sigCh {
-		Logf("ns=main at=shutdown-signal signal=%q", sig)
+		log.WithFields(log.Fields{"at": "shutdown-signal", "signal": sig}).Info()
 		for _, ch := range chs {
 			ch <- struct{}{}
 		}
@@ -38,6 +29,8 @@ func awaitShutdownSignals(chs ...ShutdownCh) {
 }
 
 func main() {
+	rollrus.SetupLogging(os.Getenv("ROLLBAR_TOKEN"), os.Getenv("ENVIRONMENT"))
+
 	config, err := NewIssConfig()
 	if err != nil {
 		log.Fatalln(err)
@@ -45,19 +38,22 @@ func main() {
 
 	Config = config
 
+	log.AddHook(&DefaultFieldsHook{log.Fields{"app": "log-iss", "source": Config.Deploy}})
+
 	auth, err := authenticater.NewBasicAuthFromString(Config.Tokens)
 	if err != nil {
 		log.Fatalln(err)
 	}
 
 	forwarderSet := NewForwarderSet(Config)
-	forwarderSet.Start()
 
 	shutdownCh := make(ShutdownCh)
 
-	httpServer := NewHttpServer(Config, auth, Fix, forwarderSet.Inbox)
+	httpServer := NewHttpServer(Config, auth, Fix, forwarderSet)
 
 	go awaitShutdownSignals(httpServer.ShutdownCh, shutdownCh)
+
+	go forwarderSet.Run()
 
 	go func() {
 		if err := httpServer.Run(); err != nil {
@@ -65,9 +61,22 @@ func main() {
 		}
 	}()
 
-	Logf("ns=main at=start")
+	if Config.LibratoOwner != "" && Config.LibratoToken != "" {
+		log.Info("starting librato metrics reporting")
+		go librato.Librato(
+			config.MetricsRegistry,
+			20*time.Second,
+			Config.LibratoOwner,
+			Config.LibratoToken,
+			Config.LibratoSource,
+			[]float64{0.50, 0.95, 0.99},
+			time.Millisecond,
+		)
+	}
+
+	log.WithField("at", "start").Info()
 	<-shutdownCh
-	Logf("ns=main at=drain")
+	log.WithField("at", "drain").Info()
 	httpServer.Wait()
-	Logf("ns=main at=exit")
+	log.WithField("at", "exit").Info()
 }
