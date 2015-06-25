@@ -73,7 +73,7 @@ type Forwarder struct {
 }
 
 func NewForwarder(config IssConfig, inbox chan Payload, id int) *Forwarder {
-	me := fmt.Sprintf("log-iss.forwarder.%i", id)
+	me := fmt.Sprintf("log-iss.forwarder.%d", id)
 	return &Forwarder{
 		Id:           id,
 		Config:       config,
