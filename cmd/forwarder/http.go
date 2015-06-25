@@ -52,10 +52,10 @@ func NewHttpServer(config IssConfig, auth authenticater.Authenticater, fixerFunc
 		FixerFunc:      fixerFunc,
 		deliverer:      deliverer,
 		ShutdownCh:     make(chan struct{}),
-		posts:          metrics.GetOrRegisterTimer("log-iss.http.logs.posts", config.MetricsRegistry),
+		posts:          metrics.GetOrRegisterTimer("log-iss.http.logs", config.MetricsRegistry),
 		healthChecks:   metrics.GetOrRegisterTimer("log-iss.http.healthchecks", config.MetricsRegistry),
-		pErrors:        metrics.GetOrRegisterCounter("log-iss.http.logs.post.errors", config.MetricsRegistry),
-		pSuccesses:     metrics.GetOrRegisterCounter("log-iss.http.logs.post.successes", config.MetricsRegistry),
+		pErrors:        metrics.GetOrRegisterCounter("log-iss.http.logs.errors", config.MetricsRegistry),
+		pSuccesses:     metrics.GetOrRegisterCounter("log-iss.http.logs.successes", config.MetricsRegistry),
 		isShuttingDown: false,
 	}
 }
