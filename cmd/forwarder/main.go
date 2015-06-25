@@ -6,7 +6,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/rcrowley/go-metrics/librato"
+	"github.com/heroku/log-iss/Godeps/_workspace/src/github.com/rcrowley/go-metrics/librato"
 
 	log "github.com/heroku/log-iss/Godeps/_workspace/src/github.com/Sirupsen/logrus"
 	"github.com/heroku/log-iss/Godeps/_workspace/src/github.com/heroku/authenticater"
