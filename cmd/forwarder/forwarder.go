@@ -118,6 +118,7 @@ func (f *Forwarder) connect() {
 			log.WithFields(log.Fields{"id": f.Id, "message": err}).Error("Forwarder Connection Error")
 			f.disconnect()
 		} else {
+			f.cSuccesses.Inc(1)
 			log.WithFields(log.Fields{"id": f.Id, "remote_addr": c.RemoteAddr().String()}).Info("Forwarder Connection Success")
 			f.c = c
 			return
