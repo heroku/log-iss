@@ -21,9 +21,9 @@ type IssConfig struct {
 	Tokens                    string        `env:"TOKEN_MAP,required"`
 	EnforceSsl                bool          `env:"ENFORCE_SSL,default=false"`
 	PemFile                   string        `env:"PEMFILE"`
-	LibratoSource             string        `env:"LIBRATO_SOURCE,default=''"`
-	LibratoOwner              string        `env:"LIBRATO_OWNER,default=''"`
-	LibratoToken              string        `env:"LIBRATO_TOKEN,default=''"`
+	LibratoSource             string        `env:"LIBRATO_SOURCE"`
+	LibratoOwner              string        `env:"LIBRATO_OWNER"`
+	LibratoToken              string        `env:"LIBRATO_TOKEN"`
 	TlsConfig                 *tls.Config
 	MetricsRegistry           metrics.Registry
 }
