@@ -25,8 +25,8 @@ func NewForwarderSet(config IssConfig) *ForwarderSet {
 	return &ForwarderSet{
 		Config:  config,
 		Inbox:   make(chan Payload, 1000),
-		timeout: metrics.GetOrRegisterCounter("forwardset.deliver.timeout", config.MetricsRegistry),
-		full:    metrics.GetOrRegisterCounter("forwardset.deliver.full", config.MetricsRegistry),
+		timeout: metrics.GetOrRegisterCounter("log-iss.forwardset.deliver.timeout", config.MetricsRegistry),
+		full:    metrics.GetOrRegisterCounter("log-iss.forwardset.deliver.full", config.MetricsRegistry),
 	}
 }
 
@@ -73,7 +73,7 @@ type Forwarder struct {
 }
 
 func NewForwarder(config IssConfig, inbox chan Payload, id int) *Forwarder {
-	me := fmt.Sprintf("forwarder.%i", id)
+	me := fmt.Sprintf("log-iss.forwarder.%i", id)
 	return &Forwarder{
 		Id:           id,
 		Config:       config,
