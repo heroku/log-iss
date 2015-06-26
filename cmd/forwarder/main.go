@@ -62,7 +62,7 @@ func main() {
 	}()
 
 	if Config.LibratoOwner != "" && Config.LibratoToken != "" {
-		log.Info("starting librato metrics reporting")
+		log.WithField("source", Config.LibratoSource).Info("starting librato metrics reporting")
 		go librato.Librato(
 			config.MetricsRegistry,
 			20*time.Second,

@@ -25,7 +25,7 @@ type IssConfig struct {
 	LibratoSource             string        `env:"LIBRATO_SOURCE"`
 	LibratoOwner              string        `env:"LIBRATO_OWNER"`
 	LibratoToken              string        `env:"LIBRATO_TOKEN"`
-	Dyno                      string        `env:"DYNO:`
+	Dyno                      string        `env:"DYNO"`
 	TlsConfig                 *tls.Config
 	MetricsRegistry           metrics.Registry
 }
