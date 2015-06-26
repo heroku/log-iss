@@ -11,10 +11,10 @@ import (
 )
 
 const (
-	LOGPLEX_DEFAULT_HOST = "host" // https://github.com/heroku/logplex/blob/master/src/logplex_http_drain.erl#L443
+	logplexDefaultHost = "host" // https://github.com/heroku/logplex/blob/master/src/logplex_http_drain.erl#L443
 )
 
-func Fix(r io.Reader, remoteAddr string, logplexDrainToken string) ([]byte, error) {
+func fix(r io.Reader, remoteAddr string, logplexDrainToken string) ([]byte, error) {
 	nilVal := []byte(`- `)
 
 	var messageWriter bytes.Buffer
@@ -31,7 +31,7 @@ func Fix(r io.Reader, remoteAddr string, logplexDrainToken string) ([]byte, erro
 		messageWriter.WriteString(" ")
 		messageWriter.Write(header.Time)
 		messageWriter.WriteString(" ")
-		if string(header.Hostname) == LOGPLEX_DEFAULT_HOST && logplexDrainToken != "" {
+		if string(header.Hostname) == logplexDefaultHost && logplexDrainToken != "" {
 			messageWriter.WriteString(logplexDrainToken)
 		} else {
 			messageWriter.Write(header.Hostname)
@@ -65,9 +65,10 @@ func Fix(r io.Reader, remoteAddr string, logplexDrainToken string) ([]byte, erro
 		return nil, lp.Err()
 	}
 
-	if fullMessage, err := ioutil.ReadAll(&messageLenWriter); err != nil {
+	fullMessage, err := ioutil.ReadAll(&messageLenWriter)
+	if err != nil {
 		return nil, err
-	} else {
-		return fullMessage, nil
 	}
+
+	return fullMessage, nil
 }
