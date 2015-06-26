@@ -5,6 +5,7 @@ import (
 	"crypto/x509"
 	"fmt"
 	"io/ioutil"
+	"strings"
 	"time"
 
 	"github.com/heroku/log-iss/Godeps/_workspace/src/github.com/joeshaw/envdecode"
@@ -24,6 +25,7 @@ type IssConfig struct {
 	LibratoSource             string        `env:"LIBRATO_SOURCE"`
 	LibratoOwner              string        `env:"LIBRATO_OWNER"`
 	LibratoToken              string        `env:"LIBRATO_TOKEN"`
+	Dyno                      string        `env:"DYNO:`
 	TlsConfig                 *tls.Config
 	MetricsRegistry           metrics.Registry
 }
@@ -49,6 +51,16 @@ func NewIssConfig() (IssConfig, error) {
 
 		config.TlsConfig = &tls.Config{RootCAs: cp}
 	}
+
+	sp := make([]string, 0, 2)
+	if config.LibratoSource != "" {
+		sp = append(sp, config.LibratoSource)
+	}
+	if config.Dyno != "" {
+		sp = append(sp, config.Dyno)
+	}
+
+	config.LibratoSource = strings.Join(sp, ".")
 
 	config.MetricsRegistry = metrics.NewRegistry()
 
