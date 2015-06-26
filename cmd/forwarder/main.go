@@ -15,8 +15,6 @@ import (
 
 type ShutdownCh chan struct{}
 
-var Config IssConfig
-
 func awaitShutdownSignals(chs ...ShutdownCh) {
 	sigCh := make(chan os.Signal)
 	signal.Notify(sigCh, syscall.SIGTERM, syscall.SIGINT)
@@ -36,20 +34,18 @@ func main() {
 		log.Fatalln(err)
 	}
 
-	Config = config
+	log.AddHook(&DefaultFieldsHook{log.Fields{"app": "log-iss", "source": config.Deploy}})
 
-	log.AddHook(&DefaultFieldsHook{log.Fields{"app": "log-iss", "source": Config.Deploy}})
-
-	auth, err := authenticater.NewBasicAuthFromString(Config.Tokens)
+	auth, err := authenticater.NewBasicAuthFromString(config.Tokens)
 	if err != nil {
 		log.Fatalln(err)
 	}
 
-	forwarderSet := NewForwarderSet(Config)
+	forwarderSet := NewForwarderSet(config)
 
 	shutdownCh := make(ShutdownCh)
 
-	httpServer := NewHttpServer(Config, auth, Fix, forwarderSet)
+	httpServer := NewHttpServer(config, auth, Fix, forwarderSet)
 
 	go awaitShutdownSignals(httpServer.ShutdownCh, shutdownCh)
 
@@ -61,14 +57,14 @@ func main() {
 		}
 	}()
 
-	if Config.LibratoOwner != "" && Config.LibratoToken != "" {
-		log.WithField("source", Config.LibratoSource).Info("starting librato metrics reporting")
+	if config.LibratoOwner != "" && config.LibratoToken != "" {
+		log.WithField("source", config.LibratoSource).Info("starting librato metrics reporting")
 		go librato.Librato(
 			config.MetricsRegistry,
 			20*time.Second,
-			Config.LibratoOwner,
-			Config.LibratoToken,
-			Config.LibratoSource,
+			config.LibratoOwner,
+			config.LibratoToken,
+			config.LibratoSource,
 			[]float64{0.50, 0.95, 0.99},
 			time.Millisecond,
 		)
