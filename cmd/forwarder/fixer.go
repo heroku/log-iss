@@ -4,18 +4,20 @@ import (
 	"bufio"
 	"bytes"
 	"io"
-	"io/ioutil"
 	"strconv"
 
 	"github.com/heroku/log-iss/Godeps/_workspace/src/github.com/bmizerany/lpx"
 )
 
 const (
-	logplexDefaultHost = "host" // https://github.com/heroku/logplex/blob/master/src/logplex_http_drain.erl#L443
+	// LogplexDefaultHost is the default host from logplex:
+	// https://github.com/heroku/logplex/blob/master/src/logplex_http_drain.erl#L443
+	logplexDefaultHost = "host"
 )
 
 var nilVal = []byte(`- `)
 
+// Fix function to convert post data to length prefixed syslog frames
 func fix(r io.Reader, remoteAddr string, logplexDrainToken string) ([]byte, error) {
 	var messageWriter bytes.Buffer
 	var messageLenWriter bytes.Buffer
@@ -59,14 +61,5 @@ func fix(r io.Reader, remoteAddr string, logplexDrainToken string) ([]byte, erro
 		messageWriter.WriteTo(&messageLenWriter)
 	}
 
-	if lp.Err() != nil {
-		return nil, lp.Err()
-	}
-
-	fullMessage, err := ioutil.ReadAll(&messageLenWriter)
-	if err != nil {
-		return nil, err
-	}
-
-	return fullMessage, nil
+	return messageLenWriter.Bytes(), lp.Err()
 }
