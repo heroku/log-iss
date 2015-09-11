@@ -59,7 +59,7 @@ func NewHttpServer(config IssConfig, auth authenticater.Authenticater, fixerFunc
 		pErrors:        metrics.GetOrRegisterCounter("log-iss.http.logs.errors", config.MetricsRegistry),
 		pSuccesses:     metrics.GetOrRegisterCounter("log-iss.http.logs.successes", config.MetricsRegistry),
 		pAuthErrors:    metrics.GetOrRegisterCounter("log-iss.auth.errors", config.MetricsRegistry),
-		pAuthSuccesses: metrics.GetOrRegisterCounter("log-iss.authsuccesses", config.MetricsRegistry),
+		pAuthSuccesses: metrics.GetOrRegisterCounter("log-iss.auth.successes", config.MetricsRegistry),
 		isShuttingDown: false,
 	}
 }
