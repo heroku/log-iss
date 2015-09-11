@@ -42,6 +42,8 @@ type HttpServer struct {
 	healthChecks   metrics.Timer   // tracks metrics about health checks
 	pErrors        metrics.Counter // tracks the count of post errors
 	pSuccesses     metrics.Counter // tracks the number of post successes
+	pAuthErrors    metrics.Counter // tracks the count of auth errors
+	pAuthSuccesses metrics.Counter // tracks the number of auth successes
 	sync.WaitGroup
 }
 
@@ -56,6 +58,8 @@ func NewHttpServer(config IssConfig, auth authenticater.Authenticater, fixerFunc
 		healthChecks:   metrics.GetOrRegisterTimer("log-iss.http.healthchecks", config.MetricsRegistry),
 		pErrors:        metrics.GetOrRegisterCounter("log-iss.http.logs.errors", config.MetricsRegistry),
 		pSuccesses:     metrics.GetOrRegisterCounter("log-iss.http.logs.successes", config.MetricsRegistry),
+		pAuthErrors:    metrics.GetOrRegisterCounter("log-iss.auth.errors", config.MetricsRegistry),
+		pAuthSuccesses: metrics.GetOrRegisterCounter("log-iss.authsuccesses", config.MetricsRegistry),
 		isShuttingDown: false,
 	}
 }
@@ -119,8 +123,11 @@ func (s *HttpServer) Run() error {
 		}
 
 		if !s.auth.Authenticate(r) {
+			s.pAuthErrors.Inc(1)
 			s.handleHTTPError(w, "Unable to authenticate request", 401)
 			return
+		} else {
+			s.pAuthSuccesses.Inc(1)
 		}
 
 		remoteAddr := extractRemoteAddr(r)
