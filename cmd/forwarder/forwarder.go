@@ -10,34 +10,34 @@ import (
 	metrics "github.com/heroku/log-iss/Godeps/_workspace/src/github.com/rcrowley/go-metrics"
 )
 
-type Deliverer interface {
-	Deliver(p Payload) error
+type deliverer interface {
+	Deliver(p payload) error
 }
 
-type ForwarderSet struct {
+type forwarderSet struct {
 	Config  IssConfig
-	Inbox   chan Payload
+	Inbox   chan payload
 	timeout metrics.Counter // counts how many times we times out waiting for delivery notification
 	full    metrics.Counter // counts how many times the queue was full
 }
 
-func NewForwarderSet(config IssConfig) *ForwarderSet {
-	return &ForwarderSet{
+func newForwarderSet(config IssConfig) *forwarderSet {
+	return &forwarderSet{
 		Config:  config,
-		Inbox:   make(chan Payload, 1000),
+		Inbox:   make(chan payload, 1000),
 		timeout: metrics.GetOrRegisterCounter("log-iss.forwardset.deliver.timeout", config.MetricsRegistry),
 		full:    metrics.GetOrRegisterCounter("log-iss.forwardset.deliver.full", config.MetricsRegistry),
 	}
 }
 
-func (fs *ForwarderSet) Run() {
+func (fs *forwarderSet) Run() {
 	for i := 0; i < fs.Config.ForwardCount; i++ {
-		forwarder := NewForwarder(fs.Config, fs.Inbox, i)
+		forwarder := newForwarder(fs.Config, fs.Inbox, i)
 		go forwarder.Run()
 	}
 }
 
-func (fs *ForwarderSet) Deliver(p Payload) (err error) {
+func (fs *forwarderSet) Deliver(p payload) (err error) {
 	deadline := time.After(time.Second * 5)
 
 	select {
@@ -58,10 +58,10 @@ func (fs *ForwarderSet) Deliver(p Payload) (err error) {
 	return nil
 }
 
-type Forwarder struct {
-	Id           int
+type forwarder struct {
+	ID           int
 	Config       IssConfig
-	Inbox        chan Payload
+	Inbox        chan payload
 	c            net.Conn
 	duration     metrics.Timer   // tracks how long it takes to forward messages
 	cDisconnects metrics.Counter // counts disconnects
@@ -72,10 +72,10 @@ type Forwarder struct {
 	wBytes       metrics.Counter // counts written bytes
 }
 
-func NewForwarder(config IssConfig, inbox chan Payload, id int) *Forwarder {
+func newForwarder(config IssConfig, inbox chan payload, id int) *forwarder {
 	me := fmt.Sprintf("log-iss.forwarder.%d", id)
-	return &Forwarder{
-		Id:           id,
+	return &forwarder{
+		ID:           id,
 		Config:       config,
 		Inbox:        inbox,
 		duration:     metrics.GetOrRegisterTimer(me+".duration", config.MetricsRegistry),
@@ -88,7 +88,7 @@ func NewForwarder(config IssConfig, inbox chan Payload, id int) *Forwarder {
 	}
 }
 
-func (f *Forwarder) Run() {
+func (f *forwarder) Run() {
 	for p := range f.Inbox {
 		start := time.Now()
 		f.write(p)
@@ -97,7 +97,7 @@ func (f *Forwarder) Run() {
 	}
 }
 
-func (f *Forwarder) connect() {
+func (f *forwarder) connect() {
 	if f.c != nil {
 		return
 	}
@@ -115,11 +115,11 @@ func (f *Forwarder) connect() {
 
 		if err != nil {
 			f.cErrors.Inc(1)
-			log.WithFields(log.Fields{"id": f.Id, "message": err}).Error("Forwarder Connection Error")
+			log.WithFields(log.Fields{"id": f.ID, "message": err}).Error("Forwarder Connection Error")
 			f.disconnect()
 		} else {
 			f.cSuccesses.Inc(1)
-			log.WithFields(log.Fields{"id": f.Id, "remote_addr": c.RemoteAddr().String()}).Info("Forwarder Connection Success")
+			log.WithFields(log.Fields{"id": f.ID, "remote_addr": c.RemoteAddr().String()}).Info("Forwarder Connection Success")
 			f.c = c
 			return
 		}
@@ -127,7 +127,7 @@ func (f *Forwarder) connect() {
 	}
 }
 
-func (f *Forwarder) disconnect() {
+func (f *forwarder) disconnect() {
 	if f.c != nil {
 		f.c.Close()
 	}
@@ -135,14 +135,14 @@ func (f *Forwarder) disconnect() {
 	f.cDisconnects.Inc(1)
 }
 
-func (f *Forwarder) write(p Payload) {
+func (f *forwarder) write(p payload) {
 	for {
 		f.connect()
 
 		f.c.SetWriteDeadline(time.Now().Add(1 * time.Second))
 		if n, err := f.c.Write(p.Body); err != nil {
 			f.wErrors.Inc(1)
-			log.WithFields(log.Fields{"id": f.Id, "request_id": p.RequestId, "err": err, "remote": f.c.RemoteAddr().String()}).Error("Error writing payload")
+			log.WithFields(log.Fields{"id": f.ID, "request_id": p.RequestID, "err": err, "remote": f.c.RemoteAddr().String()}).Error("Error writing payload")
 			f.disconnect()
 		} else {
 			f.wSuccesses.Inc(1)

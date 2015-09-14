@@ -13,9 +13,9 @@ import (
 	"github.com/heroku/log-iss/Godeps/_workspace/src/github.com/heroku/rollrus"
 )
 
-type ShutdownCh chan struct{}
+type shutdownCh chan struct{}
 
-func awaitShutdownSignals(chs ...ShutdownCh) {
+func awaitShutdownSignals(chs ...shutdownCh) {
 	sigCh := make(chan os.Signal)
 	signal.Notify(sigCh, syscall.SIGTERM, syscall.SIGINT)
 	for sig := range sigCh {
@@ -41,13 +41,12 @@ func main() {
 		log.Fatalln(err)
 	}
 
-	forwarderSet := NewForwarderSet(config)
+	forwarderSet := newForwarderSet(config)
 
-	shutdownCh := make(ShutdownCh)
+	shutdownCh := make(shutdownCh)
+	httpServer := newHTTPServer(config, auth, fix, forwarderSet)
 
-	httpServer := NewHttpServer(config, auth, Fix, forwarderSet)
-
-	go awaitShutdownSignals(httpServer.ShutdownCh, shutdownCh)
+	go awaitShutdownSignals(httpServer.shutdownCh, shutdownCh)
 
 	go forwarderSet.Run()
 
