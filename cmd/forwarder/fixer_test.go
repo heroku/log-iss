@@ -27,7 +27,7 @@ func TestFix(t *testing.T) {
 		[]byte("80 <13>1 2013-06-07T13:17:49.468822+00:00 host heroku web.7 - [origin ip=\"1.2.3.4\"]"),
 	}
 	for x, in := range input {
-		fixed, _ := Fix(bytes.NewReader(in), "1.2.3.4", "")
+		fixed, _ := fix(bytes.NewReader(in), "1.2.3.4", "")
 
 		if !bytes.Equal(fixed, output[x]) {
 			t.Errorf("input=%q\noutput=%q\ngot=%q\n", in, output[x], fixed)
@@ -46,7 +46,7 @@ func TestFixWithLogplexDrainToken(t *testing.T) {
 	}
 
 	for x, in := range input {
-		fixed, _ := Fix(bytes.NewReader(in), "1.2.3.4", testToken)
+		fixed, _ := fix(bytes.NewReader(in), "1.2.3.4", testToken)
 
 		if !bytes.Equal(fixed, output[x]) {
 			t.Errorf("input=%q\noutput=%q\ngot=%q\n", in, output[x], fixed)
@@ -59,7 +59,7 @@ func BenchmarkFixNoSD(b *testing.B) {
 	b.SetBytes(int64(len(input)))
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		Fix(bytes.NewReader(input), "1.2.3.4", "")
+		fix(bytes.NewReader(input), "1.2.3.4", "")
 	}
 }
 
@@ -68,6 +68,6 @@ func BenchmarkFixSD(b *testing.B) {
 	b.SetBytes(int64(len(input)))
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		Fix(bytes.NewReader(input), "1.2.3.4", "")
+		fix(bytes.NewReader(input), "1.2.3.4", "")
 	}
 }

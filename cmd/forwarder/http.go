@@ -13,17 +13,17 @@ import (
 	metrics "github.com/heroku/log-iss/Godeps/_workspace/src/github.com/rcrowley/go-metrics"
 )
 
-type Payload struct {
+type payload struct {
 	SourceAddr string
-	RequestId  string
+	RequestID  string
 	Body       []byte
 	WaitCh     chan struct{}
 }
 
-func NewPayload(sa string, ri string, b []byte) Payload {
-	return Payload{
+func NewPayload(sa string, ri string, b []byte) payload {
+	return payload{
 		SourceAddr: sa,
-		RequestId:  ri,
+		RequestID:  ri,
 		Body:       b,
 		WaitCh:     make(chan struct{}, 1),
 	}
@@ -31,11 +31,11 @@ func NewPayload(sa string, ri string, b []byte) Payload {
 
 type FixerFunc func(io.Reader, string, string) ([]byte, error)
 
-type HttpServer struct {
+type httpServer struct {
 	Config         IssConfig
 	FixerFunc      FixerFunc
-	ShutdownCh     ShutdownCh
-	deliverer      Deliverer
+	shutdownCh     shutdownCh
+	deliverer      deliverer
 	isShuttingDown bool
 	auth           authenticater.Authenticater
 	posts          metrics.Timer   // tracks metrics about posts
@@ -47,13 +47,13 @@ type HttpServer struct {
 	sync.WaitGroup
 }
 
-func NewHttpServer(config IssConfig, auth authenticater.Authenticater, fixerFunc FixerFunc, deliverer Deliverer) *HttpServer {
-	return &HttpServer{
+func newHTTPServer(config IssConfig, auth authenticater.Authenticater, fixerFunc FixerFunc, deliverer deliverer) *httpServer {
+	return &httpServer{
 		auth:           auth,
 		Config:         config,
 		FixerFunc:      fixerFunc,
 		deliverer:      deliverer,
-		ShutdownCh:     make(chan struct{}),
+		shutdownCh:     make(shutdownCh),
 		posts:          metrics.GetOrRegisterTimer("log-iss.http.logs", config.MetricsRegistry),
 		healthChecks:   metrics.GetOrRegisterTimer("log-iss.http.healthchecks", config.MetricsRegistry),
 		pErrors:        metrics.GetOrRegisterCounter("log-iss.http.logs.errors", config.MetricsRegistry),
@@ -64,7 +64,7 @@ func NewHttpServer(config IssConfig, auth authenticater.Authenticater, fixerFunc
 	}
 }
 
-func (s *HttpServer) handleHTTPError(w http.ResponseWriter, errMsg string, errCode int, fields ...log.Fields) {
+func (s *httpServer) handleHTTPError(w http.ResponseWriter, errMsg string, errCode int, fields ...log.Fields) {
 	ff := log.Fields{"post.code": errCode}
 	for _, f := range fields {
 		for k, v := range f {
@@ -86,7 +86,7 @@ func extractRemoteAddr(r *http.Request) string {
 	return remoteAddr
 }
 
-func (s *HttpServer) Run() error {
+func (s *httpServer) Run() error {
 	go s.awaitShutdown()
 
 	//FXME: check outlet depth?
@@ -131,12 +131,12 @@ func (s *HttpServer) Run() error {
 		}
 
 		remoteAddr := extractRemoteAddr(r)
-		requestId := r.Header.Get("X-Request-Id")
+		requestID := r.Header.Get("X-Request-Id")
 		logplexDrainToken := r.Header.Get("Logplex-Drain-Token")
-		if err, status := s.process(r.Body, remoteAddr, requestId, logplexDrainToken); err != nil {
+		if err, status := s.process(r.Body, remoteAddr, requestID, logplexDrainToken); err != nil {
 			s.handleHTTPError(
 				w, err.Error(), status,
-				log.Fields{"remote_addr": remoteAddr, "requestId": requestId, "logdrain_token": logplexDrainToken},
+				log.Fields{"remote_addr": remoteAddr, "requestId": requestID, "logdrain_token": logplexDrainToken},
 			)
 			return
 		}
@@ -147,13 +147,13 @@ func (s *HttpServer) Run() error {
 	return http.ListenAndServe(":"+s.Config.HttpPort, nil)
 }
 
-func (s *HttpServer) awaitShutdown() {
-	<-s.ShutdownCh
+func (s *httpServer) awaitShutdown() {
+	<-s.shutdownCh
 	s.isShuttingDown = true
 	log.WithFields(log.Fields{"ns": "http", "at": "shutdown"}).Info()
 }
 
-func (s *HttpServer) process(r io.Reader, remoteAddr string, requestId string, logplexDrainToken string) (error, int) {
+func (s *httpServer) process(r io.Reader, remoteAddr string, requestID string, logplexDrainToken string) (error, int) {
 	s.Add(1)
 	defer s.Done()
 
@@ -162,7 +162,7 @@ func (s *HttpServer) process(r io.Reader, remoteAddr string, requestId string, l
 		return errors.New("Problem fixing body: " + err.Error()), http.StatusBadRequest
 	}
 
-	payload := NewPayload(remoteAddr, requestId, fixedBody)
+	payload := NewPayload(remoteAddr, requestID, fixedBody)
 	if err := s.deliverer.Deliver(payload); err != nil {
 		return errors.New("Problem delivering body: " + err.Error()), http.StatusGatewayTimeout
 	}
