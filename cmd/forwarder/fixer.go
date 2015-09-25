@@ -14,9 +14,9 @@ const (
 	logplexDefaultHost = "host" // https://github.com/heroku/logplex/blob/master/src/logplex_http_drain.erl#L443
 )
 
-func fix(r io.Reader, remoteAddr string, logplexDrainToken string) ([]byte, error) {
-	nilVal := []byte(`- `)
+var nilVal = []byte(`- `)
 
+func fix(r io.Reader, remoteAddr string, logplexDrainToken string) ([]byte, error) {
 	var messageWriter bytes.Buffer
 	var messageLenWriter bytes.Buffer
 
