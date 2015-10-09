@@ -12,11 +12,7 @@ import (
 const (
 	// LogplexDefaultHost is the default host from logplex:
 	// https://github.com/heroku/logplex/blob/master/src/logplex_http_drain.erl#L443
-<<<<<<< HEAD
 	logplexDefaultHost = "host"
-=======
-	LogplexDefaultHost = "host"
->>>>>>> 0535ff4... Make lint/vet happy
 )
 
 var nilVal = []byte(`- `)
@@ -35,11 +31,7 @@ func fix(r io.Reader, remoteAddr string, logplexDrainToken string) ([]byte, erro
 		messageWriter.WriteString(" ")
 		messageWriter.Write(header.Time)
 		messageWriter.WriteString(" ")
-<<<<<<< HEAD
 		if string(header.Hostname) == logplexDefaultHost && logplexDrainToken != "" {
-=======
-		if string(header.Hostname) == LogplexDefaultHost && logplexDrainToken != "" {
->>>>>>> 0535ff4... Make lint/vet happy
 			messageWriter.WriteString(logplexDrainToken)
 		} else {
 			messageWriter.Write(header.Hostname)
