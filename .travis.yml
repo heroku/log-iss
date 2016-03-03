@@ -7,7 +7,7 @@ script:
 notifications:
   hipchat:
     rooms:
-      secure: c+La/hOq2AlOklDvseFvvYtBlbVJ+2iwQWx1+pm2talgN7wzqqnxW8FEFcN4iC7rgYQ7BYuOYQuBVClmh9/t82WOPv6vzNrSWMQ0PTFYWe9CVSN7NjbcQUIpgON5Ms9jnKOH19m21OmfQTqW2i8r5dMkei3pdvPEzj7Oyzyu1PI=
+    - secure: "ELunHwWmguU0GTxl4OYmab5qujgIXlpo99f/ILBqDx/O9k60pnqh9mpjOKW0dieb5PJTB5loT10S72azyKUR/GkAU7juz8lI7hdWcGPaztDYRNJryK7JYHCdQfDyRRm12pcs9KQ8zW+lGSeFSnq6l+44vAMVZuRh16P73U+NSQQ="
     template:
     - '%{repository}#%{build_number} (%{branch} - %{commit} : %{author}): %{message}
       (<a href="%{build_url}">Details</a> | <a href="%{compare_url}">Change view</a>)'
