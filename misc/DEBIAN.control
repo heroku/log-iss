@@ -1,0 +1,8 @@
+Package: log-iss
+Version: {{VERSION}}
+Architecture: amd64
+Maintainer: "Telemetry Team" <telemetry@heroku.com>
+Section: heroku
+Priority: optional
+Description: Move logs from log-shuttle to Logplex/syslog/etc.
+
