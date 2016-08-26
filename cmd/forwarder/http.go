@@ -1,6 +1,7 @@
 package main
 
 import (
+	"compress/gzip"
 	"errors"
 	"io"
 	"net/http"
@@ -133,7 +134,20 @@ func (s *httpServer) Run() error {
 		remoteAddr := extractRemoteAddr(r)
 		requestID := r.Header.Get("X-Request-Id")
 		logplexDrainToken := r.Header.Get("Logplex-Drain-Token")
-		if err, status := s.process(r.Body, remoteAddr, requestID, logplexDrainToken); err != nil {
+
+		var body io.Reader
+		if r.Header.Get("Content-Encoding") == "gzip" {
+			body, err := gzip.NewReader(r.Body)
+			if err != nil {
+				s.handleHTTPError(w, "Could not decode gzip request", 500)
+				return
+			}
+			defer body.Close()
+		} else {
+			body = r.Body
+		}
+
+		if err, status := s.process(body, remoteAddr, requestID, logplexDrainToken); err != nil {
 			s.handleHTTPError(
 				w, err.Error(), status,
 				log.Fields{"remote_addr": remoteAddr, "requestId": requestID, "logdrain_token": logplexDrainToken},
