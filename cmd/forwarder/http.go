@@ -135,16 +135,16 @@ func (s *httpServer) Run() error {
 		requestID := r.Header.Get("X-Request-Id")
 		logplexDrainToken := r.Header.Get("Logplex-Drain-Token")
 
-		var body io.Reader
+		body := r.Body
+		var err error
+
 		if r.Header.Get("Content-Encoding") == "gzip" {
-			body, err := gzip.NewReader(r.Body)
+			body, err = gzip.NewReader(r.Body)
 			if err != nil {
 				s.handleHTTPError(w, "Could not decode gzip request", 500)
 				return
 			}
 			defer body.Close()
-		} else {
-			body = r.Body
 		}
 
 		if err, status := s.process(body, remoteAddr, requestID, logplexDrainToken); err != nil {
