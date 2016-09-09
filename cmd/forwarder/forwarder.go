@@ -6,8 +6,8 @@ import (
 	"net"
 	"time"
 
-	log "github.com/heroku/log-iss/Godeps/_workspace/src/github.com/Sirupsen/logrus"
-	metrics "github.com/heroku/log-iss/Godeps/_workspace/src/github.com/rcrowley/go-metrics"
+	log "github.com/Sirupsen/logrus"
+	metrics "github.com/rcrowley/go-metrics"
 )
 
 type deliverer interface {

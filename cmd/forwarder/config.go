@@ -8,9 +8,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/heroku/log-iss/Godeps/_workspace/src/github.com/joeshaw/envdecode"
+	"github.com/joeshaw/envdecode"
 
-	metrics "github.com/heroku/log-iss/Godeps/_workspace/src/github.com/rcrowley/go-metrics"
+	metrics "github.com/rcrowley/go-metrics"
 )
 
 type IssConfig struct {

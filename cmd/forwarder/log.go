@@ -1,6 +1,6 @@
 package main
 
-import "github.com/heroku/log-iss/Godeps/_workspace/src/github.com/Sirupsen/logrus"
+import "github.com/Sirupsen/logrus"
 
 // DefaultFieldsHook adds the Fields to all logs if the log entry does not
 // already contain a field with the same key

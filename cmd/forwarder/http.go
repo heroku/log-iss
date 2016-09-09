@@ -9,9 +9,9 @@ import (
 	"sync"
 	"time"
 
-	log "github.com/heroku/log-iss/Godeps/_workspace/src/github.com/Sirupsen/logrus"
-	"github.com/heroku/log-iss/Godeps/_workspace/src/github.com/heroku/authenticater"
-	metrics "github.com/heroku/log-iss/Godeps/_workspace/src/github.com/rcrowley/go-metrics"
+	log "github.com/Sirupsen/logrus"
+	"github.com/heroku/authenticater"
+	metrics "github.com/rcrowley/go-metrics"
 )
 
 type payload struct {
