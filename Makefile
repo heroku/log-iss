@@ -3,7 +3,7 @@ GO_LINKER_SYMBOL := "main.version"
 all: test
 
 test:
-	go test ./cmd/forwarder
+	govendor test +local
 
 install:
 	$(eval GO_LINKER_VALUE := $(shell git describe --tags --always | sed s/^v//))
