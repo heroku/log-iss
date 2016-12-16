@@ -1,14 +1,7 @@
 language: go
 go:
-- 1.4.2
-sudo: false
+  - 1.7.3
+install:
+  - go get -u github.com/kardianos/govendor
 script:
 - make test
-notifications:
-  hipchat:
-    rooms:
-    - secure: "ELunHwWmguU0GTxl4OYmab5qujgIXlpo99f/ILBqDx/O9k60pnqh9mpjOKW0dieb5PJTB5loT10S72azyKUR/GkAU7juz8lI7hdWcGPaztDYRNJryK7JYHCdQfDyRRm12pcs9KQ8zW+lGSeFSnq6l+44vAMVZuRh16P73U+NSQQ="
-    template:
-    - '%{repository}#%{build_number} (%{branch} - %{commit} : %{author}): %{message}
-      (<a href="%{build_url}">Details</a> | <a href="%{compare_url}">Change view</a>)'
-    format: html

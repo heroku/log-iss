@@ -6,7 +6,7 @@ import (
 	"io"
 	"strconv"
 
-	"github.com/heroku/log-iss/Godeps/_workspace/src/github.com/bmizerany/lpx"
+	"github.com/bmizerany/lpx"
 )
 
 const (

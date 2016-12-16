@@ -1,0 +1,61 @@
+{
+	"comment": "",
+	"ignore": "test",
+  "heroku": {
+    "goVersion": "go1.7",
+    "install": [
+      "./cmd/..."
+    ]
+  },
+	"package": [
+		{
+			"checksumSHA1": "kSyz5k+IXy97V+i0MsxAyFot2Z8=",
+			"path": "github.com/Sirupsen/logrus",
+			"revision": "21d4508646ae56d79244bd9046c1df63a5fa8c37",
+			"revisionTime": "2015-06-10T09:38:35Z"
+		},
+		{
+			"checksumSHA1": "16v3KZ/bE7zLuq8cDMX7nAoKaqY=",
+			"path": "github.com/bmizerany/lpx",
+			"revision": "af85cf24c1567bcb5a2e4c21597cc049eab31f55",
+			"revisionTime": "2013-04-29T05:58:04Z"
+		},
+		{
+			"checksumSHA1": "RzTq0lZZ9oRSEHuRqcTpFrFDgbo=",
+			"path": "github.com/heroku/authenticater",
+			"revision": "463c5fd4fa1798d3a421a44f76f404616ee3cda5",
+			"revisionTime": "2015-03-10T21:53:23Z"
+		},
+		{
+			"checksumSHA1": "G+4WQSn3J4p9u16meO9xQPJzj9E=",
+			"path": "github.com/heroku/rollrus",
+			"revision": "9a0cd307107e494f43b880b9309a0b4874c85f23",
+			"revisionTime": "2015-03-12T23:00:33Z"
+		},
+		{
+			"checksumSHA1": "FRW8ysy5QhVAFnSbbV8+7boiQzM=",
+			"path": "github.com/joeshaw/envdecode",
+			"revision": "8f3fa5fb853793067e184bdc4fe8ac0b3320a9a2",
+			"revisionTime": "2015-01-12T15:57:38Z"
+		},
+		{
+			"checksumSHA1": "AS88P4N6cCe6UHvE3HgV4RAUVwY=",
+			"path": "github.com/rcrowley/go-metrics",
+			"revision": "a5cfc242a56ba7fa70b785f678d6214837bf93b9",
+			"revisionTime": "2015-06-01T14:34:43Z"
+		},
+		{
+			"checksumSHA1": "rVyQnQA+uKKWCovBtWx6HR7RXrg=",
+			"path": "github.com/rcrowley/go-metrics/librato",
+			"revision": "a5cfc242a56ba7fa70b785f678d6214837bf93b9",
+			"revisionTime": "2015-06-01T14:34:43Z"
+		},
+		{
+			"checksumSHA1": "rjVo9vfWSN66fs74NA1vUAU/87U=",
+			"path": "github.com/stvp/roll",
+			"revision": "db998c21f9b63db530d1ec5f8e8ffa6e2b344ebf",
+			"revisionTime": "2015-01-22T17:37:07Z"
+		}
+	],
+	"rootPath": "github.com/heroku/log-iss"
+}

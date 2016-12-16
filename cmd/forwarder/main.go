@@ -6,11 +6,11 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/heroku/log-iss/Godeps/_workspace/src/github.com/rcrowley/go-metrics/librato"
+	"github.com/rcrowley/go-metrics/librato"
 
-	log "github.com/heroku/log-iss/Godeps/_workspace/src/github.com/Sirupsen/logrus"
-	"github.com/heroku/log-iss/Godeps/_workspace/src/github.com/heroku/authenticater"
-	"github.com/heroku/log-iss/Godeps/_workspace/src/github.com/heroku/rollrus"
+	log "github.com/Sirupsen/logrus"
+	"github.com/heroku/authenticater"
+	"github.com/heroku/rollrus"
 )
 
 type shutdownCh chan struct{}
