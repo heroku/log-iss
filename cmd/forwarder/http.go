@@ -131,9 +131,9 @@ func (s *httpServer) Run() error {
 			s.pAuthErrors.Inc(1)
 			s.handleHTTPError(w, "Unable to authenticate request", 401)
 			return
-		} else {
-			s.pAuthSuccesses.Inc(1)
 		}
+
+		s.pAuthSuccesses.Inc(1)
 
 		remoteAddr := extractRemoteAddr(r)
 		requestID := r.Header.Get("X-Request-Id")
