@@ -48,6 +48,10 @@ type httpServer struct {
 	sync.WaitGroup
 }
 
+const (
+	ctLogplexV1 = "application/logplex-1"
+)
+
 func newHTTPServer(config IssConfig, auth authenticater.Authenticater, fixerFunc FixerFunc, deliverer deliverer) *httpServer {
 	return &httpServer{
 		auth:           auth,
@@ -118,7 +122,7 @@ func (s *httpServer) Run() error {
 			return
 		}
 
-		if r.Header.Get("Content-Type") != "application/logplex-1" {
+		if !s.validContentType(r.Header.Get("Content-Type")) {
 			s.handleHTTPError(w, "Only Content-Type application/logplex-1 is accepted", 400)
 			return
 		}
@@ -182,4 +186,16 @@ func (s *httpServer) process(r io.Reader, remoteAddr string, requestID string, l
 	}
 
 	return nil, 200
+}
+
+func (s *httpServer) validContentType(ct string) bool {
+	var cts = []string{ctLogplexV1}
+
+	for _, vct := range cts {
+		if ct == vct {
+			return true
+		}
+	}
+
+	return false
 }
