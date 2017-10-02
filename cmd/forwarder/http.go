@@ -50,6 +50,7 @@ type httpServer struct {
 
 const (
 	ctLogplexV1 = "application/logplex-1"
+	ctMsgpack   = "application/msgpack"
 )
 
 func newHTTPServer(config IssConfig, auth authenticater.Authenticater, fixerFunc FixerFunc, deliverer deliverer) *httpServer {
@@ -189,7 +190,7 @@ func (s *httpServer) process(r io.Reader, remoteAddr string, requestID string, l
 }
 
 func (s *httpServer) validContentType(ct string) bool {
-	var cts = []string{ctLogplexV1}
+	var cts = []string{ctLogplexV1, ctMsgpack}
 
 	for _, vct := range cts {
 		if ct == vct {

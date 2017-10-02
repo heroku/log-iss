@@ -11,6 +11,7 @@ func TestContentTypeValdidation(t *testing.T) {
 	}{
 		{"", false},
 		{ctLogplexV1, true},
+		{ctMsgpack, true},
 	}
 
 	for _, tc := range cases {
