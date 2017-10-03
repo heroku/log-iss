@@ -17,8 +17,8 @@ const (
 
 var nilVal = []byte(`- `)
 
-// Fix function to convert post data to length prefixed syslog frames
-func fix(r io.Reader, remoteAddr string, logplexDrainToken string) ([]byte, error) {
+// logplexToSyslog converts post data logplex messages to length prefixed syslog frames
+func logplexToSyslog(r io.Reader, remoteAddr string, logplexDrainToken string) ([]byte, error) {
 	var messageWriter bytes.Buffer
 	var messageLenWriter bytes.Buffer
 
