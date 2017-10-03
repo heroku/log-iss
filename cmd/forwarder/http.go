@@ -92,76 +92,85 @@ func extractRemoteAddr(r *http.Request) string {
 	return remoteAddr
 }
 
+func (s *httpServer) handleLogs(w http.ResponseWriter, r *http.Request) {
+	defer s.posts.UpdateSince(time.Now())
+
+	if s.Config.EnforceSsl && r.Header.Get("X-Forwarded-Proto") != "https" {
+		s.handleHTTPError(w, "Only SSL requests accepted", 400)
+		return
+	}
+
+	if s.isShuttingDown {
+		s.handleHTTPError(w, "Shutting down", 503)
+		return
+	}
+
+	if r.Method != "POST" {
+		s.handleHTTPError(w, "Only POST is accepted", 400)
+		return
+	}
+
+	contentType := r.Header.Get("Content-Type")
+	if !s.validContentType(contentType) {
+		s.handleHTTPError(w, "Only Content-Type application/logplex-1 is accepted", 400)
+		return
+	}
+
+	if !s.auth.Authenticate(r) {
+		s.pAuthErrors.Inc(1)
+		s.handleHTTPError(w, "Unable to authenticate request", 401)
+		return
+	}
+
+	s.pAuthSuccesses.Inc(1)
+
+	remoteAddr := extractRemoteAddr(r)
+	requestID := r.Header.Get("X-Request-Id")
+	logplexDrainToken := r.Header.Get("Logplex-Drain-Token")
+
+	body := r.Body
+	var err error
+
+	if r.Header.Get("Content-Encoding") == "gzip" {
+		body, err = gzip.NewReader(r.Body)
+		if err != nil {
+			s.handleHTTPError(w, "Could not decode gzip request", 500)
+			return
+		}
+		defer body.Close()
+	}
+
+	if contentType == ctLogplexV1 {
+		if err, status := s.process(body, remoteAddr, requestID, logplexDrainToken); err != nil {
+			s.handleHTTPError(w, err.Error(), status, log.Fields{"remote_addr": remoteAddr, "requestId": requestID, "logdrain_token": logplexDrainToken})
+			return
+		}
+		s.pSuccesses.Inc(1)
+	} else if contentType == ctMsgpack {
+		s.handleHTTPError(w, "Not Supported", http.StatusNotImplemented, log.Fields{"remote_addr": remoteAddr, "requestId": requestID, "logdrain_token": logplexDrainToken})
+		return
+	} else {
+		s.handleHTTPError(w, "Not Supported", http.StatusNotImplemented, log.Fields{"remote_addr": remoteAddr, "requestId": requestID, "logdrain_token": logplexDrainToken})
+		return
+	}
+
+	s.pSuccesses.Inc(1)
+}
+
+func (s *httpServer) handleHealth(w http.ResponseWriter, r *http.Request) {
+	defer s.healthChecks.UpdateSince(time.Now())
+	if s.isShuttingDown {
+		http.Error(w, "Shutting down", 503)
+		return
+	}
+}
+
 func (s *httpServer) Run() error {
 	go s.awaitShutdown()
 
 	//FXME: check outlet depth?
-	http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
-		defer s.healthChecks.UpdateSince(time.Now())
-		if s.isShuttingDown {
-			http.Error(w, "Shutting down", 503)
-			return
-		}
-
-	})
-
-	http.HandleFunc("/logs", func(w http.ResponseWriter, r *http.Request) {
-		defer s.posts.UpdateSince(time.Now())
-
-		if s.Config.EnforceSsl && r.Header.Get("X-Forwarded-Proto") != "https" {
-			s.handleHTTPError(w, "Only SSL requests accepted", 400)
-			return
-		}
-
-		if s.isShuttingDown {
-			s.handleHTTPError(w, "Shutting down", 503)
-			return
-		}
-
-		if r.Method != "POST" {
-			s.handleHTTPError(w, "Only POST is accepted", 400)
-			return
-		}
-
-		if !s.validContentType(r.Header.Get("Content-Type")) {
-			s.handleHTTPError(w, "Only Content-Type application/logplex-1 is accepted", 400)
-			return
-		}
-
-		if !s.auth.Authenticate(r) {
-			s.pAuthErrors.Inc(1)
-			s.handleHTTPError(w, "Unable to authenticate request", 401)
-			return
-		}
-
-		s.pAuthSuccesses.Inc(1)
-
-		remoteAddr := extractRemoteAddr(r)
-		requestID := r.Header.Get("X-Request-Id")
-		logplexDrainToken := r.Header.Get("Logplex-Drain-Token")
-
-		body := r.Body
-		var err error
-
-		if r.Header.Get("Content-Encoding") == "gzip" {
-			body, err = gzip.NewReader(r.Body)
-			if err != nil {
-				s.handleHTTPError(w, "Could not decode gzip request", 500)
-				return
-			}
-			defer body.Close()
-		}
-
-		if err, status := s.process(body, remoteAddr, requestID, logplexDrainToken); err != nil {
-			s.handleHTTPError(
-				w, err.Error(), status,
-				log.Fields{"remote_addr": remoteAddr, "requestId": requestID, "logdrain_token": logplexDrainToken},
-			)
-			return
-		}
-
-		s.pSuccesses.Inc(1)
-	})
+	http.HandleFunc("/health", s.handleHealth)
+	http.HandleFunc("/logs", s.handleLogs)
 
 	return http.ListenAndServe(":"+s.Config.HttpPort, nil)
 }
