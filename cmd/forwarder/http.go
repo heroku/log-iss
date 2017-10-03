@@ -53,6 +53,10 @@ const (
 	ctMsgpack   = "application/msgpack"
 )
 
+var fixers = map[string]FixerFunc{
+	ctLogplexV1: fix,
+}
+
 func newHTTPServer(config IssConfig, auth authenticater.Authenticater, fixerFunc FixerFunc, deliverer deliverer) *httpServer {
 	return &httpServer{
 		auth:           auth,
@@ -140,20 +144,23 @@ func (s *httpServer) handleLogs(w http.ResponseWriter, r *http.Request) {
 		defer body.Close()
 	}
 
-	if contentType == ctLogplexV1 {
-		if err, status := s.process(body, remoteAddr, requestID, logplexDrainToken); err != nil {
-			s.handleHTTPError(w, err.Error(), status, log.Fields{"remote_addr": remoteAddr, "requestId": requestID, "logdrain_token": logplexDrainToken})
-			return
-		}
-		s.pSuccesses.Inc(1)
-	} else if contentType == ctMsgpack {
-		s.handleHTTPError(w, "Not Supported", http.StatusNotImplemented, log.Fields{"remote_addr": remoteAddr, "requestId": requestID, "logdrain_token": logplexDrainToken})
-		return
+	var fixedBody []byte
+	if fixers[contentType] != nil {
+		fixedBody, err = fixers[contentType](body, remoteAddr, logplexDrainToken)
 	} else {
 		s.handleHTTPError(w, "Not Supported", http.StatusNotImplemented, log.Fields{"remote_addr": remoteAddr, "requestId": requestID, "logdrain_token": logplexDrainToken})
 		return
 	}
 
+	if err != nil {
+		s.handleHTTPError(w, "Problem fixing body: "+err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	if err, status := s.process(fixedBody, remoteAddr, requestID, logplexDrainToken); err != nil {
+		s.handleHTTPError(w, err.Error(), status, log.Fields{"remote_addr": remoteAddr, "requestId": requestID, "logdrain_token": logplexDrainToken})
+		return
+	}
 	s.pSuccesses.Inc(1)
 }
 
@@ -181,16 +188,11 @@ func (s *httpServer) awaitShutdown() {
 	log.WithFields(log.Fields{"ns": "http", "at": "shutdown"}).Info()
 }
 
-func (s *httpServer) process(r io.Reader, remoteAddr string, requestID string, logplexDrainToken string) (error, int) {
+func (s *httpServer) process(r []byte, remoteAddr string, requestID string, logplexDrainToken string) (error, int) {
 	s.Add(1)
 	defer s.Done()
 
-	fixedBody, err := s.FixerFunc(r, remoteAddr, logplexDrainToken)
-	if err != nil {
-		return errors.New("Problem fixing body: " + err.Error()), http.StatusBadRequest
-	}
-
-	payload := NewPayload(remoteAddr, requestID, fixedBody)
+	payload := NewPayload(remoteAddr, requestID, r)
 	if err := s.deliverer.Deliver(payload); err != nil {
 		return errors.New("Problem delivering body: " + err.Error()), http.StatusGatewayTimeout
 	}
