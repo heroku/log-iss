@@ -1,18 +1,24 @@
 {
 	"comment": "",
+	"heroku": {
+		"goVersion": "go1.7",
+		"install": [
+			"./cmd/..."
+		]
+	},
 	"ignore": "test",
-  "heroku": {
-    "goVersion": "go1.7",
-    "install": [
-      "./cmd/..."
-    ]
-  },
 	"package": [
 		{
 			"checksumSHA1": "kSyz5k+IXy97V+i0MsxAyFot2Z8=",
 			"path": "github.com/Sirupsen/logrus",
 			"revision": "21d4508646ae56d79244bd9046c1df63a5fa8c37",
 			"revisionTime": "2015-06-10T09:38:35Z"
+		},
+		{
+			"checksumSHA1": "V/hMeUMXDYdc47E09I6Ccdgc9ug=",
+			"path": "github.com/amerine/msgpack-dumper/decoder",
+			"revision": "0d3ad456110c74784209335650e7d319b1f9708e",
+			"revisionTime": "2017-10-05T18:32:01Z"
 		},
 		{
 			"checksumSHA1": "16v3KZ/bE7zLuq8cDMX7nAoKaqY=",
@@ -55,6 +61,12 @@
 			"path": "github.com/stvp/roll",
 			"revision": "db998c21f9b63db530d1ec5f8e8ffa6e2b344ebf",
 			"revisionTime": "2015-01-22T17:37:07Z"
+		},
+		{
+			"checksumSHA1": "iG2B2A82ztGrpp3VVNyR5/Xzp0w=",
+			"path": "github.com/ugorji/go/codec",
+			"revision": "54210f4e076c57f351166f0ed60e67d3fca57a36",
+			"revisionTime": "2017-09-18T22:25:52Z"
 		}
 	],
 	"rootPath": "github.com/heroku/log-iss"
