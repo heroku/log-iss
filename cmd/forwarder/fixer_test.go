@@ -3,6 +3,8 @@ package main
 import (
 	"bytes"
 	"testing"
+
+	"github.com/amerine/msgpack-dumper/decoder"
 )
 
 type InputOutput struct {
@@ -72,5 +74,26 @@ func BenchmarkLogplexToSyslogSD(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		logplexToSyslog(bytes.NewReader(input), "1.2.3.4", "")
+	}
+}
+
+func TestMsgpackToSyslog(t *testing.T) {
+	want := []byte("195 <6>1 2017-10-05T10:55:40.537067-07:00 ip-10-0-5-33 kubelet 8131 - [origin ip=\"1.2.3.4\"] I1005 17:55:40.799530    8131 server.go:794] GET /pods: (493.06µs) 200 [[Go-http-client/1.1] [::1]:48602]\n")
+	rdr := bytes.NewReader(decoder.ExampleMessage)
+
+	got, err := msgpackToSyslog(rdr, "1.2.3.4", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(got, want) {
+		t.Errorf("got [%#v]; want [%#v]", got, want)
+	}
+}
+
+func BenchmarkMsgpackToSyslogSD(b *testing.B) {
+	b.SetBytes(int64(len(decoder.ExampleMessage)))
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		msgpackToSyslog(bytes.NewReader(decoder.ExampleMessage), "1.2.3.4", "")
 	}
 }

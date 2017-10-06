@@ -2,7 +2,6 @@ package decoder
 
 import (
 	"encoding/binary"
-	"fmt"
 	"io"
 	"reflect"
 	"time"
@@ -29,11 +28,11 @@ func (f FLBTime) WriteExt(interface{}) []byte {
 // ReadExt powers the FLBTime conversion during codec decoding.
 func (f FLBTime) ReadExt(i interface{}, b []byte) {
 	out := i.(*FLBTime)
-	fmt.Printf("DATE: %#v\n", b)
 	sec := binary.BigEndian.Uint32(b)
+	// TODO(mt): This is really weird, but the data looks... interesting. See https://gist.github.com/amerine/322f9c368f9fc0e9dc8d74f2e6b59bcf
+	// usec := binary.BigEndian.Uint32(b[4:])
 	usec := binary.LittleEndian.Uint32(b[4:])
 
-	fmt.Printf("SEC: %#v(int64: %#v), USEC: %#v(int64 %#v)\n\n", sec, int64(sec), usec, int64(usec))
 	out.Time = time.Unix(int64(sec), int64(usec))
 }
 
