@@ -58,6 +58,17 @@ func NewDecoder(r io.Reader) *FBitDecoder {
 	return dec
 }
 
+// NewDecoderBytes takes the provides []byte input and returns a preconfigured FBitDecoder.
+func NewDecoderBytes(in []byte) *FBitDecoder {
+	dec := new(FBitDecoder)
+	dec.handle = new(codec.MsgpackHandle)
+	dec.handle.RawToString = true
+	dec.handle.SetExt(reflect.TypeOf(FLBTime{}), 0, &FLBTime{})
+	dec.mpdec = codec.NewDecoderBytes(in, dec.handle)
+
+	return dec
+}
+
 // GetRecord returns a single messages from the payload.
 func GetRecord(dec *FBitDecoder) (ret int, ts interface{}, rec map[interface{}]interface{}) {
 	var m interface{}

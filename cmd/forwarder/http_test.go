@@ -56,7 +56,7 @@ func TestHandleLogs(t *testing.T) {
 		}{
 			{"Empty String", logReq("", nil), 400},
 			{"Logplex", logReq(ctLogplexV1, nil), 200},
-			{"msgpack", logReq(ctMsgpack, nil), 501},
+			{"msgpack", logReq(ctMsgpack, nil), 200},
 		}
 
 		for _, tc := range cases {

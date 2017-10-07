@@ -55,6 +55,7 @@ const (
 
 var fixers = map[string]FixerFunc{
 	ctLogplexV1: logplexToSyslog,
+	ctMsgpack:   msgpackToSyslog,
 }
 
 func newHTTPServer(config IssConfig, auth authenticater.Authenticater, fixerFunc FixerFunc, deliverer deliverer) *httpServer {
