@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"strconv"
+	"time"
 
 	"github.com/amerine/msgpack-dumper/decoder"
 	"github.com/bmizerany/lpx"
@@ -15,7 +16,6 @@ const (
 	// LogplexDefaultHost is the default host from logplex:
 	// https://github.com/heroku/logplex/blob/master/src/logplex_http_drain.erl#L443
 	logplexDefaultHost = "host"
-	rfc3339Micro       = "2006-01-02T15:04:05.999999Z07:00"
 )
 
 var nilVal = []byte(`- `)
@@ -85,7 +85,7 @@ func msgpackToSyslog(r io.Reader, remoteAddr string, logplexDrainToken string) (
 		messageWriter.WriteString(fetchValues(rec, "PRIORITY"))
 		messageWriter.WriteString(">1")
 		messageWriter.WriteString(" ")
-		messageWriter.WriteString(timestamp.Format(rfc3339Micro))
+		messageWriter.WriteString(timestamp.Format(time.RFC3339Nano))
 		messageWriter.WriteString(" ")
 		if logplexDrainToken != "" {
 			messageWriter.WriteString(logplexDrainToken)
