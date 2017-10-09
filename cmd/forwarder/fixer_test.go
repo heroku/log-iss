@@ -86,7 +86,7 @@ func TestMsgpackToSyslog(t *testing.T) {
 		t.Fatal(err)
 	}
 	if !bytes.Equal(got, want) {
-		t.Errorf("got [%#v]; want [%#v]", got, want)
+		t.Errorf("got [%#v]; want [%#v]", string(got), string(want))
 	}
 }
 
