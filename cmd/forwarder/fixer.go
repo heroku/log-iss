@@ -3,7 +3,6 @@ package main
 import (
 	"bufio"
 	"bytes"
-	"fmt"
 	"io"
 	"strconv"
 
@@ -77,35 +76,40 @@ func msgpackToSyslog(r io.Reader, remoteAddr string, logplexDrainToken string) (
 	// LEN SP <PRI>VERSION SP TIMESTAMP SP HOSTNAME SP APP-NAME SP PROCID SP MSGID SP STRUCTURED-DATA MSG
 	dec := decoder.NewDecoder(r)
 	for {
-		ret, ts, rec := decoder.GetRecord(dec)
-		if ret != 0 {
+		rec, err := dec.GetRecord()
+		if err == io.EOF {
 			break // No more records
 		}
 
-		timestamp := ts.(decoder.FLBTime)
+		d, err := decoder.ExtractData(rec)
+		ts, err := decoder.ExtractTime(rec)
+		if err != nil {
+			return nil, err
+		}
+
 		messageWriter.WriteString("<")
-		messageWriter.WriteString(fetchValues(rec, "PRIORITY"))
+		messageWriter.WriteString(fetchValues(d, "PRIORITY"))
 		messageWriter.WriteString(">1")
 		messageWriter.WriteString(" ")
-		messageWriter.WriteString(timestamp.Format(logplexBatchTimeFormat))
+		messageWriter.WriteString(ts.UTC().Format(logplexBatchTimeFormat))
 		messageWriter.WriteString(" ")
 		if logplexDrainToken != "" {
 			messageWriter.WriteString(logplexDrainToken)
 		} else {
-			messageWriter.WriteString(fetchValues(rec, "_HOSTNAME", "HOSTNAME"))
+			messageWriter.WriteString(fetchValues(d, "_HOSTNAME", "HOSTNAME"))
 		}
 		messageWriter.WriteString(" ")
-		messageWriter.WriteString(fetchValues(rec, "SYSLOG_IDENTIFIER", "_COMM"))
+		messageWriter.WriteString(fetchValues(d, "SYSLOG_IDENTIFIER", "_COMM"))
 		messageWriter.WriteString(" ")
-		messageWriter.WriteString(fetchValues(rec, "_PID"))
+		messageWriter.WriteString(fetchValues(d, "_PID"))
 		messageWriter.WriteString(" ")
-		messageWriter.WriteString(fetchValues(rec, "MESSAGE_ID"))
+		messageWriter.WriteString(fetchValues(d, "MESSAGE_ID"))
 		messageWriter.WriteString(" ")
 		messageWriter.WriteString("[origin ip=\"")
 		messageWriter.WriteString(remoteAddr)
 		messageWriter.WriteString("\"]")
 		messageWriter.WriteString(" ")
-		messageWriter.WriteString(fetchValues(rec, "MESSAGE"))
+		messageWriter.WriteString(fetchValues(d, "MESSAGE"))
 		messageWriter.WriteString("\n")
 		messageLenWriter.WriteString(strconv.Itoa(messageWriter.Len()))
 		messageLenWriter.WriteString(" ")
@@ -115,12 +119,10 @@ func msgpackToSyslog(r io.Reader, remoteAddr string, logplexDrainToken string) (
 	return messageLenWriter.Bytes(), nil
 }
 
-func fetchValues(data map[interface{}]interface{}, fields ...string) string {
-	for k, v := range data {
-		for _, f := range fields {
-			if f == fmt.Sprintf("%s", k) {
-				return fmt.Sprintf("%s", v)
-			}
+func fetchValues(data map[string]interface{}, fields ...string) string {
+	for _, f := range fields {
+		if _, ok := data[f]; ok {
+			return data[f].(string)
 		}
 	}
 
