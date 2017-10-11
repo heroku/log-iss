@@ -27,10 +27,10 @@
 			"revisionTime": "2015-06-10T09:38:35Z"
 		},
 		{
-			"checksumSHA1": "q92l7qAvxz/imwY83UcAtYludag=",
+			"checksumSHA1": "z1HgkxvIVJKkf8BXsxA5S7KIK6k=",
 			"path": "github.com/amerine/msgpack-dumper/decoder",
-			"revision": "9de96936a4d5b2e4bd07359791a05e796383cb9d",
-			"revisionTime": "2017-10-11T16:20:19Z"
+			"revision": "d558e12bca655a6baafd1d130a3c4b1df228ec91",
+			"revisionTime": "2017-10-11T16:52:58Z"
 		},
 		{
 			"checksumSHA1": "16v3KZ/bE7zLuq8cDMX7nAoKaqY=",
