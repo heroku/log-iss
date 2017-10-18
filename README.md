@@ -101,7 +101,7 @@ ic ssh deploymaster
 su deploymaster
 user=<user>
 branch=<branch>
-bin/ship -y -a log-iss -b $branch -u $user -i splunk-indexer -n <paste ids> -n 5 #log-iss runs on the indexers
+bin/ship -y -a log-iss -b $branch -u $user -i <paste ids> -n 5 #log-iss runs on the indexers
 ```
 
 * Deploy to the remainder of the fleet 5 at a time, pausing 30s in between to allow time for restarts
