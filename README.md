@@ -36,7 +36,9 @@ log-iss is configured via the environment.
 * `ENFORCE_SSL`: If set to `1`, respond with 400 to any `POST`s where the `X-Forwarded-Proto` request header is not `https`. Note this setting affects receiving logs, not sending logs. To enable TLS for sending logs, set `PEMFILE`
 * `PEMFILE`: Location of a .pem bundle to use for sending logs via TLS. If unset, TLS is not used
 
-## Running locally
+## Development
+
+### Local
 
 Assumes working [Go](http://golang.org/doc/install) installation with
 `$GOPATH/bin` in `$PATH` as well as something listening at port 5001 (could be
@@ -49,7 +51,9 @@ $ DEPLOY=local PORT=5000 FORWARD_DEST=localhost:5001 TOKEN_MAP=test:token log-is
 $ echo "64 <13>1 2013-06-07T13:17:49.468822+00:00 host heroku web.7 - - hi" | curl -v -u test:token -H "Content-Type: application/logplex-1" --data-binary @/dev/stdin http://localhost:5000/logs
 ```
 
-## Running on the platform
+### Platform
+
+Note: This is here for historical purposes. log-iss runs as a kernel app in ops-staging and ops cloud. It's deployed using deploymaster.
 
 ```bash
 $ DEPLOY=`whoami`
@@ -63,3 +67,49 @@ $ git push $DEPLOY master
 $ echo "64 <13>1 2013-06-07T13:17:49.468822+00:00 host heroku web.7 - - hi" | curl -v -u syslog:<generated token> -H "Content-Type: application/logplex-1" --data-binary @/dev/stdin https://log-iss-$DEPLOY.herokuapp.com/logs
 ```
 
+## Deployment
+
+### ops-staging
+
+```
+cloud ops-staging
+ic ssh deploymaster
+su deploymaster
+user=<user>
+branch=<branch>
+bin/ship -y -a log-iss -b $branch -u $user -i splunk-indexer #log-iss runs on the indexers
+```
+
+### ops
+
+We process 3-4million requests per minute on ~110 instances of log-iss at the time of this writing. Those are behind an elb behind logs.herokai.com. When we deploy we need to use a staggered strategy so that we don't take more than a few % of the servers out at a time due to the high traffic demand. We also need to verify the deployment on a small % before rolling to the whole fleet to ensure as minimal amount of data loss as possible in the event of a failure.
+
+* Find 5% of servers available
+
+```
+total=$(ic list splunk-indexer | sed -e '1,2d' | cut -d" " -f 2,3 | wc -l)
+numServers=`echo $(((total * .05))) | awk '{print int($0)}'` #copy value for 5% of servers
+# copy the server ids below
+ic list splunk-indexer | sed -e '1,2d' | head -n $numServers | awk 'BEGIN{ORS=",";} {print $2;}' | sed 's/,$//'
+```
+
+* Deploy to 5% of the fleet
+
+```
+cloud ops
+ic ssh deploymaster
+su deploymaster
+user=<user>
+branch=<branch>
+bin/ship -y -a log-iss -b $branch -u $user -i <paste ids> -n 5 #log-iss runs on the indexers
+```
+
+* Deploy to the remainder of the fleet 5 at a time, pausing 30s in between to allow time for restarts
+```
+cloud ops
+ic ssh deploymaster
+su deploymaster
+user=<user>
+branch=<branch>
+bin/ship -y -a log-iss -b $branch -u $user -i splunk-indexer -d 20 -n 5 #log-iss runs on the indexers
+```
