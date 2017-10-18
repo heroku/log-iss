@@ -116,8 +116,8 @@ func (s *httpServer) handleLogs(w http.ResponseWriter, r *http.Request) {
 	}
 
 	contentType := r.Header.Get("Content-Type")
-	if !s.validContentType(contentType) {
-		s.handleHTTPError(w, "Only Content-Type application/logplex-1 is accepted", 400)
+	if fixers[contentType] == nil {
+		s.handleHTTPError(w, "Unsupported Content-Type", 400)
 		return
 	}
 
@@ -146,12 +146,7 @@ func (s *httpServer) handleLogs(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var fixedBody []byte
-	if fixers[contentType] != nil {
-		fixedBody, err = fixers[contentType](body, remoteAddr, logplexDrainToken)
-	} else {
-		s.handleHTTPError(w, "Not Supported", http.StatusNotImplemented, log.Fields{"remote_addr": remoteAddr, "requestId": requestID, "logdrain_token": logplexDrainToken})
-		return
-	}
+	fixedBody, err = fixers[contentType](body, remoteAddr, logplexDrainToken)
 
 	if err != nil {
 		s.handleHTTPError(w, "Problem fixing body: "+err.Error(), http.StatusBadRequest)
@@ -199,16 +194,4 @@ func (s *httpServer) process(r []byte, remoteAddr string, requestID string, logp
 	}
 
 	return nil, 200
-}
-
-func (s *httpServer) validContentType(ct string) bool {
-	var cts = []string{ctLogplexV1, ctMsgpack}
-
-	for _, vct := range cts {
-		if ct == vct {
-			return true
-		}
-	}
-
-	return false
 }

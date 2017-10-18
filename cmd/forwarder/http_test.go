@@ -9,25 +9,6 @@ import (
 	"github.com/heroku/authenticater"
 )
 
-func TestValdContentTypes(t *testing.T) {
-	srv := &httpServer{}
-
-	cases := []struct {
-		in  string
-		out bool
-	}{
-		{"", false},
-		{ctLogplexV1, true},
-		{ctMsgpack, true},
-	}
-
-	for _, tc := range cases {
-		if srv.validContentType(tc.in) != tc.out {
-			t.Errorf("got %t; want %t", srv.validContentType(tc.in), tc.out)
-		}
-	}
-}
-
 func TestHandleLogs(t *testing.T) {
 	cfg := &IssConfig{}
 	auth := authenticater.AnyOrNoAuth{}
