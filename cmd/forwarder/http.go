@@ -34,7 +34,6 @@ type FixerFunc func(io.Reader, string, string) ([]byte, error)
 
 type httpServer struct {
 	Config         IssConfig
-	FixerFunc      FixerFunc
 	shutdownCh     shutdownCh
 	deliverer      deliverer
 	isShuttingDown bool
@@ -58,11 +57,10 @@ var fixers = map[string]FixerFunc{
 	ctMsgpack:   msgpackToSyslog,
 }
 
-func newHTTPServer(config IssConfig, auth authenticater.Authenticater, fixerFunc FixerFunc, deliverer deliverer) *httpServer {
+func newHTTPServer(config IssConfig, auth authenticater.Authenticater, deliverer deliverer) *httpServer {
 	return &httpServer{
 		auth:           auth,
 		Config:         config,
-		FixerFunc:      fixerFunc,
 		deliverer:      deliverer,
 		shutdownCh:     make(shutdownCh),
 		posts:          metrics.GetOrRegisterTimer("log-iss.http.logs", config.MetricsRegistry),

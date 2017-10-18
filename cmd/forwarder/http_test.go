@@ -13,7 +13,7 @@ func TestHandleLogs(t *testing.T) {
 	cfg := &IssConfig{}
 	auth := authenticater.AnyOrNoAuth{}
 	fwd := &nullForwarder{}
-	srv := newHTTPServer(*cfg, auth, logplexToSyslog, fwd)
+	srv := newHTTPServer(*cfg, auth, fwd)
 
 	handler := http.HandlerFunc(srv.handleLogs)
 	s := httptest.NewServer(handler)
