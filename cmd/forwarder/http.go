@@ -131,7 +131,7 @@ func (s *httpServer) handleLogs(w http.ResponseWriter, r *http.Request) {
 
 	remoteAddr := extractRemoteAddr(r)
 	requestID := r.Header.Get("X-Request-Id")
-	logplexDrainToken := r.Header.Get("Logplex-Drain-Token")
+	drainToken := r.Header.Get("Logplex-Drain-Token")
 
 	body := r.Body
 	defer body.Close()
@@ -146,15 +146,15 @@ func (s *httpServer) handleLogs(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var fixedBody []byte
-	fixedBody, err = fixers[contentType](body, remoteAddr, logplexDrainToken)
+	fixedBody, err = fixers[contentType](body, remoteAddr, drainToken)
 
 	if err != nil {
 		s.handleHTTPError(w, "Problem fixing body: "+err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	if err, status := s.process(fixedBody, remoteAddr, requestID, logplexDrainToken); err != nil {
-		s.handleHTTPError(w, err.Error(), status, log.Fields{"remote_addr": remoteAddr, "requestId": requestID, "logdrain_token": logplexDrainToken})
+	if err, status := s.process(fixedBody, remoteAddr, requestID, drainToken); err != nil {
+		s.handleHTTPError(w, err.Error(), status, log.Fields{"remote_addr": remoteAddr, "requestId": requestID, "logdrain_token": drainToken})
 		return
 	}
 	s.pSuccesses.Inc(1)
