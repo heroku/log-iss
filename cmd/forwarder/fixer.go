@@ -82,6 +82,10 @@ func msgpackToSyslog(r io.Reader, remoteAddr string, logplexDrainToken string) (
 		}
 
 		d, err := decoder.ExtractData(rec)
+		if err != nil {
+			return nil, err
+		}
+
 		ts, err := decoder.ExtractTime(rec)
 		if err != nil {
 			return nil, err
