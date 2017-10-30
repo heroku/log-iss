@@ -34,7 +34,6 @@ type FixerFunc func(io.Reader, string, string) ([]byte, error)
 
 type httpServer struct {
 	Config         IssConfig
-	FixerFunc      FixerFunc
 	shutdownCh     shutdownCh
 	deliverer      deliverer
 	isShuttingDown bool
@@ -48,11 +47,20 @@ type httpServer struct {
 	sync.WaitGroup
 }
 
-func newHTTPServer(config IssConfig, auth authenticater.Authenticater, fixerFunc FixerFunc, deliverer deliverer) *httpServer {
+const (
+	ctLogplexV1 = "application/logplex-1"
+	ctMsgpack   = "application/msgpack"
+)
+
+var fixers = map[string]FixerFunc{
+	ctLogplexV1: logplexToSyslog,
+	ctMsgpack:   msgpackToSyslog,
+}
+
+func newHTTPServer(config IssConfig, auth authenticater.Authenticater, deliverer deliverer) *httpServer {
 	return &httpServer{
 		auth:           auth,
 		Config:         config,
-		FixerFunc:      fixerFunc,
 		deliverer:      deliverer,
 		shutdownCh:     make(shutdownCh),
 		posts:          metrics.GetOrRegisterTimer("log-iss.http.logs", config.MetricsRegistry),
@@ -87,76 +95,75 @@ func extractRemoteAddr(r *http.Request) string {
 	return remoteAddr
 }
 
+func (s *httpServer) handleLogs(w http.ResponseWriter, r *http.Request) {
+	defer s.posts.UpdateSince(time.Now())
+
+	if s.Config.EnforceSsl && r.Header.Get("X-Forwarded-Proto") != "https" {
+		s.handleHTTPError(w, "Only SSL requests accepted", 400)
+		return
+	}
+
+	if s.isShuttingDown {
+		s.handleHTTPError(w, "Shutting down", 503)
+		return
+	}
+
+	if r.Method != "POST" {
+		s.handleHTTPError(w, "Only POST is accepted", 400)
+		return
+	}
+
+	contentType := r.Header.Get("Content-Type")
+	if fixers[contentType] == nil {
+		s.handleHTTPError(w, "Unsupported Content-Type", 400)
+		return
+	}
+
+	if !s.auth.Authenticate(r) {
+		s.pAuthErrors.Inc(1)
+		s.handleHTTPError(w, "Unable to authenticate request", 401)
+		return
+	}
+
+	s.pAuthSuccesses.Inc(1)
+
+	remoteAddr := extractRemoteAddr(r)
+	requestID := r.Header.Get("X-Request-Id")
+	drainToken := r.Header.Get("Logplex-Drain-Token")
+
+	body := r.Body
+	var err error
+
+	if r.Header.Get("Content-Encoding") == "gzip" {
+		body, err = gzip.NewReader(r.Body)
+		defer body.Close()
+		if err != nil {
+			s.handleHTTPError(w, "Could not decode gzip request", 500)
+			return
+		}
+	}
+
+	if err, status := s.process(body, contentType, remoteAddr, requestID, drainToken); err != nil {
+		s.handleHTTPError(w, err.Error(), status, log.Fields{"remote_addr": remoteAddr, "requestId": requestID, "logdrain_token": drainToken})
+		return
+	}
+	s.pSuccesses.Inc(1)
+}
+
+func (s *httpServer) handleHealth(w http.ResponseWriter, r *http.Request) {
+	defer s.healthChecks.UpdateSince(time.Now())
+	if s.isShuttingDown {
+		http.Error(w, "Shutting down", 503)
+		return
+	}
+}
+
 func (s *httpServer) Run() error {
 	go s.awaitShutdown()
 
 	//FXME: check outlet depth?
-	http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
-		defer s.healthChecks.UpdateSince(time.Now())
-		if s.isShuttingDown {
-			http.Error(w, "Shutting down", 503)
-			return
-		}
-
-	})
-
-	http.HandleFunc("/logs", func(w http.ResponseWriter, r *http.Request) {
-		defer s.posts.UpdateSince(time.Now())
-
-		if s.Config.EnforceSsl && r.Header.Get("X-Forwarded-Proto") != "https" {
-			s.handleHTTPError(w, "Only SSL requests accepted", 400)
-			return
-		}
-
-		if s.isShuttingDown {
-			s.handleHTTPError(w, "Shutting down", 503)
-			return
-		}
-
-		if r.Method != "POST" {
-			s.handleHTTPError(w, "Only POST is accepted", 400)
-			return
-		}
-
-		if r.Header.Get("Content-Type") != "application/logplex-1" {
-			s.handleHTTPError(w, "Only Content-Type application/logplex-1 is accepted", 400)
-			return
-		}
-
-		if !s.auth.Authenticate(r) {
-			s.pAuthErrors.Inc(1)
-			s.handleHTTPError(w, "Unable to authenticate request", 401)
-			return
-		} else {
-			s.pAuthSuccesses.Inc(1)
-		}
-
-		remoteAddr := extractRemoteAddr(r)
-		requestID := r.Header.Get("X-Request-Id")
-		logplexDrainToken := r.Header.Get("Logplex-Drain-Token")
-
-		body := r.Body
-		var err error
-
-		if r.Header.Get("Content-Encoding") == "gzip" {
-			body, err = gzip.NewReader(r.Body)
-			if err != nil {
-				s.handleHTTPError(w, "Could not decode gzip request", 500)
-				return
-			}
-			defer body.Close()
-		}
-
-		if err, status := s.process(body, remoteAddr, requestID, logplexDrainToken); err != nil {
-			s.handleHTTPError(
-				w, err.Error(), status,
-				log.Fields{"remote_addr": remoteAddr, "requestId": requestID, "logdrain_token": logplexDrainToken},
-			)
-			return
-		}
-
-		s.pSuccesses.Inc(1)
-	})
+	http.HandleFunc("/health", s.handleHealth)
+	http.HandleFunc("/logs", s.handleLogs)
 
 	return http.ListenAndServe(":"+s.Config.HttpPort, nil)
 }
@@ -167,11 +174,12 @@ func (s *httpServer) awaitShutdown() {
 	log.WithFields(log.Fields{"ns": "http", "at": "shutdown"}).Info()
 }
 
-func (s *httpServer) process(r io.Reader, remoteAddr string, requestID string, logplexDrainToken string) (error, int) {
+func (s *httpServer) process(body io.Reader, contentType string, remoteAddr string, requestID string, drainToken string) (error, int) {
 	s.Add(1)
 	defer s.Done()
 
-	fixedBody, err := s.FixerFunc(r, remoteAddr, logplexDrainToken)
+	var fixedBody []byte
+	fixedBody, err := fixers[contentType](body, remoteAddr, drainToken)
 	if err != nil {
 		return errors.New("Problem fixing body: " + err.Error()), http.StatusBadRequest
 	}

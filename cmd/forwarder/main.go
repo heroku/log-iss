@@ -44,7 +44,7 @@ func main() {
 	forwarderSet := newForwarderSet(config)
 
 	shutdownCh := make(shutdownCh)
-	httpServer := newHTTPServer(config, auth, fix, forwarderSet)
+	httpServer := newHTTPServer(config, auth, forwarderSet)
 
 	go awaitShutdownSignals(httpServer.shutdownCh, shutdownCh)
 
