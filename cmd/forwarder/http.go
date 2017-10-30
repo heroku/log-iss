@@ -143,15 +143,7 @@ func (s *httpServer) handleLogs(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	var fixedBody []byte
-	fixedBody, err = fixers[contentType](body, remoteAddr, drainToken)
-
-	if err != nil {
-		s.handleHTTPError(w, "Problem fixing body: "+err.Error(), http.StatusBadRequest)
-		return
-	}
-
-	if err, status := s.process(fixedBody, remoteAddr, requestID, drainToken); err != nil {
+	if err, status := s.process(body, contentType, remoteAddr, requestID, drainToken); err != nil {
 		s.handleHTTPError(w, err.Error(), status, log.Fields{"remote_addr": remoteAddr, "requestId": requestID, "logdrain_token": drainToken})
 		return
 	}
@@ -182,11 +174,17 @@ func (s *httpServer) awaitShutdown() {
 	log.WithFields(log.Fields{"ns": "http", "at": "shutdown"}).Info()
 }
 
-func (s *httpServer) process(r []byte, remoteAddr string, requestID string, logplexDrainToken string) (error, int) {
+func (s *httpServer) process(body io.Reader, contentType string, remoteAddr string, requestID string, drainToken string) (error, int) {
 	s.Add(1)
 	defer s.Done()
 
-	payload := NewPayload(remoteAddr, requestID, r)
+	var fixedBody []byte
+	fixedBody, err := fixers[contentType](body, remoteAddr, drainToken)
+	if err != nil {
+		return errors.New("Problem fixing body: " + err.Error()), http.StatusBadRequest
+	}
+
+	payload := NewPayload(remoteAddr, requestID, fixedBody)
 	if err := s.deliverer.Deliver(payload); err != nil {
 		return errors.New("Problem delivering body: " + err.Error()), http.StatusGatewayTimeout
 	}
