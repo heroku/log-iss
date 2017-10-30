@@ -132,11 +132,11 @@ func (s *httpServer) handleLogs(w http.ResponseWriter, r *http.Request) {
 	drainToken := r.Header.Get("Logplex-Drain-Token")
 
 	body := r.Body
-	defer body.Close()
 	var err error
 
 	if r.Header.Get("Content-Encoding") == "gzip" {
 		body, err = gzip.NewReader(r.Body)
+		defer body.Close()
 		if err != nil {
 			s.handleHTTPError(w, "Could not decode gzip request", 500)
 			return
