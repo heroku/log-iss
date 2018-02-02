@@ -25,6 +25,7 @@ type IssConfig struct {
 	LibratoSource             string        `env:"LIBRATO_SOURCE"`
 	LibratoOwner              string        `env:"LIBRATO_OWNER"`
 	LibratoToken              string        `env:"LIBRATO_TOKEN"`
+	LogAuthUser               bool          `env:"LOG_AUTH_USER,default=false"`
 	Dyno                      string        `env:"DYNO"`
 	TlsConfig                 *tls.Config
 	MetricsRegistry           metrics.Registry
