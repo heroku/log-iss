@@ -42,10 +42,15 @@ func fix(r io.Reader, remoteAddr, logplexDrainToken, authUser string) ([]byte, e
 		messageWriter.Write(header.Procid)
 		messageWriter.WriteString(" ")
 		messageWriter.Write(header.Msgid)
+
+		if authUser != "" {
+			messageWriter.WriteString(" log_iss_user=")
+			messageWriter.WriteString(authUser)
+		}
+
 		messageWriter.WriteString(" [origin ip=\"")
 		messageWriter.WriteString(remoteAddr)
 		messageWriter.WriteString("\"]")
-
 		b := lp.Bytes()
 		if len(b) >= 2 && bytes.Equal(b[0:2], nilVal) {
 			messageWriter.Write(b[1:])
@@ -54,12 +59,6 @@ func fix(r io.Reader, remoteAddr, logplexDrainToken, authUser string) ([]byte, e
 				messageWriter.WriteString(" ")
 			}
 			messageWriter.Write(b)
-		}
-
-		if authUser != "" {
-			messageWriter.WriteString("log_iss_user=\"")
-			messageWriter.WriteString(authUser)
-			messageWriter.WriteString("\"")
 		}
 
 		messageLenWriter.WriteString(strconv.Itoa(messageWriter.Len()))
