@@ -127,15 +127,9 @@ func (s *httpServer) Run() error {
 			s.pAuthErrors.Inc(1)
 			s.handleHTTPError(w, "Unable to authenticate request", 401)
 			return
-		} else {
-			s.pAuthSuccesses.Inc(1)
 		}
 
-		var authUser string
-
-		if s.Config.LogAuthUser {
-			authUser = r.URL.User.Username()
-		}
+		s.pAuthSuccesses.Inc(1)
 
 		remoteAddr := extractRemoteAddr(r)
 		requestID := r.Header.Get("X-Request-Id")
@@ -151,6 +145,11 @@ func (s *httpServer) Run() error {
 				return
 			}
 			defer body.Close()
+		}
+
+		var authUser string
+		if s.Config.LogAuthUser {
+			authUser = r.URL.User.Username()
 		}
 
 		if err, status := s.process(body, remoteAddr, requestID, logplexDrainToken, authUser); err != nil {
