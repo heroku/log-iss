@@ -39,11 +39,11 @@ func TestFix(t *testing.T) {
 
 func TestFixWithLogAuthUser(t *testing.T) {
 	var output = [][]byte{
-		[]byte("104 <13>1 2013-06-07T13:17:49.468822+00:00 host heroku web.7 - [origin ip=\"1.2.3.4\"] hi log_iss_user=ingest\n107 <13>1 2013-06-07T13:17:49.468822+00:00 host heroku web.7 - [origin ip=\"1.2.3.4\"] hello log_iss_user=ingest\n"),
-		[]byte("147 <13>1 2013-06-07T13:17:49.468822+00:00 host heroku web.7 - [origin ip=\"1.2.3.4\"][meta sequenceId=\"hello\"][foo bar=\"baz\"] hello log_iss_user=ingest\n"),
-		[]byte("107 <13>1 2013-06-07T13:17:49.468822+00:00 host heroku web.7 - [origin ip=\"1.2.3.4\"] hello log_iss_user=ingest\n"),
-		[]byte("100 <13>1 2013-06-07T13:17:49.468822+00:00 host heroku web.7 - [origin ip=\"1.2.3.4\"] log_iss_user=ingest"),
-		[]byte("138 <13>1 2013-06-07T13:17:49.468822+00:00 host heroku web.7 - [origin ip=\"1.2.3.4\"][60607e20-f12d-483e-aa89-ffaf954e7527] log_iss_user=ingest"),
+		[]byte("107 <13>1 2013-06-07T13:17:49.468822+00:00 host heroku web.7 - [origin ip=\"1.2.3.4\"][log iss user=\"ingest\"] hi\n110 <13>1 2013-06-07T13:17:49.468822+00:00 host heroku web.7 - [origin ip=\"1.2.3.4\"][log iss user=\"ingest\"] hello\n"),
+		[]byte("150 <13>1 2013-06-07T13:17:49.468822+00:00 host heroku web.7 - [origin ip=\"1.2.3.4\"][log iss user=\"ingest\"][meta sequenceId=\"hello\"][foo bar=\"baz\"] hello\n"),
+		[]byte("110 <13>1 2013-06-07T13:17:49.468822+00:00 host heroku web.7 - [origin ip=\"1.2.3.4\"][log iss user=\"ingest\"] hello\n"),
+		[]byte("103 <13>1 2013-06-07T13:17:49.468822+00:00 host heroku web.7 - [origin ip=\"1.2.3.4\"][log iss user=\"ingest\"]"),
+		[]byte("141 <13>1 2013-06-07T13:17:49.468822+00:00 host heroku web.7 - [origin ip=\"1.2.3.4\"][log iss user=\"ingest\"][60607e20-f12d-483e-aa89-ffaf954e7527]"),
 	}
 	for x, in := range input {
 		fixed, _ := fix(bytes.NewReader(in), "1.2.3.4", "", "ingest")
