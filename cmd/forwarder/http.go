@@ -30,7 +30,7 @@ func NewPayload(sa string, ri string, b []byte) payload {
 	}
 }
 
-type FixerFunc func(io.Reader, string, string) ([]byte, error)
+type FixerFunc func(io.Reader, string, string, string) ([]byte, error)
 
 type httpServer struct {
 	Config         IssConfig
@@ -127,9 +127,9 @@ func (s *httpServer) Run() error {
 			s.pAuthErrors.Inc(1)
 			s.handleHTTPError(w, "Unable to authenticate request", 401)
 			return
-		} else {
-			s.pAuthSuccesses.Inc(1)
 		}
+
+		s.pAuthSuccesses.Inc(1)
 
 		remoteAddr := extractRemoteAddr(r)
 		requestID := r.Header.Get("X-Request-Id")
@@ -147,7 +147,18 @@ func (s *httpServer) Run() error {
 			defer body.Close()
 		}
 
-		if err, status := s.process(body, remoteAddr, requestID, logplexDrainToken); err != nil {
+		// This needs to be above `s.auth.Authenticate` as it strips user information.
+		var authUser string
+		if s.Config.LogAuthUser {
+			var ok bool
+			authUser, _, ok = r.BasicAuth()
+
+			if !ok || authUser == "" {
+				log.Error("Auth user is missing or invalid")
+			}
+		}
+
+		if err, status := s.process(body, remoteAddr, requestID, logplexDrainToken, authUser); err != nil {
 			s.handleHTTPError(
 				w, err.Error(), status,
 				log.Fields{"remote_addr": remoteAddr, "requestId": requestID, "logdrain_token": logplexDrainToken},
@@ -167,11 +178,11 @@ func (s *httpServer) awaitShutdown() {
 	log.WithFields(log.Fields{"ns": "http", "at": "shutdown"}).Info()
 }
 
-func (s *httpServer) process(r io.Reader, remoteAddr string, requestID string, logplexDrainToken string) (error, int) {
+func (s *httpServer) process(r io.Reader, remoteAddr, requestID, logplexDrainToken, authUser string) (error, int) {
 	s.Add(1)
 	defer s.Done()
 
-	fixedBody, err := s.FixerFunc(r, remoteAddr, logplexDrainToken)
+	fixedBody, err := s.FixerFunc(r, remoteAddr, logplexDrainToken, authUser)
 	if err != nil {
 		return errors.New("Problem fixing body: " + err.Error()), http.StatusBadRequest
 	}
