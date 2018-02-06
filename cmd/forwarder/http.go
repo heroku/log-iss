@@ -149,7 +149,15 @@ func (s *httpServer) Run() error {
 
 		var authUser string
 		if s.Config.LogAuthUser {
-			authUser = r.URL.User.Username()
+			if r.URL.User != nil {
+				authUser = r.URL.User.Username()
+			} else {
+				log.WithField("auth_user", "missing")
+
+				// This shouldn't show up in splunk because the log line should
+				// be rejected without auth.
+				authUser = "none"
+			}
 		}
 
 		if err, status := s.process(body, remoteAddr, requestID, logplexDrainToken, authUser); err != nil {
