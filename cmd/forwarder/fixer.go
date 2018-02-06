@@ -45,7 +45,7 @@ func fix(r io.Reader, remoteAddr, logplexDrainToken, authUser string) ([]byte, e
 		messageWriter.WriteString(" [origin ip=\"" + remoteAddr + "\"]")
 
 		if authUser != "" {
-			messageWriter.WriteString("[log iss user=\"" + authUser + "\"]")
+			messageWriter.WriteString("[log_iss_user=\"" + authUser + "\"]")
 		}
 
 		b := lp.Bytes()
