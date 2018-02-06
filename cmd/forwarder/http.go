@@ -147,9 +147,19 @@ func (s *httpServer) Run() error {
 			defer body.Close()
 		}
 
+		// This needs to be above `s.auth.Authenticate` as it strips user information.
 		var authUser string
 		if s.Config.LogAuthUser {
-			authUser = r.URL.User.Username()
+			var ok bool
+			authUser, _, ok = r.BasicAuth()
+
+			if !ok {
+				log.Error("Auth user missing")
+
+				// This shouldn't show up in splunk because the log line should
+				// be rejected without auth.
+				authUser = "none"
+			}
 		}
 
 		if err, status := s.process(body, remoteAddr, requestID, logplexDrainToken, authUser); err != nil {
