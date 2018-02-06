@@ -153,12 +153,8 @@ func (s *httpServer) Run() error {
 			var ok bool
 			authUser, _, ok = r.BasicAuth()
 
-			if !ok {
-				log.Error("Auth user missing")
-
-				// This shouldn't show up in splunk because the log line should
-				// be rejected without auth.
-				authUser = "none"
+			if !ok || authUser == "" {
+				log.Error("Auth user is missing or invalid")
 			}
 		}
 
