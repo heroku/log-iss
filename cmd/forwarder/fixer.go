@@ -18,7 +18,7 @@ const (
 var nilVal = []byte(`- `)
 
 // Fix function to convert post data to length prefixed syslog frames
-func fix(r io.Reader, remoteAddr string, logplexDrainToken string) ([]byte, error) {
+func fix(r io.Reader, remoteAddr, logplexDrainToken, authUser string) ([]byte, error) {
 	var messageWriter bytes.Buffer
 	var messageLenWriter bytes.Buffer
 
@@ -42,9 +42,11 @@ func fix(r io.Reader, remoteAddr string, logplexDrainToken string) ([]byte, erro
 		messageWriter.Write(header.Procid)
 		messageWriter.WriteString(" ")
 		messageWriter.Write(header.Msgid)
-		messageWriter.WriteString(" [origin ip=\"")
-		messageWriter.WriteString(remoteAddr)
-		messageWriter.WriteString("\"]")
+		messageWriter.WriteString(" [origin ip=\"" + remoteAddr + "\"]")
+
+		if authUser != "" {
+			messageWriter.WriteString("[log_iss user=\"" + authUser + "\"]")
+		}
 
 		b := lp.Bytes()
 		if len(b) >= 2 && bytes.Equal(b[0:2], nilVal) {
