@@ -178,7 +178,7 @@ func (s *httpServer) Run() error {
 			if err != nil {
 				log.Error(err)
 			} else {
-				log.WithFields(log.Fields{"log_iss_user": authUser, "line": string(line[:read])}).Info()
+				log.WithFields(log.Fields{"log_iss_user": authUser, "msg": string(line[:read])}).Info()
 			}
 		}
 
