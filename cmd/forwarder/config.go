@@ -26,6 +26,8 @@ type IssConfig struct {
 	LibratoOwner              string        `env:"LIBRATO_OWNER"`
 	LibratoToken              string        `env:"LIBRATO_TOKEN"`
 	Dyno                      string        `env:"DYNO"`
+	ValidTokenUser            string        `env:"VALID_TOKEN_USER"`
+	TokenUserSamplePct        int           `env:"TOKEN_USER_SAMPLE_PCT,default=0"`
 	TlsConfig                 *tls.Config
 	MetricsRegistry           metrics.Registry
 }
@@ -65,4 +67,8 @@ func NewIssConfig() (IssConfig, error) {
 	config.MetricsRegistry = metrics.NewRegistry()
 
 	return config, nil
+}
+
+func (c IssConfig) LogAuthUser() bool {
+	return (c.ValidTokenUser != "" && c.TokenUserSamplePct > 0)
 }

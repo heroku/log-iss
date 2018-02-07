@@ -1,9 +1,12 @@
 package main
 
 import (
+	"bytes"
 	"compress/gzip"
 	"errors"
 	"io"
+	"io/ioutil"
+	"math/rand"
 	"net/http"
 	"strings"
 	"sync"
@@ -147,12 +150,39 @@ func (s *httpServer) Run() error {
 			defer body.Close()
 		}
 
+		buf := new(bytes.Buffer)
+		// This should only be reached if authentication information is valid.
+		authUser, _, _ := r.BasicAuth()
+		if s.Config.LogAuthUser() &&
+			authUser != "" &&
+			authUser != s.Config.ValidTokenUser &&
+			rand.Intn(99) > s.Config.TokenUserSamplePct {
+
+			// tee body to buffeer
+			body = ioutil.NopCloser(io.TeeReader(body, buf))
+		}
+
 		if err, status := s.process(body, remoteAddr, requestID, logplexDrainToken); err != nil {
 			s.handleHTTPError(
 				w, err.Error(), status,
 				log.Fields{"remote_addr": remoteAddr, "requestId": requestID, "logdrain_token": logplexDrainToken},
 			)
 			return
+		}
+
+		if buf.Len() > 0 {
+			line := make([]byte, 1024)
+
+			_, err := buf.Read(line)
+
+			if err != nil {
+				log.Error(err)
+			}
+
+			log.WithFields(log.Fields{
+				"log_iss_user": authUser,
+				"line":         line,
+			}).Info()
 		}
 
 		s.pSuccesses.Inc(1)
