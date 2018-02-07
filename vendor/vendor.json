@@ -33,6 +33,12 @@
 			"revisionTime": "2015-01-12T15:57:38Z"
 		},
 		{
+			"checksumSHA1": "rJab1YdNhQooDiBWNnt7TLWPyBU=",
+			"path": "github.com/pkg/errors",
+			"revision": "2b3a18b5f0fb6b4f9190549597d3f962c02bc5eb",
+			"revisionTime": "2017-09-10T13:46:14Z"
+		},
+		{
 			"checksumSHA1": "AS88P4N6cCe6UHvE3HgV4RAUVwY=",
 			"path": "github.com/rcrowley/go-metrics",
 			"revision": "a5cfc242a56ba7fa70b785f678d6214837bf93b9",
@@ -51,10 +57,28 @@
 			"revisionTime": "2018-02-07T18:27:17Z"
 		},
 		{
-			"checksumSHA1": "rjVo9vfWSN66fs74NA1vUAU/87U=",
+			"checksumSHA1": "UDjquUC5gtWvtFz7eHJ3jeEX2qw=",
 			"path": "github.com/stvp/roll",
-			"revision": "db998c21f9b63db530d1ec5f8e8ffa6e2b344ebf",
-			"revisionTime": "2015-01-22T17:37:07Z"
+			"revision": "3627a5cbeaeaa68023abd02bb8687925265f2f63",
+			"revisionTime": "2017-05-22T20:52:22Z"
+		},
+		{
+			"checksumSHA1": "6U7dCaxxIMjf5V02iWgyAwppczw=",
+			"path": "golang.org/x/crypto/ssh/terminal",
+			"revision": "d9133f5469342136e669e85192a26056b587f503",
+			"revisionTime": "2018-02-05T11:39:33Z"
+		},
+		{
+			"checksumSHA1": "osb18zDjd7/RMAMUuN3qP+w0ewE=",
+			"path": "golang.org/x/sys/unix",
+			"revision": "37707fdb30a5b38865cfb95e5aab41707daec7fd",
+			"revisionTime": "2018-02-02T13:35:31Z"
+		},
+		{
+			"checksumSHA1": "eQq+ZoTWPjyizS9XalhZwfGjQao=",
+			"path": "golang.org/x/sys/windows",
+			"revision": "37707fdb30a5b38865cfb95e5aab41707daec7fd",
+			"revisionTime": "2018-02-02T13:35:31Z"
 		}
 	],
 	"rootPath": "github.com/heroku/log-iss"
