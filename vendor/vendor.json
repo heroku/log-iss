@@ -9,12 +9,6 @@
 	"ignore": "test",
 	"package": [
 		{
-			"checksumSHA1": "kSyz5k+IXy97V+i0MsxAyFot2Z8=",
-			"path": "github.com/Sirupsen/logrus",
-			"revision": "21d4508646ae56d79244bd9046c1df63a5fa8c37",
-			"revisionTime": "2015-06-10T09:38:35Z"
-		},
-		{
 			"checksumSHA1": "16v3KZ/bE7zLuq8cDMX7nAoKaqY=",
 			"path": "github.com/bmizerany/lpx",
 			"revision": "af85cf24c1567bcb5a2e4c21597cc049eab31f55",
@@ -49,6 +43,12 @@
 			"path": "github.com/rcrowley/go-metrics/librato",
 			"revision": "a5cfc242a56ba7fa70b785f678d6214837bf93b9",
 			"revisionTime": "2015-06-01T14:34:43Z"
+		},
+		{
+			"checksumSHA1": "7VrRVHHEc37zSSPAQaj+5jRWhzo=",
+			"path": "github.com/sirupsen/logrus",
+			"revision": "9f91ab2ef97544cdca176a1fb9165f2cf6fd709b",
+			"revisionTime": "2018-02-07T18:27:17Z"
 		},
 		{
 			"checksumSHA1": "rjVo9vfWSN66fs74NA1vUAU/87U=",

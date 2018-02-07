@@ -8,9 +8,9 @@ import (
 
 	"github.com/rcrowley/go-metrics/librato"
 
-	log "github.com/Sirupsen/logrus"
 	"github.com/heroku/authenticater"
 	"github.com/heroku/rollrus"
+	log "github.com/sirupsen/logrus"
 )
 
 type shutdownCh chan struct{}
