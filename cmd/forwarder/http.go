@@ -173,16 +173,13 @@ func (s *httpServer) Run() error {
 		if buf.Len() > 0 {
 			line := make([]byte, 1024)
 
-			_, err := buf.Read(line)
+			read, err := buf.Read(line)
 
 			if err != nil {
 				log.Error(err)
+			} else {
+				log.WithFields(log.Fields{"log_iss_user": authUser, "line": string(line[:read])}).Info()
 			}
-
-			log.WithFields(log.Fields{
-				"log_iss_user": authUser,
-				"line":         line,
-			}).Info()
 		}
 
 		s.pSuccesses.Inc(1)
