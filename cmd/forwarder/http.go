@@ -6,7 +6,6 @@ import (
 	"errors"
 	"io"
 	"io/ioutil"
-	"math/rand"
 	"net/http"
 	"strings"
 	"sync"
@@ -150,16 +149,12 @@ func (s *httpServer) Run() error {
 			defer body.Close()
 		}
 
-		buf := new(bytes.Buffer)
+		var buf bytes.Buffer
 		// This should only be reached if authentication information is valid.
-		authUser, _, _ := r.BasicAuth()
-		if s.Config.LogAuthUser() &&
-			authUser != "" &&
-			authUser != s.Config.ValidTokenUser &&
-			rand.Intn(99) > s.Config.TokenUserSamplePct {
-
+		authUser, _, ok := r.BasicAuth()
+		if ok && s.Config.LogAuthUser(authUser) {
 			// tee body to buffeer
-			body = ioutil.NopCloser(io.TeeReader(body, buf))
+			body = ioutil.NopCloser(io.TeeReader(body, &buf))
 		}
 
 		if err, status := s.process(body, remoteAddr, requestID, logplexDrainToken); err != nil {
@@ -178,7 +173,7 @@ func (s *httpServer) Run() error {
 			if err != nil {
 				log.Error(err)
 			} else {
-				log.WithFields(log.Fields{"log_iss_user": authUser, "msg": string(line[:read])}).Info()
+				log.WithFields(log.Fields{"log_iss_user": authUser}).Info(string(line[:read]))
 			}
 		}
 

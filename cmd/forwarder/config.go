@@ -5,6 +5,7 @@ import (
 	"crypto/x509"
 	"fmt"
 	"io/ioutil"
+	"math/rand"
 	"strings"
 	"time"
 
@@ -69,6 +70,8 @@ func NewIssConfig() (IssConfig, error) {
 	return config, nil
 }
 
-func (c IssConfig) LogAuthUser() bool {
-	return (c.ValidTokenUser != "" && c.TokenUserSamplePct > 0)
+func (c IssConfig) LogAuthUser(u string) bool {
+	return c.ValidTokenUser != "" &&
+		u != c.ValidTokenUser &&
+		rand.Intn(99)+1 <= c.TokenUserSamplePct
 }
