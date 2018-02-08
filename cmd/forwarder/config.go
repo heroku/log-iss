@@ -70,6 +70,9 @@ func NewIssConfig() (IssConfig, error) {
 
 // LogAuthUser when the user isn't the current valid user and the
 // provided pct value is less then or equal to the sample percent.
+// With ValidTokenUser and TokenUserSamplePctset set to their zero
+// values (default) the check will always return false.
+// pct is assumed to be: 100 >= pct >= 1 (use rand.Intn(99)+1)
 func (c IssConfig) LogAuthUser(user string, pct int) bool {
 	return c.ValidTokenUser != "" &&
 		user != c.ValidTokenUser &&
