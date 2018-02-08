@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"hash/adler32"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -15,20 +16,21 @@ import (
 )
 
 const (
-	NAME     = "go-roll"
-	ENDPOINT = "https://api.rollbar.com/api/1/item/"
-	VERSION  = "0.0.1"
-	LANGUAGE = "go"
+	// By default, all Rollbar API requests are sent to this endpoint.
+	endpoint = "https://api.rollbar.com/api/1/item/"
 
-	// Severity levels
-	CRIT  = "critical"
-	ERR   = "error"
-	WARN  = "warning"
-	INFO  = "info"
-	DEBUG = "debug"
+	// Identify this Rollbar client library to the Rollbar API.
+	clientName     = "go-roll"
+	clientVersion  = "0.2.0"
+	clientLanguage = "go"
 )
 
 var (
+	// Endpoint is the default HTTP(S) endpoint that all Rollbar API requests
+	// will be sent to. By default, this is Rollbar's "Items" API endpoint. If
+	// this is blank, no items will be sent to Rollbar.
+	Endpoint = endpoint
+
 	// Rollbar access token for the global client. If this is blank, no items
 	// will be sent to Rollbar.
 	Token = ""
@@ -43,11 +45,14 @@ type rollbarSuccess struct {
 
 // Client reports items to a single Rollbar project.
 type Client interface {
-	Critical(err error, extras map[string]string) (uuid string, e error)
-	Error(err error, extras map[string]string) (uuid string, e error)
-	Warning(err error, extras map[string]string) (uuid string, e error)
-	Info(msg string, extras map[string]string) (uuid string, e error)
-	Debug(msg string, extras map[string]string) (uuid string, e error)
+	Critical(err error, custom map[string]string) (uuid string, e error)
+	CriticalStack(err error, ptrs []uintptr, custom map[string]string) (uuid string, e error)
+	Error(err error, custom map[string]string) (uuid string, e error)
+	ErrorStack(err error, ptrs []uintptr, custom map[string]string) (uuid string, e error)
+	Warning(err error, custom map[string]string) (uuid string, e error)
+	WarningStack(err error, ptrs []uintptr, custom map[string]string) (uuid string, e error)
+	Info(msg string, custom map[string]string) (uuid string, e error)
+	Debug(msg string, custom map[string]string) (uuid string, e error)
 }
 
 type rollbarClient struct {
@@ -61,73 +66,83 @@ func New(token, env string) Client {
 	return &rollbarClient{token, env}
 }
 
-func Critical(err error, extras map[string]string) (uuid string, e error) {
-	client := rollbarClient{Token, Environment}
-	return client.criticalSkipStack(err, 3, extras)
+func Critical(err error, custom map[string]string) (uuid string, e error) {
+	return CriticalStack(err, getCallers(2), custom)
 }
 
-func Error(err error, extras map[string]string) (uuid string, e error) {
-	client := rollbarClient{Token, Environment}
-	return client.errorSkipStack(err, 3, extras)
+func CriticalStack(err error, ptrs []uintptr, custom map[string]string) (uuid string, e error) {
+	return New(Token, Environment).CriticalStack(err, ptrs, custom)
 }
 
-func Warning(err error, extras map[string]string) (uuid string, e error) {
-	client := rollbarClient{Token, Environment}
-	return client.warningSkipStack(err, 3, extras)
+func Error(err error, custom map[string]string) (uuid string, e error) {
+	return ErrorStack(err, getCallers(2), custom)
 }
 
-func Info(msg string, extras map[string]string) (uuid string, e error) {
-	return New(Token, Environment).Info(msg, extras)
+func ErrorStack(err error, ptrs []uintptr, custom map[string]string) (uuid string, e error) {
+	return New(Token, Environment).ErrorStack(err, ptrs, custom)
 }
 
-func Debug(msg string, extras map[string]string) (uuid string, e error) {
-	return New(Token, Environment).Debug(msg, extras)
+func Warning(err error, custom map[string]string) (uuid string, e error) {
+	return WarningStack(err, getCallers(2), custom)
 }
 
-func (c *rollbarClient) Critical(err error, extras map[string]string) (uuid string, e error) {
-	return c.criticalSkipStack(err, 3, extras)
+func WarningStack(err error, ptrs []uintptr, custom map[string]string) (uuid string, e error) {
+	return New(Token, Environment).WarningStack(err, ptrs, custom)
 }
 
-func (c *rollbarClient) criticalSkipStack(err error, skip int, extras map[string]string) (uuid string, e error) {
-	item := c.buildTraceItem(CRIT, err, buildStack(skip), extras)
+func Info(msg string, custom map[string]string) (uuid string, e error) {
+	return New(Token, Environment).Info(msg, custom)
+}
+
+func Debug(msg string, custom map[string]string) (uuid string, e error) {
+	return New(Token, Environment).Debug(msg, custom)
+}
+
+func (c *rollbarClient) Critical(err error, custom map[string]string) (uuid string, e error) {
+	return c.CriticalStack(err, getCallers(2), custom)
+}
+
+func (c *rollbarClient) CriticalStack(err error, callers []uintptr, custom map[string]string) (uuid string, e error) {
+	item := c.buildTraceItem("critical", err, callers, custom)
 	return c.send(item)
 }
 
-func (c *rollbarClient) Error(err error, extras map[string]string) (uuid string, e error) {
-	return c.errorSkipStack(err, 3, extras)
+func (c *rollbarClient) Error(err error, custom map[string]string) (uuid string, e error) {
+	return c.ErrorStack(err, getCallers(2), custom)
 }
 
-func (c *rollbarClient) errorSkipStack(err error, skip int, extras map[string]string) (uuid string, e error) {
-	item := c.buildTraceItem(ERR, err, buildStack(skip), extras)
+func (c *rollbarClient) ErrorStack(err error, callers []uintptr, custom map[string]string) (uuid string, e error) {
+	item := c.buildTraceItem("error", err, callers, custom)
 	return c.send(item)
 }
 
-func (c *rollbarClient) Warning(err error, extras map[string]string) (uuid string, e error) {
-	return c.warningSkipStack(err, 3, extras)
+func (c *rollbarClient) Warning(err error, custom map[string]string) (uuid string, e error) {
+	return c.WarningStack(err, getCallers(2), custom)
 }
 
-func (c *rollbarClient) warningSkipStack(err error, skip int, extras map[string]string) (uuid string, e error) {
-	item := c.buildTraceItem(WARN, err, buildStack(skip), extras)
+func (c *rollbarClient) WarningStack(err error, callers []uintptr, custom map[string]string) (uuid string, e error) {
+	item := c.buildTraceItem("warning", err, callers, custom)
 	return c.send(item)
 }
 
-func (c *rollbarClient) Info(msg string, extras map[string]string) (uuid string, e error) {
-	item := c.buildMessageItem(INFO, msg, extras)
+func (c *rollbarClient) Info(msg string, custom map[string]string) (uuid string, e error) {
+	item := c.buildMessageItem("info", msg, custom)
 	return c.send(item)
 }
 
-func (c *rollbarClient) Debug(msg string, extras map[string]string) (uuid string, e error) {
-	item := c.buildMessageItem(DEBUG, msg, extras)
+func (c *rollbarClient) Debug(msg string, custom map[string]string) (uuid string, e error) {
+	item := c.buildMessageItem("debug", msg, custom)
 	return c.send(item)
 }
 
-func (c *rollbarClient) buildTraceItem(level string, err error, s stack, extras map[string]string) (item map[string]interface{}) {
-	item = c.buildItem(level, err.Error(), extras)
+func (c *rollbarClient) buildTraceItem(level string, err error, callers []uintptr, custom map[string]string) (item map[string]interface{}) {
+	stack := buildRollbarFrames(callers)
+	item = c.buildItem(level, err.Error(), custom)
 	itemData := item["data"].(map[string]interface{})
-	itemData["fingerprint"] = stackFingerprint(err.Error(), s)
+	itemData["fingerprint"] = stack.fingerprint()
 	itemData["body"] = map[string]interface{}{
 		"trace": map[string]interface{}{
-			"frames": s,
+			"frames": stack,
 			"exception": map[string]interface{}{
 				"class":   errorClass(err),
 				"message": err.Error(),
@@ -138,8 +153,8 @@ func (c *rollbarClient) buildTraceItem(level string, err error, s stack, extras 
 	return item
 }
 
-func (c *rollbarClient) buildMessageItem(level string, msg string, extras map[string]string) (item map[string]interface{}) {
-	item = c.buildItem(level, msg, extras)
+func (c *rollbarClient) buildMessageItem(level string, msg string, custom map[string]string) (item map[string]interface{}) {
+	item = c.buildItem(level, msg, custom)
 	itemData := item["data"].(map[string]interface{})
 	itemData["body"] = map[string]interface{}{
 		"message": map[string]interface{}{
@@ -150,7 +165,7 @@ func (c *rollbarClient) buildMessageItem(level string, msg string, extras map[st
 	return item
 }
 
-func (c *rollbarClient) buildItem(level, title string, extras map[string]string) map[string]interface{} {
+func (c *rollbarClient) buildItem(level, title string, custom map[string]string) map[string]interface{} {
 	hostname, _ := os.Hostname()
 
 	return map[string]interface{}{
@@ -161,15 +176,15 @@ func (c *rollbarClient) buildItem(level, title string, extras map[string]string)
 			"level":       level,
 			"timestamp":   time.Now().Unix(),
 			"platform":    runtime.GOOS,
-			"language":    LANGUAGE,
+			"language":    clientLanguage,
 			"server": map[string]interface{}{
 				"host": hostname,
 			},
 			"notifier": map[string]interface{}{
-				"name":    NAME,
-				"version": VERSION,
+				"name":    clientName,
+				"version": clientVersion,
 			},
-			"custom": extras,
+			"custom": custom,
 		},
 	}
 }
@@ -177,7 +192,7 @@ func (c *rollbarClient) buildItem(level, title string, extras map[string]string)
 // send reports the given item to Rollbar and returns either a UUID for the
 // reported item or an error.
 func (c *rollbarClient) send(item map[string]interface{}) (uuid string, err error) {
-	if len(c.token) == 0 {
+	if len(c.token) == 0 || len(Endpoint) == 0 {
 		return "", nil
 	}
 
@@ -186,15 +201,16 @@ func (c *rollbarClient) send(item map[string]interface{}) (uuid string, err erro
 		return "", err
 	}
 
-	resp, err := http.Post(ENDPOINT, "application/json", bytes.NewReader(jsonBody))
+	resp, err := http.Post(Endpoint, "application/json", bytes.NewReader(jsonBody))
 	if err != nil {
 		return "", err
 	}
-	defer func() { resp.Body.Close() }()
+	defer func() {
+		io.Copy(ioutil.Discard, resp.Body)
+		resp.Body.Close()
+	}()
 
 	if resp.StatusCode != http.StatusOK {
-		body, _ := ioutil.ReadAll(resp.Body)
-		fmt.Println(string(body))
 		return "", fmt.Errorf("Rollbar returned %s", resp.Status)
 	}
 
@@ -209,8 +225,8 @@ func (c *rollbarClient) send(item map[string]interface{}) (uuid string, err erro
 	return success.Result["uuid"], nil
 }
 
-// errorClass returns a class name for an error (eg.  "ErrUnexpectedEOF").  For
-// string errors, it returns a checksum of the error string.
+// errorClass returns a class name for an error (eg.  "ErrUnexpectedEOF"). For
+// string errors, it returns an Adler-32 checksum of the error string.
 func errorClass(err error) string {
 	class := reflect.TypeOf(err).String()
 	if class == "" {

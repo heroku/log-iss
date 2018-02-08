@@ -9,12 +9,6 @@
 	"ignore": "test",
 	"package": [
 		{
-			"checksumSHA1": "kSyz5k+IXy97V+i0MsxAyFot2Z8=",
-			"path": "github.com/Sirupsen/logrus",
-			"revision": "21d4508646ae56d79244bd9046c1df63a5fa8c37",
-			"revisionTime": "2015-06-10T09:38:35Z"
-		},
-		{
 			"checksumSHA1": "16v3KZ/bE7zLuq8cDMX7nAoKaqY=",
 			"path": "github.com/bmizerany/lpx",
 			"revision": "af85cf24c1567bcb5a2e4c21597cc049eab31f55",
@@ -27,16 +21,22 @@
 			"revisionTime": "2015-03-10T21:53:23Z"
 		},
 		{
-			"checksumSHA1": "G+4WQSn3J4p9u16meO9xQPJzj9E=",
+			"checksumSHA1": "R0+odgmi2ofJnjGwrA5d5eOHmXY=",
 			"path": "github.com/heroku/rollrus",
-			"revision": "9a0cd307107e494f43b880b9309a0b4874c85f23",
-			"revisionTime": "2015-03-12T23:00:33Z"
+			"revision": "8c4f823801514d40d7c7d6cfa13320af0a091611",
+			"revisionTime": "2017-08-18T21:26:24Z"
 		},
 		{
 			"checksumSHA1": "FRW8ysy5QhVAFnSbbV8+7boiQzM=",
 			"path": "github.com/joeshaw/envdecode",
 			"revision": "8f3fa5fb853793067e184bdc4fe8ac0b3320a9a2",
 			"revisionTime": "2015-01-12T15:57:38Z"
+		},
+		{
+			"checksumSHA1": "rJab1YdNhQooDiBWNnt7TLWPyBU=",
+			"path": "github.com/pkg/errors",
+			"revision": "2b3a18b5f0fb6b4f9190549597d3f962c02bc5eb",
+			"revisionTime": "2017-09-10T13:46:14Z"
 		},
 		{
 			"checksumSHA1": "AS88P4N6cCe6UHvE3HgV4RAUVwY=",
@@ -51,10 +51,34 @@
 			"revisionTime": "2015-06-01T14:34:43Z"
 		},
 		{
-			"checksumSHA1": "rjVo9vfWSN66fs74NA1vUAU/87U=",
+			"checksumSHA1": "7VrRVHHEc37zSSPAQaj+5jRWhzo=",
+			"path": "github.com/sirupsen/logrus",
+			"revision": "9f91ab2ef97544cdca176a1fb9165f2cf6fd709b",
+			"revisionTime": "2018-02-07T18:27:17Z"
+		},
+		{
+			"checksumSHA1": "UDjquUC5gtWvtFz7eHJ3jeEX2qw=",
 			"path": "github.com/stvp/roll",
-			"revision": "db998c21f9b63db530d1ec5f8e8ffa6e2b344ebf",
-			"revisionTime": "2015-01-22T17:37:07Z"
+			"revision": "3627a5cbeaeaa68023abd02bb8687925265f2f63",
+			"revisionTime": "2017-05-22T20:52:22Z"
+		},
+		{
+			"checksumSHA1": "6U7dCaxxIMjf5V02iWgyAwppczw=",
+			"path": "golang.org/x/crypto/ssh/terminal",
+			"revision": "d9133f5469342136e669e85192a26056b587f503",
+			"revisionTime": "2018-02-05T11:39:33Z"
+		},
+		{
+			"checksumSHA1": "osb18zDjd7/RMAMUuN3qP+w0ewE=",
+			"path": "golang.org/x/sys/unix",
+			"revision": "37707fdb30a5b38865cfb95e5aab41707daec7fd",
+			"revisionTime": "2018-02-02T13:35:31Z"
+		},
+		{
+			"checksumSHA1": "eQq+ZoTWPjyizS9XalhZwfGjQao=",
+			"path": "golang.org/x/sys/windows",
+			"revision": "37707fdb30a5b38865cfb95e5aab41707daec7fd",
+			"revisionTime": "2018-02-02T13:35:31Z"
 		}
 	],
 	"rootPath": "github.com/heroku/log-iss"

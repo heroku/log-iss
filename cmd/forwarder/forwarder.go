@@ -6,8 +6,8 @@ import (
 	"net"
 	"time"
 
-	log "github.com/Sirupsen/logrus"
 	metrics "github.com/rcrowley/go-metrics"
+	log "github.com/sirupsen/logrus"
 )
 
 type deliverer interface {

@@ -1,17 +1,20 @@
 package main
 
 import (
+	"bytes"
 	"compress/gzip"
 	"errors"
 	"io"
+	"io/ioutil"
+	"math/rand"
 	"net/http"
 	"strings"
 	"sync"
 	"time"
 
-	log "github.com/Sirupsen/logrus"
 	"github.com/heroku/authenticater"
 	metrics "github.com/rcrowley/go-metrics"
+	log "github.com/sirupsen/logrus"
 )
 
 type payload struct {
@@ -147,12 +150,32 @@ func (s *httpServer) Run() error {
 			defer body.Close()
 		}
 
+		var buf bytes.Buffer
+		// This should only be reached if authentication information is valid.
+		authUser, _, ok := r.BasicAuth()
+		if ok && s.Config.LogAuthUser(authUser, rand.Intn(99)+1) {
+			// tee body to buffeer
+			body = ioutil.NopCloser(io.TeeReader(body, &buf))
+		}
+
 		if err, status := s.process(body, remoteAddr, requestID, logplexDrainToken); err != nil {
 			s.handleHTTPError(
 				w, err.Error(), status,
 				log.Fields{"remote_addr": remoteAddr, "requestId": requestID, "logdrain_token": logplexDrainToken},
 			)
 			return
+		}
+
+		if buf.Len() > 0 {
+			line := make([]byte, 1024)
+
+			read, err := buf.Read(line)
+
+			if err != nil {
+				log.Error(err)
+			} else {
+				log.WithFields(log.Fields{"log_iss_user": authUser, "payload": string(line[:read])}).Info()
+			}
 		}
 
 		s.pSuccesses.Inc(1)
