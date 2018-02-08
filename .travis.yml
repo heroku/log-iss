@@ -1,6 +1,6 @@
 language: go
 go:
-  - 1.9
+  - 1.9.4
 install:
   - go get -u github.com/kardianos/govendor
 script:

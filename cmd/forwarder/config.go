@@ -5,7 +5,6 @@ import (
 	"crypto/x509"
 	"fmt"
 	"io/ioutil"
-	"math/rand"
 	"strings"
 	"time"
 
@@ -34,8 +33,7 @@ type IssConfig struct {
 }
 
 func NewIssConfig() (IssConfig, error) {
-	config := IssConfig{}
-
+	var config IssConfig
 	err := envdecode.Decode(&config)
 	if err != nil {
 		return config, err
@@ -70,8 +68,13 @@ func NewIssConfig() (IssConfig, error) {
 	return config, nil
 }
 
-func (c IssConfig) LogAuthUser(u string) bool {
+// LogAuthUser when the user isn't the current valid user and the
+// provided pct value is less then or equal to the sample percent.
+// With ValidTokenUser and TokenUserSamplePctset set to their zero
+// values (default) the check will always return false.
+// pct is assumed to be: 100 >= pct >= 1 (use rand.Intn(99)+1)
+func (c IssConfig) LogAuthUser(user string, pct int) bool {
 	return c.ValidTokenUser != "" &&
-		u != c.ValidTokenUser &&
-		rand.Intn(99)+1 <= c.TokenUserSamplePct
+		user != c.ValidTokenUser &&
+		pct <= c.TokenUserSamplePct
 }
