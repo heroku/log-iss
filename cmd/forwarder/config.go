@@ -31,10 +31,14 @@ type IssConfig struct {
 	TokenUserSamplePct        int           `env:"TOKEN_USER_SAMPLE_PCT,default=0"`
 	TlsConfig                 *tls.Config
 	MetricsRegistry           metrics.Registry
+
+	rnd *rand.Rand
 }
 
 func NewIssConfig() (IssConfig, error) {
-	config := IssConfig{}
+	config := IssConfig{
+		rnd: rand.New(rand.NewSource(time.Now().UnixNano())),
+	}
 
 	err := envdecode.Decode(&config)
 	if err != nil {
@@ -73,5 +77,5 @@ func NewIssConfig() (IssConfig, error) {
 func (c IssConfig) LogAuthUser(u string) bool {
 	return c.ValidTokenUser != "" &&
 		u != c.ValidTokenUser &&
-		rand.Intn(99)+1 <= c.TokenUserSamplePct
+		c.TokenUserSamplePct >= c.rnd.Intn(99)+1
 }
