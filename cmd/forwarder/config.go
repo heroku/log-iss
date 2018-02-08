@@ -5,7 +5,6 @@ import (
 	"crypto/x509"
 	"fmt"
 	"io/ioutil"
-	"math/rand"
 	"strings"
 	"time"
 
@@ -31,15 +30,10 @@ type IssConfig struct {
 	TokenUserSamplePct        int           `env:"TOKEN_USER_SAMPLE_PCT,default=0"`
 	TlsConfig                 *tls.Config
 	MetricsRegistry           metrics.Registry
-
-	rnd *rand.Rand
 }
 
 func NewIssConfig() (IssConfig, error) {
-	config := IssConfig{
-		rnd: rand.New(rand.NewSource(time.Now().UnixNano())),
-	}
-
+	var config IssConfig
 	err := envdecode.Decode(&config)
 	if err != nil {
 		return config, err
@@ -74,8 +68,10 @@ func NewIssConfig() (IssConfig, error) {
 	return config, nil
 }
 
-func (c IssConfig) LogAuthUser(u string) bool {
+// LogAuthUser when the user isn't the current valid user and the
+// provided pct value is less then or equal to the sample percent.
+func (c IssConfig) LogAuthUser(user string, pct int) bool {
 	return c.ValidTokenUser != "" &&
-		u != c.ValidTokenUser &&
-		c.TokenUserSamplePct >= c.rnd.Intn(99)+1
+		user != c.ValidTokenUser &&
+		pct <= c.TokenUserSamplePct
 }

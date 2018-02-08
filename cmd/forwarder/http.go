@@ -6,6 +6,7 @@ import (
 	"errors"
 	"io"
 	"io/ioutil"
+	"math/rand"
 	"net/http"
 	"strings"
 	"sync"
@@ -152,7 +153,7 @@ func (s *httpServer) Run() error {
 		var buf bytes.Buffer
 		// This should only be reached if authentication information is valid.
 		authUser, _, ok := r.BasicAuth()
-		if ok && s.Config.LogAuthUser(authUser) {
+		if ok && s.Config.LogAuthUser(authUser, rand.Intn(99)+1) {
 			// tee body to buffeer
 			body = ioutil.NopCloser(io.TeeReader(body, &buf))
 		}
