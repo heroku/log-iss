@@ -121,12 +121,9 @@ If you only need to update a configuration, you can do the following:
 # update the config
 ion-client config:set -i splunk-indexer <ENV_VAR>=<new_value>
 
-# push the updated configs
+# push the updated configs and restart
 ic ssh deploymaster
 su deploymaster
 user=<user>
-bin/update-keys -u $user -i splunk-indexer
-
-# restart log-iss
-bin/run -u $user -i splunk-indexer -c '/usr/local/bin/app-restart log-iss'
+bin/deploy -u $user -i splunk-indexer -k -c log-iss
 ```
