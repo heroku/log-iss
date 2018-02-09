@@ -113,3 +113,17 @@ user=<user>
 branch=<branch>
 bin/ship -y -a log-iss -b $branch -u $user -i splunk-indexer -d 20 -n 5 #log-iss runs on the indexers
 ```
+
+### updating configs
+
+If you only need to update a configuration, you can do the following:
+```
+# update the config
+ion-client config:set -i splunk-indexer <ENV_VAR>=<new_value>
+
+# push the updated configs and restart
+ic ssh deploymaster
+su deploymaster
+user=<user>
+bin/deploy -u $user -i splunk-indexer -k -c log-iss
+```
