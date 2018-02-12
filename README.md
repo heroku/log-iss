@@ -125,5 +125,6 @@ ion-client config:set -i splunk-indexer <ENV_VAR>=<new_value>
 ic ssh deploymaster
 su deploymaster
 user=<user>
-bin/deploy -u $user -i splunk-indexer -k -c log-iss
+branch=<branch> # should be whatever is currently deployed
+bin/deploy -u $user -b $branch -i splunk-indexer -k -c log-iss
 ```
