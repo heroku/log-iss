@@ -126,5 +126,5 @@ ic ssh deploymaster
 su deploymaster
 user=<user>
 branch=<branch> # should be whatever is currently deployed
-bin/deploy -u $user -b $branch -i splunk-indexer -k -c log-iss
+bin/deploy -u $user -b $branch -i splunk-indexer -k -c log-iss -n 5
 ```
