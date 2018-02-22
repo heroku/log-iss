@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"bytes"
 	"compress/gzip"
 	"errors"
@@ -12,6 +13,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/bmizerany/lpx"
 	"github.com/heroku/authenticater"
 	metrics "github.com/rcrowley/go-metrics"
 	log "github.com/sirupsen/logrus"
@@ -167,15 +169,15 @@ func (s *httpServer) Run() error {
 		}
 
 		if buf.Len() > 0 {
-			line := make([]byte, 1024)
+			lp := lpx.NewReader(bufio.NewReader(bytes.NewReader(buf.Bytes())))
+			h := lp.Header()
 
-			read, err := buf.Read(line)
-
-			if err != nil {
-				log.Error(err)
-			} else {
-				log.WithFields(log.Fields{"log_iss_user": authUser, "payload": string(line[:read])}).Info()
-			}
+			log.WithFields(log.Fields{
+				"log_iss_user": authUser,
+				"hostname":     h.Hostname,
+				"procid":       h.Procid,
+				"msgid":        h.Msgid,
+			}).Info()
 		}
 
 		s.pSuccesses.Inc(1)
