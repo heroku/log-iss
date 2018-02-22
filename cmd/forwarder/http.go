@@ -156,7 +156,7 @@ func (s *httpServer) Run() error {
 		// This should only be reached if authentication information is valid.
 		authUser, _, ok := r.BasicAuth()
 		if ok && s.Config.LogAuthUser(authUser, rand.Intn(99)+1) {
-			// tee body to buffeer
+			// tee body to buffer
 			body = ioutil.NopCloser(io.TeeReader(body, &buf))
 		}
 
@@ -170,14 +170,18 @@ func (s *httpServer) Run() error {
 
 		if buf.Len() > 0 {
 			lp := lpx.NewReader(bufio.NewReader(bytes.NewReader(buf.Bytes())))
-			h := lp.Header()
 
-			log.WithFields(log.Fields{
-				"log_iss_user": authUser,
-				"hostname":     string(h.Hostname),
-				"procid":       string(h.Procid),
-				"msgid":        string(h.Msgid),
-			}).Info()
+			// Don't travers, but get the first entry.
+			if lp.Next() {
+				h := lp.Header()
+
+				log.WithFields(log.Fields{
+					"log_iss_user": authUser,
+					"hostname":     string(h.Hostname),
+					"procid":       string(h.Procid),
+					"msgid":        string(h.Msgid),
+				}).Info()
+			}
 		}
 
 		s.pSuccesses.Inc(1)
