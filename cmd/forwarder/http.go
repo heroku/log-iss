@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"bytes"
 	"compress/gzip"
 	"errors"
@@ -12,6 +13,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/bmizerany/lpx"
 	"github.com/heroku/authenticater"
 	metrics "github.com/rcrowley/go-metrics"
 	log "github.com/sirupsen/logrus"
@@ -154,7 +156,7 @@ func (s *httpServer) Run() error {
 		// This should only be reached if authentication information is valid.
 		authUser, _, ok := r.BasicAuth()
 		if ok && s.Config.LogAuthUser(authUser, rand.Intn(99)+1) {
-			// tee body to buffeer
+			// tee body to buffer
 			body = ioutil.NopCloser(io.TeeReader(body, &buf))
 		}
 
@@ -167,14 +169,24 @@ func (s *httpServer) Run() error {
 		}
 
 		if buf.Len() > 0 {
-			line := make([]byte, 1024)
+			lp := lpx.NewReader(bufio.NewReader(bytes.NewReader(buf.Bytes())))
 
-			read, err := buf.Read(line)
+			// Don't travers, but get the first entry.
+			if lp.Next() {
+				h := lp.Header()
 
-			if err != nil {
-				log.Error(err)
-			} else {
-				log.WithFields(log.Fields{"log_iss_user": authUser, "payload": string(line[:read])}).Info()
+				hostname := string(h.Hostname)
+				if hostname == "host" {
+					hostname = logplexDrainToken
+				}
+
+				log.WithFields(log.Fields{
+					"log_iss_user": authUser,
+					"hostname":     hostname,
+					"procid":       string(h.Procid),
+					"request_id":   requestID,
+					"remote_addr":  remoteAddr,
+				}).Info()
 			}
 		}
 
