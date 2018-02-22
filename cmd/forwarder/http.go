@@ -174,9 +174,9 @@ func (s *httpServer) Run() error {
 
 			log.WithFields(log.Fields{
 				"log_iss_user": authUser,
-				"hostname":     h.Hostname,
-				"procid":       h.Procid,
-				"msgid":        h.Msgid,
+				"hostname":     string(h.Hostname),
+				"procid":       string(h.Procid),
+				"msgid":        string(h.Msgid),
 			}).Info()
 		}
 
