@@ -175,13 +175,13 @@ func (s *httpServer) Run() error {
 			if lp.Next() {
 				h := lp.Header()
 
-				host := string(h.Hostname)
+				hostname := string(h.Hostname)
 				if hostname == "host" {
 					hostname = logplexDrainToken
 				}
 
 				log.WithFields(log.Fields{
-					"log_iss_user": hauthUser,
+					"log_iss_user": authUser,
 					"hostname":     hostname,
 					"procid":       string(h.Procid),
 					"request_id":   requestID,
