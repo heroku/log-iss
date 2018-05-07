@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"net/http"
 	"testing"
 )
 
@@ -29,11 +30,22 @@ func TestFix(t *testing.T) {
 		[]byte("118 <13>1 2013-06-07T13:17:49.468822+00:00 host heroku web.7 - [origin ip=\"1.2.3.4\"][60607e20-f12d-483e-aa89-ffaf954e7527]"),
 	}
 	for x, in := range input {
-		fixed, _ := fix(bytes.NewReader(in), "1.2.3.4", "")
+		fixed, _ := fix(simpleHttpRequest(), bytes.NewReader(in), "1.2.3.4", "")
 
 		if !bytes.Equal(fixed, output[x]) {
 			t.Errorf("input=%q\noutput=%q\ngot=%q\n", in, output[x], fixed)
 		}
+	}
+}
+
+func TestFixWithQueryParameters(t *testing.T) {
+	var output = []byte("121 <13>1 2013-06-07T13:17:49.468822+00:00 host heroku web.7 - [origin ip=\"1.2.3.4\" index=\"i\" source=\"s\" sourcetype=\"st\"] hi\n124 <13>1 2013-06-07T13:17:49.468822+00:00 host heroku web.7 - [origin ip=\"1.2.3.4\" index=\"i\" source=\"s\" sourcetype=\"st\"] hello\n")
+
+	in := input[0]
+	fixed, _ := fix(httpRequestWithParams(), bytes.NewReader(in), "1.2.3.4", "")
+
+	if !bytes.Equal(fixed, output) {
+		t.Errorf("\n\tinput=%q\n\toutput=%q\n\tgot=%q\n", in, output, fixed)
 	}
 }
 
@@ -49,7 +61,7 @@ func TestFixWithLogplexDrainToken(t *testing.T) {
 	}
 
 	for x, in := range input {
-		fixed, _ := fix(bytes.NewReader(in), "1.2.3.4", testToken)
+		fixed, _ := fix(simpleHttpRequest(), bytes.NewReader(in), "1.2.3.4", testToken)
 
 		if !bytes.Equal(fixed, output[x]) {
 			t.Errorf("input=%q\noutput=%q\ngot=%q\n", in, output[x], fixed)
@@ -62,7 +74,7 @@ func BenchmarkFixNoSD(b *testing.B) {
 	b.SetBytes(int64(len(input)))
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		fix(bytes.NewReader(input), "1.2.3.4", "")
+		fix(simpleHttpRequest(), bytes.NewReader(input), "1.2.3.4", "")
 	}
 }
 
@@ -71,6 +83,16 @@ func BenchmarkFixSD(b *testing.B) {
 	b.SetBytes(int64(len(input)))
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		fix(bytes.NewReader(input), "1.2.3.4", "")
+		fix(simpleHttpRequest(), bytes.NewReader(input), "1.2.3.4", "")
 	}
+}
+
+func httpRequestWithParams() *http.Request {
+	req, _ := http.NewRequest("POST", "/logs?index=i&source=s&sourcetype=st", nil)
+	return req
+}
+
+func simpleHttpRequest() *http.Request {
+	req, _ := http.NewRequest("POST", "/logs", nil)
+	return req
 }

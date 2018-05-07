@@ -35,7 +35,7 @@ func NewPayload(sa string, ri string, b []byte) payload {
 	}
 }
 
-type FixerFunc func(io.Reader, string, string) ([]byte, error)
+type FixerFunc func(*http.Request, io.Reader, string, string) ([]byte, error)
 
 type httpServer struct {
 	Config         IssConfig
@@ -160,7 +160,7 @@ func (s *httpServer) Run() error {
 			body = ioutil.NopCloser(io.TeeReader(body, &buf))
 		}
 
-		if err, status := s.process(body, remoteAddr, requestID, logplexDrainToken); err != nil {
+		if err, status := s.process(r, body, remoteAddr, requestID, logplexDrainToken); err != nil {
 			s.handleHTTPError(
 				w, err.Error(), status,
 				log.Fields{"remote_addr": remoteAddr, "requestId": requestID, "logdrain_token": logplexDrainToken},
@@ -202,11 +202,11 @@ func (s *httpServer) awaitShutdown() {
 	log.WithFields(log.Fields{"ns": "http", "at": "shutdown"}).Info()
 }
 
-func (s *httpServer) process(r io.Reader, remoteAddr string, requestID string, logplexDrainToken string) (error, int) {
+func (s *httpServer) process(req *http.Request, r io.Reader, remoteAddr string, requestID string, logplexDrainToken string) (error, int) {
 	s.Add(1)
 	defer s.Done()
 
-	fixedBody, err := s.FixerFunc(r, remoteAddr, logplexDrainToken)
+	fixedBody, err := s.FixerFunc(req, r, remoteAddr, logplexDrainToken)
 	if err != nil {
 		return errors.New("Problem fixing body: " + err.Error()), http.StatusBadRequest
 	}
