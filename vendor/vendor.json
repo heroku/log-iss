@@ -15,6 +15,12 @@
 			"revisionTime": "2013-04-29T05:58:04Z"
 		},
 		{
+			"checksumSHA1": "CSPbwbyzqA6sfORicn4HFtIhF/c=",
+			"path": "github.com/davecgh/go-spew/spew",
+			"revision": "8991bc29aa16c548c550c7ff78260e27b9ab7c73",
+			"revisionTime": "2018-02-21T22:46:20Z"
+		},
+		{
 			"checksumSHA1": "RzTq0lZZ9oRSEHuRqcTpFrFDgbo=",
 			"path": "github.com/heroku/authenticater",
 			"revision": "463c5fd4fa1798d3a421a44f76f404616ee3cda5",
@@ -39,6 +45,12 @@
 			"revisionTime": "2017-09-10T13:46:14Z"
 		},
 		{
+			"checksumSHA1": "LuFv4/jlrmFNnDb/5SCSEPAM9vU=",
+			"path": "github.com/pmezard/go-difflib/difflib",
+			"revision": "792786c7400a136282c1664665ae0a8db921c6c2",
+			"revisionTime": "2016-01-10T10:55:54Z"
+		},
+		{
 			"checksumSHA1": "AS88P4N6cCe6UHvE3HgV4RAUVwY=",
 			"path": "github.com/rcrowley/go-metrics",
 			"revision": "a5cfc242a56ba7fa70b785f678d6214837bf93b9",
@@ -55,6 +67,36 @@
 			"path": "github.com/sirupsen/logrus",
 			"revision": "9f91ab2ef97544cdca176a1fb9165f2cf6fd709b",
 			"revisionTime": "2018-02-07T18:27:17Z"
+		},
+		{
+			"checksumSHA1": "n+vQ7Bmp+ODWGmCp8cI5MFsaZVA=",
+			"path": "github.com/stretchr/objx",
+			"revision": "a5cfa15c000af5f09784e5355969ba7eb66ef0de",
+			"revisionTime": "2018-04-26T10:50:06Z"
+		},
+		{
+			"checksumSHA1": "nj123dGxKPIF17B6y3VEK2pihRk=",
+			"path": "github.com/stretchr/testify",
+			"revision": "c679ae2cc0cb27ec3293fea7e254e47386f05d69",
+			"revisionTime": "2018-03-14T08:05:35Z"
+		},
+		{
+			"checksumSHA1": "6LwXZI7kXm1C0h4Ui0Y52p9uQhk=",
+			"path": "github.com/stretchr/testify/assert",
+			"revision": "c679ae2cc0cb27ec3293fea7e254e47386f05d69",
+			"revisionTime": "2018-03-14T08:05:35Z"
+		},
+		{
+			"checksumSHA1": "fg3TzS9/QK3wZbzei3Z6O8XPLHg=",
+			"path": "github.com/stretchr/testify/http",
+			"revision": "c679ae2cc0cb27ec3293fea7e254e47386f05d69",
+			"revisionTime": "2018-03-14T08:05:35Z"
+		},
+		{
+			"checksumSHA1": "Qloi2PTvZv+D9FDHXM/banCoaFY=",
+			"path": "github.com/stretchr/testify/mock",
+			"revision": "c679ae2cc0cb27ec3293fea7e254e47386f05d69",
+			"revisionTime": "2018-03-14T08:05:35Z"
 		},
 		{
 			"checksumSHA1": "UDjquUC5gtWvtFz7eHJ3jeEX2qw=",

@@ -46,12 +46,17 @@ func fix(req *http.Request, r io.Reader, remoteAddr string, logplexDrainToken st
 		messageWriter.Write(header.Msgid)
 		messageWriter.WriteString(" [origin ip=\"")
 		messageWriter.WriteString(remoteAddr)
-		messageWriter.WriteString("\"")
+		messageWriter.WriteString("\"]")
 
 		// Add metadata from query parameters
+		foundMetadata := false
 		for _, k := range queryParams {
 			v := req.FormValue(k)
 			if v != "" {
+				if !foundMetadata {
+					messageWriter.WriteString("[metadata")
+					foundMetadata = true
+				}
 				messageWriter.WriteString(" ")
 				messageWriter.WriteString(k)
 				messageWriter.WriteString("=\"")
@@ -59,8 +64,9 @@ func fix(req *http.Request, r io.Reader, remoteAddr string, logplexDrainToken st
 				messageWriter.WriteString("\"")
 			}
 		}
-
-		messageWriter.WriteString("]")
+		if foundMetadata {
+			messageWriter.WriteString("]")
+		}
 
 		b := lp.Bytes()
 		if len(b) >= 2 && bytes.Equal(b[0:2], nilVal) {

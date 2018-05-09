@@ -171,7 +171,7 @@ func (s *httpServer) Run() error {
 		if buf.Len() > 0 {
 			lp := lpx.NewReader(bufio.NewReader(bytes.NewReader(buf.Bytes())))
 
-			// Don't travers, but get the first entry.
+			// Don't traverse, but get the first entry.
 			if lp.Next() {
 				h := lp.Header()
 
@@ -212,6 +212,7 @@ func (s *httpServer) process(req *http.Request, r io.Reader, remoteAddr string, 
 	}
 
 	payload := NewPayload(remoteAddr, requestID, fixedBody)
+
 	if err := s.deliverer.Deliver(payload); err != nil {
 		return errors.New("Problem delivering body: " + err.Error()), http.StatusGatewayTimeout
 	}
