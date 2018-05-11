@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"io"
+	"net/http"
 	"strconv"
 
 	"github.com/bmizerany/lpx"
@@ -16,9 +17,10 @@ const (
 )
 
 var nilVal = []byte(`- `)
+var queryParams = []string{"index", "source", "sourcetype"}
 
 // Fix function to convert post data to length prefixed syslog frames
-func fix(r io.Reader, remoteAddr string, logplexDrainToken string) ([]byte, error) {
+func fix(req *http.Request, r io.Reader, remoteAddr string, logplexDrainToken string) ([]byte, error) {
 	var messageWriter bytes.Buffer
 	var messageLenWriter bytes.Buffer
 
@@ -45,6 +47,26 @@ func fix(r io.Reader, remoteAddr string, logplexDrainToken string) ([]byte, erro
 		messageWriter.WriteString(" [origin ip=\"")
 		messageWriter.WriteString(remoteAddr)
 		messageWriter.WriteString("\"]")
+
+		// Add metadata from query parameters
+		foundMetadata := false
+		for _, k := range queryParams {
+			v := req.FormValue(k)
+			if v != "" {
+				if !foundMetadata {
+					messageWriter.WriteString("[metadata")
+					foundMetadata = true
+				}
+				messageWriter.WriteString(" ")
+				messageWriter.WriteString(k)
+				messageWriter.WriteString("=\"")
+				messageWriter.WriteString(v)
+				messageWriter.WriteString("\"")
+			}
+		}
+		if foundMetadata {
+			messageWriter.WriteString("]")
+		}
 
 		b := lp.Bytes()
 		if len(b) >= 2 && bytes.Equal(b[0:2], nilVal) {
