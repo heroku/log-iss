@@ -53,8 +53,6 @@ $ echo "64 <13>1 2013-06-07T13:17:49.468822+00:00 host heroku web.7 - - hi" | cu
 
 ### Platform
 
-Note: This is here for historical purposes. log-iss runs as a kernel app in ops-staging and ops cloud. It's deployed using deploymaster.
-
 ```bash
 $ DEPLOY=`whoami`
 $ heroku create log-iss-$DEPLOY -r $DEPLOY --buildpack https://codon-buildpacks.s3.amazonaws.com/buildpacks/kr/go.tgz
