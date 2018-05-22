@@ -28,6 +28,7 @@ type IssConfig struct {
 	Dyno                      string        `env:"DYNO"`
 	ValidTokenUser            string        `env:"VALID_TOKEN_USER"`
 	TokenUserSamplePct        int           `env:"TOKEN_USER_SAMPLE_PCT,default=0"`
+	MetadataId                string        `env:"METADATA_ID"`
 	TlsConfig                 *tls.Config
 	MetricsRegistry           metrics.Registry
 }
