@@ -32,17 +32,17 @@ func TestFix(t *testing.T) {
 		[]byte("118 <13>1 2013-06-07T13:17:49.468822+00:00 host heroku web.7 - [origin ip=\"1.2.3.4\"][60607e20-f12d-483e-aa89-ffaf954e7527]"),
 	}
 	for x, in := range input {
-		fixed, _ := fix(simpleHttpRequest(), bytes.NewReader(in), "1.2.3.4", "")
+		fixed, _ := fix(simpleHttpRequest(), bytes.NewReader(in), "1.2.3.4", "", "")
 		assert.Equal(string(fixed), string(output[x]))
 	}
 }
 
 func TestFixWithQueryParameters(t *testing.T) {
 	assert := assert.New(t)
-	var output = []byte("131 <13>1 2013-06-07T13:17:49.468822+00:00 host heroku web.7 - [origin ip=\"1.2.3.4\"][metadata index=\"i\" source=\"s\" sourcetype=\"st\"] hi\n134 <13>1 2013-06-07T13:17:49.468822+00:00 host heroku web.7 - [origin ip=\"1.2.3.4\"][metadata index=\"i\" source=\"s\" sourcetype=\"st\"] hello\n")
+	var output = []byte("135 <13>1 2013-06-07T13:17:49.468822+00:00 host heroku web.7 - [origin ip=\"1.2.3.4\"][metadata@123 index=\"i\" source=\"s\" sourcetype=\"st\"] hi\n138 <13>1 2013-06-07T13:17:49.468822+00:00 host heroku web.7 - [origin ip=\"1.2.3.4\"][metadata@123 index=\"i\" source=\"s\" sourcetype=\"st\"] hello\n")
 
 	in := input[0]
-	fixed, _ := fix(httpRequestWithParams(), bytes.NewReader(in), "1.2.3.4", "")
+	fixed, _ := fix(httpRequestWithParams(), bytes.NewReader(in), "1.2.3.4", "", "metadata@123")
 
 	assert.Equal(string(fixed), string(output), "They should be equal")
 }
@@ -60,7 +60,7 @@ func TestFixWithLogplexDrainToken(t *testing.T) {
 	}
 
 	for x, in := range input {
-		fixed, _ := fix(simpleHttpRequest(), bytes.NewReader(in), "1.2.3.4", testToken)
+		fixed, _ := fix(simpleHttpRequest(), bytes.NewReader(in), "1.2.3.4", testToken, "")
 
 		assert.Equal(string(fixed), string(output[x]))
 	}
@@ -71,7 +71,7 @@ func BenchmarkFixNoSD(b *testing.B) {
 	b.SetBytes(int64(len(input)))
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		fix(simpleHttpRequest(), bytes.NewReader(input), "1.2.3.4", "")
+		fix(simpleHttpRequest(), bytes.NewReader(input), "1.2.3.4", "", "")
 	}
 }
 
@@ -80,7 +80,7 @@ func BenchmarkFixSD(b *testing.B) {
 	b.SetBytes(int64(len(input)))
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		fix(simpleHttpRequest(), bytes.NewReader(input), "1.2.3.4", "")
+		fix(simpleHttpRequest(), bytes.NewReader(input), "1.2.3.4", "", "")
 	}
 }
 

@@ -20,7 +20,7 @@ var nilVal = []byte(`- `)
 var queryParams = []string{"index", "source", "sourcetype"}
 
 // Fix function to convert post data to length prefixed syslog frames
-func fix(req *http.Request, r io.Reader, remoteAddr string, logplexDrainToken string) ([]byte, error) {
+func fix(req *http.Request, r io.Reader, remoteAddr string, logplexDrainToken string, metadataId string) ([]byte, error) {
 	var messageWriter bytes.Buffer
 	var messageLenWriter bytes.Buffer
 
@@ -49,23 +49,26 @@ func fix(req *http.Request, r io.Reader, remoteAddr string, logplexDrainToken st
 		messageWriter.WriteString("\"]")
 
 		// Add metadata from query parameters
-		foundMetadata := false
-		for _, k := range queryParams {
-			v := req.FormValue(k)
-			if v != "" {
-				if !foundMetadata {
-					messageWriter.WriteString("[metadata")
-					foundMetadata = true
+		if metadataId != "" {
+			foundMetadata := false
+			for _, k := range queryParams {
+				v := req.FormValue(k)
+				if v != "" {
+					if !foundMetadata {
+						messageWriter.WriteString("[")
+						messageWriter.WriteString(metadataId)
+						foundMetadata = true
+					}
+					messageWriter.WriteString(" ")
+					messageWriter.WriteString(k)
+					messageWriter.WriteString("=\"")
+					messageWriter.WriteString(v)
+					messageWriter.WriteString("\"")
 				}
-				messageWriter.WriteString(" ")
-				messageWriter.WriteString(k)
-				messageWriter.WriteString("=\"")
-				messageWriter.WriteString(v)
-				messageWriter.WriteString("\"")
 			}
-		}
-		if foundMetadata {
-			messageWriter.WriteString("]")
+			if foundMetadata {
+				messageWriter.WriteString("]")
+			}
 		}
 
 		b := lp.Bytes()
