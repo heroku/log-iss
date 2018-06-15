@@ -19,13 +19,51 @@ const (
 var nilVal = []byte(`- `)
 var queryParams = []string{"index", "source", "sourcetype"}
 
+// Get metadata from the http request.
+// Returns an empty byte array if there isn't any.
+func getMetadata(req *http.Request, metadataId string) ([]byte, bool) {
+	var metadataWriter bytes.Buffer
+	var foundMetadata bool
+	// Calculate metadata query parameters
+	if metadataId != "" {
+		for _, k := range queryParams {
+			v := req.FormValue(k)
+			if v != "" {
+				if !foundMetadata {
+					metadataWriter.WriteString("[")
+					metadataWriter.WriteString(metadataId)
+					foundMetadata = true
+				}
+				metadataWriter.WriteString(" ")
+				metadataWriter.WriteString(k)
+				metadataWriter.WriteString("=\"")
+				metadataWriter.WriteString(v)
+				metadataWriter.WriteString("\"")
+			}
+		}
+		if foundMetadata {
+			metadataWriter.WriteString("]")
+		}
+	}
+	return metadataWriter.Bytes(), foundMetadata
+}
+
 // Fix function to convert post data to length prefixed syslog frames
-func fix(req *http.Request, r io.Reader, remoteAddr string, logplexDrainToken string, metadataId string) ([]byte, error) {
+// Returns:
+// * boolean indicating whether metadata was present in the query parameters.
+// * integer representing the number of logplex frames parsed from the HTTP request.
+// * byte array of syslog data.
+// * error if something went wrong.
+func fix(req *http.Request, r io.Reader, remoteAddr string, logplexDrainToken string, metadataId string) (bool, int64, []byte, error) {
 	var messageWriter bytes.Buffer
 	var messageLenWriter bytes.Buffer
 
+	metadataBytes, hasMetadata := getMetadata(req, metadataId)
+
 	lp := lpx.NewReader(bufio.NewReader(r))
+	numLogs := int64(0)
 	for lp.Next() {
+		numLogs++
 		header := lp.Header()
 
 		// LEN SP PRI VERSION SP TIMESTAMP SP HOSTNAME SP APP-NAME SP PROCID SP MSGID SP STRUCTURED-DATA MSG
@@ -48,27 +86,9 @@ func fix(req *http.Request, r io.Reader, remoteAddr string, logplexDrainToken st
 		messageWriter.WriteString(remoteAddr)
 		messageWriter.WriteString("\"]")
 
-		// Add metadata from query parameters
-		if metadataId != "" {
-			foundMetadata := false
-			for _, k := range queryParams {
-				v := req.FormValue(k)
-				if v != "" {
-					if !foundMetadata {
-						messageWriter.WriteString("[")
-						messageWriter.WriteString(metadataId)
-						foundMetadata = true
-					}
-					messageWriter.WriteString(" ")
-					messageWriter.WriteString(k)
-					messageWriter.WriteString("=\"")
-					messageWriter.WriteString(v)
-					messageWriter.WriteString("\"")
-				}
-			}
-			if foundMetadata {
-				messageWriter.WriteString("]")
-			}
+		// Write metadata
+		if hasMetadata {
+			messageWriter.Write(metadataBytes)
 		}
 
 		b := lp.Bytes()
@@ -86,5 +106,5 @@ func fix(req *http.Request, r io.Reader, remoteAddr string, logplexDrainToken st
 		messageWriter.WriteTo(&messageLenWriter)
 	}
 
-	return messageLenWriter.Bytes(), lp.Err()
+	return hasMetadata, numLogs, messageLenWriter.Bytes(), lp.Err()
 }
