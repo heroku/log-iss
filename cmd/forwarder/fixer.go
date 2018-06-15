@@ -21,11 +21,11 @@ var queryParams = []string{"index", "source", "sourcetype"}
 
 // Get metadata from the http request.
 // Returns an empty byte array if there isn't any.
-func getMetadata(req *http.Request, metadataId string) (res []byte) {
+func getMetadata(req *http.Request, metadataId string) ([]byte, bool) {
 	var metadataWriter bytes.Buffer
+	var foundMetadata bool
 	// Calculate metadata query parameters
 	if metadataId != "" {
-		foundMetadata := false
 		for _, k := range queryParams {
 			v := req.FormValue(k)
 			if v != "" {
@@ -45,7 +45,7 @@ func getMetadata(req *http.Request, metadataId string) (res []byte) {
 			metadataWriter.WriteString("]")
 		}
 	}
-	return metadataWriter.Bytes()
+	return metadataWriter.Bytes(), foundMetadata
 }
 
 // Fix function to convert post data to length prefixed syslog frames
@@ -58,8 +58,7 @@ func fix(req *http.Request, r io.Reader, remoteAddr string, logplexDrainToken st
 	var messageWriter bytes.Buffer
 	var messageLenWriter bytes.Buffer
 
-	metadataBytes := getMetadata(req, metadataId)
-	hasMetadata := len(metadataBytes) > 0
+	metadataBytes, hasMetadata := getMetadata(req, metadataId)
 
 	lp := lpx.NewReader(bufio.NewReader(r))
 	numLogs := int64(0)

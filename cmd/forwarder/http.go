@@ -227,8 +227,8 @@ func (s *httpServer) process(req *http.Request, r io.Reader, remoteAddr string, 
 	payload := NewPayload(remoteAddr, requestID, fixedBody)
 	if err := s.deliverer.Deliver(payload); err != nil {
 		return errors.New("Problem delivering body: " + err.Error()), http.StatusGatewayTimeout
-	} else {
 	}
+
 	s.pLogsSent.Inc(numLogs)
 	if hasMetadata {
 		s.pMetadataLogsSent.Inc(numLogs)
