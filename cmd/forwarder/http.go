@@ -35,38 +35,46 @@ func NewPayload(sa string, ri string, b []byte) payload {
 	}
 }
 
-type FixerFunc func(*http.Request, io.Reader, string, string, string) ([]byte, error)
+type FixerFunc func(*http.Request, io.Reader, string, string, string) (bool, int64, []byte, error)
 
 type httpServer struct {
-	Config         IssConfig
-	FixerFunc      FixerFunc
-	shutdownCh     shutdownCh
-	deliverer      deliverer
-	isShuttingDown bool
-	auth           authenticater.Authenticater
-	posts          metrics.Timer   // tracks metrics about posts
-	healthChecks   metrics.Timer   // tracks metrics about health checks
-	pErrors        metrics.Counter // tracks the count of post errors
-	pSuccesses     metrics.Counter // tracks the number of post successes
-	pAuthErrors    metrics.Counter // tracks the count of auth errors
-	pAuthSuccesses metrics.Counter // tracks the number of auth successes
+	Config                IssConfig
+	FixerFunc             FixerFunc
+	shutdownCh            shutdownCh
+	deliverer             deliverer
+	isShuttingDown        bool
+	auth                  authenticater.Authenticater
+	posts                 metrics.Timer   // tracks metrics about posts
+	healthChecks          metrics.Timer   // tracks metrics about health checks
+	pErrors               metrics.Counter // tracks the count of post errors
+	pSuccesses            metrics.Counter // tracks the number of post successes
+	pAuthErrors           metrics.Counter // tracks the count of auth errors
+	pAuthSuccesses        metrics.Counter // tracks the number of auth successes
+	pMetadataLogsReceived metrics.Counter // tracks the number of logs that have metadata that have been received
+	pLogsReceived         metrics.Counter // tracks the number of logs that have been received
+	pMetadataLogsSent     metrics.Counter // tracks the number of logs that have metadata that have been received
+	pLogsSent             metrics.Counter // tracks the number of logs that have been received
 	sync.WaitGroup
 }
 
 func newHTTPServer(config IssConfig, auth authenticater.Authenticater, fixerFunc FixerFunc, deliverer deliverer) *httpServer {
 	return &httpServer{
-		auth:           auth,
-		Config:         config,
-		FixerFunc:      fixerFunc,
-		deliverer:      deliverer,
-		shutdownCh:     make(shutdownCh),
-		posts:          metrics.GetOrRegisterTimer("log-iss.http.logs", config.MetricsRegistry),
-		healthChecks:   metrics.GetOrRegisterTimer("log-iss.http.healthchecks", config.MetricsRegistry),
-		pErrors:        metrics.GetOrRegisterCounter("log-iss.http.logs.errors", config.MetricsRegistry),
-		pSuccesses:     metrics.GetOrRegisterCounter("log-iss.http.logs.successes", config.MetricsRegistry),
-		pAuthErrors:    metrics.GetOrRegisterCounter("log-iss.auth.errors", config.MetricsRegistry),
-		pAuthSuccesses: metrics.GetOrRegisterCounter("log-iss.auth.successes", config.MetricsRegistry),
-		isShuttingDown: false,
+		auth:                  auth,
+		Config:                config,
+		FixerFunc:             fixerFunc,
+		deliverer:             deliverer,
+		shutdownCh:            make(shutdownCh),
+		posts:                 metrics.GetOrRegisterTimer("log-iss.http.logs", config.MetricsRegistry),
+		healthChecks:          metrics.GetOrRegisterTimer("log-iss.http.healthchecks", config.MetricsRegistry),
+		pErrors:               metrics.GetOrRegisterCounter("log-iss.http.logs.errors", config.MetricsRegistry),
+		pSuccesses:            metrics.GetOrRegisterCounter("log-iss.http.logs.successes", config.MetricsRegistry),
+		pAuthErrors:           metrics.GetOrRegisterCounter("log-iss.auth.errors", config.MetricsRegistry),
+		pAuthSuccesses:        metrics.GetOrRegisterCounter("log-iss.auth.successes", config.MetricsRegistry),
+		pMetadataLogsReceived: metrics.GetOrRegisterCounter("log-iss.metadata_logs.received", config.MetricsRegistry),
+		pLogsReceived:         metrics.GetOrRegisterCounter("log-iss.logs.received", config.MetricsRegistry),
+		pMetadataLogsSent:     metrics.GetOrRegisterCounter("log-iss.metadata_logs.sent", config.MetricsRegistry),
+		pLogsSent:             metrics.GetOrRegisterCounter("log-iss.logs.sent", config.MetricsRegistry),
+		isShuttingDown:        false,
 	}
 }
 
@@ -206,15 +214,24 @@ func (s *httpServer) process(req *http.Request, r io.Reader, remoteAddr string, 
 	s.Add(1)
 	defer s.Done()
 
-	fixedBody, err := s.FixerFunc(req, r, remoteAddr, logplexDrainToken, metadataId)
+	hasMetadata, numLogs, fixedBody, err := s.FixerFunc(req, r, remoteAddr, logplexDrainToken, metadataId)
 	if err != nil {
 		return errors.New("Problem fixing body: " + err.Error()), http.StatusBadRequest
 	}
 
-	payload := NewPayload(remoteAddr, requestID, fixedBody)
+	s.pLogsReceived.Inc(numLogs)
+	if hasMetadata {
+		s.pMetadataLogsReceived.Inc(numLogs)
+	}
 
+	payload := NewPayload(remoteAddr, requestID, fixedBody)
 	if err := s.deliverer.Deliver(payload); err != nil {
 		return errors.New("Problem delivering body: " + err.Error()), http.StatusGatewayTimeout
+	} else {
+	}
+	s.pLogsSent.Inc(numLogs)
+	if hasMetadata {
+		s.pMetadataLogsSent.Inc(numLogs)
 	}
 
 	return nil, 200
