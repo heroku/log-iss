@@ -11,6 +11,7 @@ default:
 	# --------
 	# build: builds docker iamge
 	# push:  builds and pushes docker image to ecr
+	# test:  return 0
 
 build: update-deps
 	docker build -t $(IMAGE):$(VERSION) etc/docker
@@ -22,3 +23,6 @@ push: build
 update-deps:
 	docker pull golang:$(GOLANG_VERSION)
 	docker pull ubuntu:$(UBUNTU_VERSION)
+
+test:
+	@true
