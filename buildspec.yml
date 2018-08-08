@@ -1,0 +1,13 @@
+version: 0.2
+phases:
+  pre_build:
+    commands:
+      - echo Logging in to Amazon ECR...
+      - $(aws ecr get-login --no-include-email --region $AWS_DEFAULT_REGION)
+  build:
+    commands:
+      - echo "Installing jq, git..."
+      - apt-get update && apt-get install -y jq git-core
+      - cd etc/docker
+      - echo Building the log-iss Docker image...
+      - make push

@@ -1,3 +1,5 @@
 .terraform
 *.tfstate*
 .*.conf
+bin/forwarder
+/forwarder
