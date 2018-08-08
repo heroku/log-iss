@@ -1,19 +1,22 @@
-GO_LINKER_SYMBOL := "main.version"
+.PHONY = build push
 
-all: test
+UBUNTU_VERSION := 18.04
+GOLANG_VERSION := 1.10
+VERSION=$(shell git log --pretty=format:'%h' -n 1)
+IMAGE = heroku/log-iss
 
-test:
-	govendor test -v +local
+bin/forwarder:
+	go build -o bin/forwarder ./...
 
-bench:
-	govendor test -v -bench=. +local
+clean:
+	rm -f bin/forwarder
 
-install:
-	$(eval GO_LINKER_VALUE := $(shell git describe --tags --always | sed s/^v//))
-	go install -a -ldflags "-X ${GO_LINKER_SYMBOL}=${GO_LINKER_VALUE}" ./...
+build: update-deps
+	docker build -t $(IMAGE):$(VERSION) .
+	docker tag $(IMAGE):$(VERSION) $(IMAGE):latest
 
-update-deps: govendor
-	govendor fetch +out
+update-deps:
+	docker pull golang:$(GOLANG_VERSION)
+	docker pull ubuntu:$(UBUNTU_VERSION)
 
-govendor:
-	go get -u github.com/kardianos/govendor
+.PHONY: clean build push
