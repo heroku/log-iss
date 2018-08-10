@@ -1,19 +1,35 @@
-GO_LINKER_SYMBOL := "main.version"
+UBUNTU_VERSION := 18.04
+GOLANG_VERSION := 1.10
+VERSION=$(shell git log --pretty=format:'%h' -n 1)
+IMAGE = heroku/log-iss
+CURRENT_BRANCH := $(shell git branch | grep "^*" | awk '{ print $$NF }')
 
-all: test
+bin/forwarder:
+	go build -o bin/forwarder ./...
+
+clean:
+	rm -f bin/forwarder
+
+docker/build: update-deps
+	docker build -t $(IMAGE):$(VERSION) .
+	docker tag $(IMAGE):$(VERSION) $(IMAGE):latest
+
+push: docker/build
+	bash bin/ecr.sh push $(IMAGE) $(VERSION)
+
+update-deps:
+	docker pull golang:$(GOLANG_VERSION)
+	docker pull ubuntu:$(UBUNTU_VERSION)
 
 test:
-	govendor test -v +local
+	true
 
-bench:
-	govendor test -v -bench=. +local
+build:
+	# Build master branch
+	aws codebuild start-build --project-name heroku-log-iss
 
-install:
-	$(eval GO_LINKER_VALUE := $(shell git describe --tags --always | sed s/^v//))
-	go install -a -ldflags "-X ${GO_LINKER_SYMBOL}=${GO_LINKER_VALUE}" ./...
+build/branch:
+	# Build $(CURRENT_BRANCH) branch
+	aws codebuild start-build --project-name heroku-log-iss --source-version $(CURRENT_BRANCH)
 
-update-deps: govendor
-	govendor fetch +out
-
-govendor:
-	go get -u github.com/kardianos/govendor
+.PHONY: clean build push update-deps test docker/build
