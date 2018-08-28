@@ -11,7 +11,6 @@ import (
 	"github.com/joeshaw/envdecode"
 
 	metrics "github.com/rcrowley/go-metrics"
-	log "github.com/sirupsen/logrus"
 )
 
 type IssConfig struct {
@@ -65,13 +64,7 @@ func NewIssConfig() (IssConfig, error) {
 	}
 
 	config.LibratoSource = strings.Join(sp, ".")
-
-	if config.UseLibrato() {
-		config.MetricsRegistry = metrics.NewRegistry()
-	} else {
-		log.WithField("at", "config").Info("librato not configured, disabling")
-		config.MetricsRegistry = NewNoopRegistry()
-	}
+	config.MetricsRegistry = metrics.NewRegistry()
 
 	return config, nil
 }
