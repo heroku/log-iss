@@ -29,6 +29,7 @@ type IssConfig struct {
 	ValidTokenUser            string        `env:"VALID_TOKEN_USER"`
 	TokenUserSamplePct        int           `env:"TOKEN_USER_SAMPLE_PCT,default=0"`
 	MetadataId                string        `env:"METADATA_ID"`
+	Debug                     bool          `env:"DEBUG"`
 	TlsConfig                 *tls.Config
 	MetricsRegistry           metrics.Registry
 }
@@ -63,7 +64,6 @@ func NewIssConfig() (IssConfig, error) {
 	}
 
 	config.LibratoSource = strings.Join(sp, ".")
-
 	config.MetricsRegistry = metrics.NewRegistry()
 
 	return config, nil
@@ -78,4 +78,8 @@ func (c IssConfig) LogAuthUser(user string, pct int) bool {
 	return c.ValidTokenUser != "" &&
 		user != c.ValidTokenUser &&
 		pct <= c.TokenUserSamplePct
+}
+
+func (c IssConfig) UseLibrato() bool {
+	return c.LibratoOwner != "" && c.LibratoToken != ""
 }
