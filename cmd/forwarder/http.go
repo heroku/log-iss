@@ -164,14 +164,14 @@ func (s *httpServer) Run() error {
 			um, ok = s.pAuthUsers[authUser]
 			if !ok {
 				if s.Config.Debug {
-					fmt.Printf("DEBUG: create: log-iss.auth.%s\n", authUser)
+					fmt.Printf("DEBUG: create: log-iss.auth.user.%s\n", authUser)
 				}
-				um = metrics.GetOrRegisterCounter(fmt.Sprintf("log-iss.auth.%s", authUser), s.Config.MetricsRegistry)
+				um = metrics.GetOrRegisterCounter(fmt.Sprintf("log-iss.auth.user.%s", authUser), s.Config.MetricsRegistry)
 				s.pAuthUsers[authUser] = um
 			}
 
 			if s.Config.Debug {
-				fmt.Printf("DEBUG: log-iss.auth.%s++\n", authUser)
+				fmt.Printf("DEBUG: log-iss.auth.user.%s++\n", authUser)
 			}
 			um.Inc(1)
 		}
