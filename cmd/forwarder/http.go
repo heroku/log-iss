@@ -167,6 +167,7 @@ func (s *httpServer) Run() error {
 					fmt.Printf("DEBUG: create: log-iss.auth.%s\n", authUser)
 				}
 				um = metrics.GetOrRegisterCounter(fmt.Sprintf("log-iss.auth.%s", authUser), s.Config.MetricsRegistry)
+				s.pAuthUsers[authUser] = um
 			}
 
 			if s.Config.Debug {
