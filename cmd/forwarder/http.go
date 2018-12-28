@@ -210,6 +210,14 @@ func (s *httpServer) process(req *http.Request, r io.Reader, remoteAddr string, 
 		s.pMetadataLogsReceived.Inc(numLogs)
 	}
 
+	// Scrub tokens from fixedBody
+	for user, token := range s.Config.TokenMap() {
+		t := []byte(token)
+		if bytes.Contains(fixedBody, t) {
+			fixedBody = bytes.Replace(fixedBody, t, []byte(user), -1)
+		}
+	}
+
 	payload := NewPayload(remoteAddr, requestID, fixedBody)
 	if err := s.deliverer.Deliver(payload); err != nil {
 		return errors.New("Problem delivering body: " + err.Error()), http.StatusGatewayTimeout
