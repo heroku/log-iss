@@ -30,6 +30,7 @@ type IssConfig struct {
 	Debug                     bool          `env:"LOG_ISS_DEBUG"`
 	TlsConfig                 *tls.Config
 	MetricsRegistry           metrics.Registry
+	tokenMap                  map[string]string
 }
 
 func NewIssConfig() (IssConfig, error) {
@@ -66,4 +67,18 @@ func NewIssConfig() (IssConfig, error) {
 	config.MetricsRegistry = metrics.NewRegistry()
 
 	return config, nil
+}
+
+func (c *IssConfig) TokenMap() map[string]string {
+	if c.tokenMap == nil {
+		pairs := strings.Split(c.Tokens, "|")
+		c.tokenMap = make(map[string]string)
+
+		for _, pair := range pairs {
+			unameToken := strings.Split(pair, ":")
+			c.tokenMap[unameToken[0]] = unameToken[1]
+		}
+	}
+
+	return c.tokenMap
 }
