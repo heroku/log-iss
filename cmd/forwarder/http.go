@@ -1,19 +1,15 @@
 package main
 
 import (
-	"bufio"
-	"bytes"
 	"compress/gzip"
 	"errors"
+	"fmt"
 	"io"
-	"io/ioutil"
-	"math/rand"
 	"net/http"
 	"strings"
 	"sync"
 	"time"
 
-	"github.com/bmizerany/lpx"
 	"github.com/heroku/authenticater"
 	metrics "github.com/rcrowley/go-metrics"
 	log "github.com/sirupsen/logrus"
@@ -54,6 +50,7 @@ type httpServer struct {
 	pLogsReceived         metrics.Counter // tracks the number of logs that have been received
 	pMetadataLogsSent     metrics.Counter // tracks the number of logs that have metadata that have been received
 	pLogsSent             metrics.Counter // tracks the number of logs that have been received
+	pAuthUsers            map[string]metrics.Counter
 	sync.WaitGroup
 }
 
@@ -74,6 +71,7 @@ func newHTTPServer(config IssConfig, auth authenticater.Authenticater, fixerFunc
 		pLogsReceived:         metrics.GetOrRegisterCounter("log-iss.logs.received", config.MetricsRegistry),
 		pMetadataLogsSent:     metrics.GetOrRegisterCounter("log-iss.metadata_logs.sent", config.MetricsRegistry),
 		pLogsSent:             metrics.GetOrRegisterCounter("log-iss.logs.sent", config.MetricsRegistry),
+		pAuthUsers:            make(map[string]metrics.Counter),
 		isShuttingDown:        false,
 	}
 }
@@ -160,12 +158,22 @@ func (s *httpServer) Run() error {
 			defer body.Close()
 		}
 
-		var buf bytes.Buffer
 		// This should only be reached if authentication information is valid.
-		authUser, _, ok := r.BasicAuth()
-		if ok && s.Config.LogAuthUser(authUser, rand.Intn(99)+1) {
-			// tee body to buffer
-			body = ioutil.NopCloser(io.TeeReader(body, &buf))
+		if authUser, _, ok := r.BasicAuth(); ok {
+			var um metrics.Counter
+			um, ok = s.pAuthUsers[authUser]
+			if !ok {
+				if s.Config.Debug {
+					fmt.Printf("DEBUG: create: log-iss.auth.user.%s\n", authUser)
+				}
+				um = metrics.GetOrRegisterCounter(fmt.Sprintf("log-iss.auth.user.%s", authUser), s.Config.MetricsRegistry)
+				s.pAuthUsers[authUser] = um
+			}
+
+			if s.Config.Debug {
+				fmt.Printf("DEBUG: log-iss.auth.user.%s++\n", authUser)
+			}
+			um.Inc(1)
 		}
 
 		if err, status := s.process(r, body, remoteAddr, requestID, logplexDrainToken, s.Config.MetadataId); err != nil {
@@ -174,28 +182,6 @@ func (s *httpServer) Run() error {
 				log.Fields{"remote_addr": remoteAddr, "requestId": requestID, "logdrain_token": logplexDrainToken},
 			)
 			return
-		}
-
-		if buf.Len() > 0 {
-			lp := lpx.NewReader(bufio.NewReader(bytes.NewReader(buf.Bytes())))
-
-			// Don't traverse, but get the first entry.
-			if lp.Next() {
-				h := lp.Header()
-
-				hostname := string(h.Hostname)
-				if hostname == "host" {
-					hostname = logplexDrainToken
-				}
-
-				log.WithFields(log.Fields{
-					"log_iss_user": authUser,
-					"hostname":     hostname,
-					"procid":       string(h.Procid),
-					"request_id":   requestID,
-					"remote_addr":  remoteAddr,
-				}).Info()
-			}
 		}
 
 		s.pSuccesses.Inc(1)
