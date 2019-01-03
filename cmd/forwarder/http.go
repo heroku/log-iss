@@ -215,7 +215,7 @@ func (s *httpServer) process(req *http.Request, r io.Reader, remoteAddr string, 
 	for user, token := range s.Config.TokenMap() {
 		t := []byte(token)
 		if bytes.Contains(fixedBody, t) {
-			fixedBody = bytes.Replace(fixedBody, t, []byte(user), -1)
+			fixedBody = bytes.Replace(fixedBody, t, []byte("token:"+user), -1)
 		}
 	}
 
