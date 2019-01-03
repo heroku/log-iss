@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"compress/gzip"
 	"errors"
 	"fmt"
@@ -209,14 +208,6 @@ func (s *httpServer) process(req *http.Request, r io.Reader, remoteAddr string, 
 	s.pLogsReceived.Inc(numLogs)
 	if hasMetadata {
 		s.pMetadataLogsReceived.Inc(numLogs)
-	}
-
-	// Scrub tokens from fixedBody
-	for user, token := range s.Config.TokenMap() {
-		t := []byte(token)
-		if bytes.Contains(fixedBody, t) {
-			fixedBody = bytes.Replace(fixedBody, t, []byte("token:"+user), -1)
-		}
 	}
 
 	payload := NewPayload(remoteAddr, requestID, fixedBody)
