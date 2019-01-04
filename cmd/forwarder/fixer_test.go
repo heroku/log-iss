@@ -2,9 +2,12 @@ package main
 
 import (
 	"bytes"
-	"github.com/stretchr/testify/assert"
+	"fmt"
 	"net/http"
+	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 type InputOutput struct {
@@ -113,12 +116,49 @@ func BenchmarkFixSD(b *testing.B) {
 	}
 }
 
-func BenchmarkScrubTokens(b *testing.B) {
-	input := []byte("64 <13>1 2013-06-07T13:17:49.468822+00:00 host heroku web.7 - - hi\n67 <13>1 2013-06-07T13:17:49.468822+00:00 host heroku web.7 - - hello tokenForFoo\n")
+// This wouldn't ever happen, but included to illustrate the before and after.
+func BenchmarkScrub0Tokens(b *testing.B) {
+	input := []byte("64 <13>1 2013-06-07T13:17:49.468822+00:00 host heroku web.7 - - hi\n67 <13>1 2013-06-07T13:17:49.468822+00:00 host heroku web.7 - - hello token9\n")
 	b.SetBytes(int64(len(input)))
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		fix(simpleHttpRequest(), bytes.NewReader(input), "1.2.3.4", "", "", cfg)
+		fix(simpleHttpRequest(), bytes.NewReader(input), "1.2.3.4", "", "", nil)
+	}
+}
+
+func BenchmarkScrub10Tokens(b *testing.B) {
+	var t []string
+	for i := 1; i <= 10; i++ {
+		t = append(t, fmt.Sprintf("user%d:token%d", i, i))
+	}
+
+	var c = &IssConfig{
+		Tokens: strings.Join(t, "|"),
+	}
+
+	input := []byte("64 <13>1 2013-06-07T13:17:49.468822+00:00 host heroku web.7 - - hi\n67 <13>1 2013-06-07T13:17:49.468822+00:00 host heroku web.7 - - hello token9\n")
+	b.SetBytes(int64(len(input)))
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		fix(simpleHttpRequest(), bytes.NewReader(input), "1.2.3.4", "", "", c)
+	}
+}
+
+func BenchmarkScrub100Tokens(b *testing.B) {
+	var t []string
+	for i := 1; i <= 100; i++ {
+		t = append(t, fmt.Sprintf("user%d:token%d", i, i))
+	}
+
+	var c = &IssConfig{
+		Tokens: strings.Join(t, "|"),
+	}
+
+	input := []byte("64 <13>1 2013-06-07T13:17:49.468822+00:00 host heroku web.7 - - hi\n67 <13>1 2013-06-07T13:17:49.468822+00:00 host heroku web.7 - - hello token9\n")
+	b.SetBytes(int64(len(input)))
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		fix(simpleHttpRequest(), bytes.NewReader(input), "1.2.3.4", "", "", c)
 	}
 }
 
