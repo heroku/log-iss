@@ -54,11 +54,24 @@ func getMetadata(req *http.Request, metadataId string) ([]byte, bool) {
 // * integer representing the number of logplex frames parsed from the HTTP request.
 // * byte array of syslog data.
 // * error if something went wrong.
-func fix(req *http.Request, r io.Reader, remoteAddr string, logplexDrainToken string, metadataId string) (bool, int64, []byte, error) {
+func fix(req *http.Request, r io.Reader, remoteAddr string, logplexDrainToken string, metadataId string, config *IssConfig) (bool, int64, []byte, error) {
 	var messageWriter bytes.Buffer
 	var messageLenWriter bytes.Buffer
 
 	metadataBytes, hasMetadata := getMetadata(req, metadataId)
+
+	scrubTokens := func(b []byte) []byte {
+		if config != nil {
+			for user, token := range config.TokenMap() {
+				t := []byte(token)
+				if bytes.Contains(b, t) {
+					b = bytes.Replace(b, t, []byte("token:"+user), -1)
+				}
+			}
+		}
+
+		return b
+	}
 
 	lp := lpx.NewReader(bufio.NewReader(r))
 	numLogs := int64(0)
@@ -88,10 +101,10 @@ func fix(req *http.Request, r io.Reader, remoteAddr string, logplexDrainToken st
 
 		// Write metadata
 		if hasMetadata {
-			messageWriter.Write(metadataBytes)
+			messageWriter.Write(scrubTokens(metadataBytes))
 		}
 
-		b := lp.Bytes()
+		b := scrubTokens(lp.Bytes())
 		if len(b) >= 2 && bytes.Equal(b[0:2], nilVal) {
 			messageWriter.Write(b[1:])
 		} else if len(b) > 0 {

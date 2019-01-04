@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"compress/gzip"
 	"errors"
 	"fmt"
@@ -32,7 +31,7 @@ func NewPayload(sa string, ri string, b []byte) payload {
 	}
 }
 
-type FixerFunc func(*http.Request, io.Reader, string, string, string) (bool, int64, []byte, error)
+type FixerFunc func(*http.Request, io.Reader, string, string, string, *IssConfig) (bool, int64, []byte, error)
 
 type httpServer struct {
 	Config                IssConfig
@@ -201,7 +200,7 @@ func (s *httpServer) process(req *http.Request, r io.Reader, remoteAddr string, 
 	s.Add(1)
 	defer s.Done()
 
-	hasMetadata, numLogs, fixedBody, err := s.FixerFunc(req, r, remoteAddr, logplexDrainToken, metadataId)
+	hasMetadata, numLogs, fixedBody, err := s.FixerFunc(req, r, remoteAddr, logplexDrainToken, metadataId, &s.Config)
 	if err != nil {
 		return errors.New("Problem fixing body: " + err.Error()), http.StatusBadRequest
 	}
@@ -209,14 +208,6 @@ func (s *httpServer) process(req *http.Request, r io.Reader, remoteAddr string, 
 	s.pLogsReceived.Inc(numLogs)
 	if hasMetadata {
 		s.pMetadataLogsReceived.Inc(numLogs)
-	}
-
-	// Scrub tokens from fixedBody
-	for user, token := range s.Config.TokenMap() {
-		t := []byte(token)
-		if bytes.Contains(fixedBody, t) {
-			fixedBody = bytes.Replace(fixedBody, t, []byte("token:"+user), -1)
-		}
 	}
 
 	payload := NewPayload(remoteAddr, requestID, fixedBody)
