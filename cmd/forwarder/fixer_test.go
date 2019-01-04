@@ -76,7 +76,7 @@ func TestFixWithLogplexDrainToken(t *testing.T) {
 	}
 }
 
-func TestScrubeTokens(t *testing.T) {
+func TestScrubTokens(t *testing.T) {
 	assert := assert.New(t)
 	var (
 		input = [][]byte{
