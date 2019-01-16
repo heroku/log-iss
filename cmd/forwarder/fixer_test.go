@@ -2,9 +2,12 @@ package main
 
 import (
 	"bytes"
-	"github.com/stretchr/testify/assert"
+	"fmt"
 	"net/http"
+	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 type InputOutput struct {
@@ -20,6 +23,10 @@ var (
 		[]byte("58 <13>1 2013-06-07T13:17:49.468822+00:00 host heroku web.7 - "),
 		[]byte("97 <13>1 2013-06-07T13:17:49.468822+00:00 host heroku web.7 - [60607e20-f12d-483e-aa89-ffaf954e7527]"),
 	}
+
+	cfg = &IssConfig{
+		Tokens: "foo:tokenForFoo|bar:tokenForBar",
+	}
 )
 
 func TestFix(t *testing.T) {
@@ -32,7 +39,7 @@ func TestFix(t *testing.T) {
 		[]byte("118 <13>1 2013-06-07T13:17:49.468822+00:00 host heroku web.7 - [origin ip=\"1.2.3.4\"][60607e20-f12d-483e-aa89-ffaf954e7527]"),
 	}
 	for x, in := range input {
-		hasMetadata, _, fixed, _ := fix(simpleHttpRequest(), bytes.NewReader(in), "1.2.3.4", "", "")
+		hasMetadata, _, fixed, _ := fix(simpleHttpRequest(), bytes.NewReader(in), "1.2.3.4", "", "", cfg)
 		assert.Equal(string(fixed), string(output[x]))
 		assert.False(hasMetadata)
 	}
@@ -43,7 +50,7 @@ func TestFixWithQueryParameters(t *testing.T) {
 	var output = []byte("135 <13>1 2013-06-07T13:17:49.468822+00:00 host heroku web.7 - [origin ip=\"1.2.3.4\"][metadata@123 index=\"i\" source=\"s\" sourcetype=\"st\"] hi\n138 <13>1 2013-06-07T13:17:49.468822+00:00 host heroku web.7 - [origin ip=\"1.2.3.4\"][metadata@123 index=\"i\" source=\"s\" sourcetype=\"st\"] hello\n")
 
 	in := input[0]
-	hasMetadata, numLogs, fixed, _ := fix(httpRequestWithParams(), bytes.NewReader(in), "1.2.3.4", "", "metadata@123")
+	hasMetadata, numLogs, fixed, _ := fix(httpRequestWithParams(), bytes.NewReader(in), "1.2.3.4", "", "metadata@123", cfg)
 
 	assert.Equal(string(fixed), string(output), "They should be equal")
 	assert.True(hasMetadata)
@@ -63,8 +70,30 @@ func TestFixWithLogplexDrainToken(t *testing.T) {
 	}
 
 	for x, in := range input {
-		hasMetadata, _, fixed, _ := fix(simpleHttpRequest(), bytes.NewReader(in), "1.2.3.4", testToken, "")
+		hasMetadata, _, fixed, _ := fix(simpleHttpRequest(), bytes.NewReader(in), "1.2.3.4", testToken, "", cfg)
 		assert.Equal(string(fixed), string(output[x]))
+		assert.False(hasMetadata)
+	}
+}
+
+func TestScrubTokens(t *testing.T) {
+	assert := assert.New(t)
+	var (
+		input = [][]byte{
+			[]byte("76 <13>1 2013-06-07T13:17:49.468822+00:00 host heroku web.7 - - hi tokenForFoo\n79 <13>1 2013-06-07T13:17:49.468822+00:00 host heroku web.7 - - hello tokenForBar\n"),
+			[]byte("114 <13>1 2013-06-07T13:17:49.468822+00:00 host heroku web.7 - [meta sequenceId=\"hello\"][foo bar=\"tokenForFoo\"] hello\n"),
+		}
+		output = [][]byte{
+			[]byte("94 <13>1 2013-06-07T13:17:49.468822+00:00 host heroku web.7 - [origin ip=\"1.2.3.4\"] hi token:foo\n97 <13>1 2013-06-07T13:17:49.468822+00:00 host heroku web.7 - [origin ip=\"1.2.3.4\"] hello token:bar\n"),
+			[]byte("133 <13>1 2013-06-07T13:17:49.468822+00:00 host heroku web.7 - [origin ip=\"1.2.3.4\"][meta sequenceId=\"hello\"][foo bar=\"token:foo\"] hello\n"),
+		}
+	)
+
+	for x, in := range input {
+		out := output[x]
+
+		hasMetadata, _, fixed, _ := fix(simpleHttpRequest(), bytes.NewReader(in), "1.2.3.4", "", "", cfg)
+		assert.Equal(string(fixed), string(out))
 		assert.False(hasMetadata)
 	}
 }
@@ -74,7 +103,7 @@ func BenchmarkFixNoSD(b *testing.B) {
 	b.SetBytes(int64(len(input)))
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		fix(simpleHttpRequest(), bytes.NewReader(input), "1.2.3.4", "", "")
+		fix(simpleHttpRequest(), bytes.NewReader(input), "1.2.3.4", "", "", cfg)
 	}
 }
 
@@ -83,7 +112,53 @@ func BenchmarkFixSD(b *testing.B) {
 	b.SetBytes(int64(len(input)))
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		fix(simpleHttpRequest(), bytes.NewReader(input), "1.2.3.4", "", "")
+		fix(simpleHttpRequest(), bytes.NewReader(input), "1.2.3.4", "", "", cfg)
+	}
+}
+
+// This wouldn't ever happen, but included to illustrate the before and after.
+func BenchmarkScrub0Tokens(b *testing.B) {
+	input := []byte("64 <13>1 2013-06-07T13:17:49.468822+00:00 host heroku web.7 - - hi\n67 <13>1 2013-06-07T13:17:49.468822+00:00 host heroku web.7 - - hello token9\n")
+	b.SetBytes(int64(len(input)))
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		fix(simpleHttpRequest(), bytes.NewReader(input), "1.2.3.4", "", "", nil)
+	}
+}
+
+func BenchmarkScrub10Tokens(b *testing.B) {
+	var t []string
+	for i := 1; i <= 10; i++ {
+		t = append(t, fmt.Sprintf("user%d:token%d", i, i))
+	}
+
+	var c = &IssConfig{
+		Tokens: strings.Join(t, "|"),
+	}
+
+	input := []byte("64 <13>1 2013-06-07T13:17:49.468822+00:00 host heroku web.7 - - hi\n67 <13>1 2013-06-07T13:17:49.468822+00:00 host heroku web.7 - - hello token9\n")
+	b.SetBytes(int64(len(input)))
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		fix(simpleHttpRequest(), bytes.NewReader(input), "1.2.3.4", "", "", c)
+	}
+}
+
+func BenchmarkScrub100Tokens(b *testing.B) {
+	var t []string
+	for i := 1; i <= 100; i++ {
+		t = append(t, fmt.Sprintf("user%d:token%d", i, i))
+	}
+
+	var c = &IssConfig{
+		Tokens: strings.Join(t, "|"),
+	}
+
+	input := []byte("64 <13>1 2013-06-07T13:17:49.468822+00:00 host heroku web.7 - - hi\n67 <13>1 2013-06-07T13:17:49.468822+00:00 host heroku web.7 - - hello token9\n")
+	b.SetBytes(int64(len(input)))
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		fix(simpleHttpRequest(), bytes.NewReader(input), "1.2.3.4", "", "", c)
 	}
 }
 
