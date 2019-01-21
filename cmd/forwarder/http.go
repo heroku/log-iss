@@ -31,7 +31,7 @@ func NewPayload(sa string, ri string, b []byte) payload {
 	}
 }
 
-type FixerFunc func(*http.Request, io.Reader, string, string, string, *IssConfig) (bool, int64, []byte, error)
+type FixerFunc func(*http.Request, io.Reader, string, string, string) (bool, int64, []byte, error)
 
 type httpServer struct {
 	Config                IssConfig
@@ -200,7 +200,7 @@ func (s *httpServer) process(req *http.Request, r io.Reader, remoteAddr string, 
 	s.Add(1)
 	defer s.Done()
 
-	hasMetadata, numLogs, fixedBody, err := s.FixerFunc(req, r, remoteAddr, logplexDrainToken, metadataId, &s.Config)
+	hasMetadata, numLogs, fixedBody, err := s.FixerFunc(req, r, remoteAddr, logplexDrainToken, metadataId)
 	if err != nil {
 		return errors.New("Problem fixing body: " + err.Error()), http.StatusBadRequest
 	}
