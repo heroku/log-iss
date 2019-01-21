@@ -21,18 +21,21 @@ func newAuth(config AuthConfig, registry metrics.Registry) (BasicAuth, error) {
 		return *result, err
 	}
 
-	pSuccesses := metrics.GetOrRegisterCounter("log-iss.auth_refresh.successes", registry)
+	pChanges := metrics.GetOrRegisterCounter("log-iss.auth_refresh.changes", registry)
 	pFailures := metrics.GetOrRegisterCounter("log-iss.auth_refresh.failures", registry)
+	pSuccesses := metrics.GetOrRegisterCounter("log-iss.auth_refresh.successes", registry)
 
 	ticker := time.NewTicker(config.RefreshInterval)
 	go func() {
-		var err error
 		sess := session.Must(session.NewSession())
 		client := secretsmanager.New(sess)
 		for _ = range ticker.C {
-			err = refreshAuth(result, client, config.SecretPrefix, config.Tokens)
+			changed, err := refreshAuth(result, client, config.SecretPrefix, config.Tokens)
 			if err == nil {
 				pSuccesses.Inc(1)
+				if changed {
+					pChanges.Inc(1)
+				}
 			} else {
 				pFailures.Inc(1)
 			}
@@ -42,16 +45,22 @@ func newAuth(config AuthConfig, registry metrics.Registry) (BasicAuth, error) {
 	return *result, err
 }
 
-func refreshAuth(ba *BasicAuth, client smi.SecretsManagerAPI, prefix string, config string) error {
+// Refresh auth credentials.
+// Return true if credentials changed, false otherwise.
+func refreshAuth(ba *BasicAuth, client smi.SecretsManagerAPI, prefix string, config string) (bool, error) {
 	// Start out using the strings from config
-	var sb strings.Builder
-	sb.WriteString(config)
+	prefixLength := len(prefix)
+	nba, err := NewBasicAuthFromString(config)
+	if err != nil {
+		return false, err
+	}
 
 	// Retrieve all secrets and construct a string in the format expected by BasicAuth
-	err := client.ListSecretsPages(nil,
+	err = client.ListSecretsPages(nil,
 		func(page *secretsmanager.ListSecretsOutput, lastPage bool) bool {
 			for _, sle := range page.SecretList {
 				if strings.HasPrefix(prefix, *(sle.Name)) {
+					user := (*sle.Name)[prefixLength:len(*sle.Name)]
 					gsvi := secretsmanager.GetSecretValueInput{
 						SecretId: sle.ARN,
 					}
@@ -59,22 +68,16 @@ func refreshAuth(ba *BasicAuth, client smi.SecretsManagerAPI, prefix string, con
 					if err != nil {
 						return true
 					}
-					sb.WriteString("|")
-					sb.WriteString(*gsvo.SecretString)
+					nba.creds[user] = []string{*gsvo.SecretString}
 				}
 			}
 			return page.NextToken == nil
 		})
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	// Swap the secrets if there are changes
-	nba, err := NewBasicAuthFromString(sb.String())
-	if err != nil {
-		return err
-	}
-
 	if !reflect.DeepEqual(ba.creds, nba.creds) {
 		ba.Lock()
 		defer ba.Unlock()
@@ -86,8 +89,9 @@ func refreshAuth(ba *BasicAuth, client smi.SecretsManagerAPI, prefix string, con
 		for k, v := range nba.creds {
 			ba.creds[k] = v
 		}
+		return true, nil
 	}
-	return nil
+	return false, nil
 }
 
 // BasicAuth handles normal user/password Basic Auth requests, multiple
