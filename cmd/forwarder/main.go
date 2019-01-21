@@ -40,7 +40,7 @@ func main() {
 		log.Fatalln(err)
 	}
 
-	auth, err := newAuth(authConfig)
+	auth, err := newAuth(authConfig, config.MetricsRegistry)
 	if err != nil {
 		log.Fatalln(err)
 	}

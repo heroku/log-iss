@@ -35,6 +35,7 @@ type AuthConfig struct {
 	AccesKey        string        `env:"SECRETS_AWS_ACCESS_KEY,required"`
 	SecretKey       string        `env:"SECRETS_AWS_SECRET_KEY,required"`
 	RefreshInterval time.Duration `env:"TOKEN_REFRESH_INTERVAL,default=1m,strict"`
+	SecretPrefix    string        `env:"SECRET_PREFIX,required"`
 	Tokens          string        `env:"TOKEN_MAP,required"`
 }
 

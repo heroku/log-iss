@@ -1,27 +1,153 @@
 package main
 
 import (
+	"fmt"
+	"net/http"
+	"reflect"
+	"strings"
+	"sync"
 	"time"
 
-	"github.com/heroku/authenticater"
+	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/secretsmanager"
+
+	smi "github.com/aws/aws-sdk-go/service/secretsmanager/secretsmanageriface"
+	metrics "github.com/rcrowley/go-metrics"
 )
 
-func newAuth(config AuthConfig) (*authenticater.BasicAuth, error) {
-	result, err := authenticater.NewBasicAuthFromString(config.Tokens)
+func newAuth(config AuthConfig, registry metrics.Registry) (BasicAuth, error) {
+	result, err := NewBasicAuthFromString(config.Tokens)
 	if err != nil {
-		return &result, err
+		return *result, err
 	}
+
+	pSuccesses := metrics.GetOrRegisterCounter("log-iss.auth_refresh.successes", registry)
+	pFailures := metrics.GetOrRegisterCounter("log-iss.auth_refresh.failures", registry)
 
 	ticker := time.NewTicker(config.RefreshInterval)
 	go func() {
+		var err error
+		sess := session.Must(session.NewSession())
+		client := secretsmanager.New(sess)
 		for _ = range ticker.C {
-			refreshAuth(&result, config)
+			err = refreshAuth(result, client, config.SecretPrefix, config.Tokens)
+			if err == nil {
+				pSuccesses.Inc(1)
+			} else {
+				pFailures.Inc(1)
+			}
 		}
 	}()
 
-	return &result, err
+	return *result, err
 }
 
-func refreshAuth(ba *authenticater.BasicAuth, config AuthConfig) error {
+func refreshAuth(ba *BasicAuth, client smi.SecretsManagerAPI, prefix string, config string) error {
+	// Start out using the strings from config
+	var sb strings.Builder
+	sb.WriteString(config)
+
+	// Retrieve all secrets and construct a string in the format expected by BasicAuth
+	err := client.ListSecretsPages(nil,
+		func(page *secretsmanager.ListSecretsOutput, lastPage bool) bool {
+			for _, sle := range page.SecretList {
+				if strings.HasPrefix(prefix, *(sle.Name)) {
+					gsvi := secretsmanager.GetSecretValueInput{
+						SecretId: sle.ARN,
+					}
+					gsvo, err := client.GetSecretValue(&gsvi)
+					if err != nil {
+						return true
+					}
+					sb.WriteString("|")
+					sb.WriteString(*gsvo.SecretString)
+				}
+			}
+			return page.NextToken == nil
+		})
+	if err != nil {
+		return err
+	}
+
+	// Swap the secrets if there are changes
+	nba, err := NewBasicAuthFromString(sb.String())
+	if err != nil {
+		return err
+	}
+
+	if !reflect.DeepEqual(ba.creds, nba.creds) {
+		ba.Lock()
+		defer ba.Unlock()
+
+		for k, _ := range ba.creds {
+			delete(ba.creds, k)
+		}
+
+		for k, v := range nba.creds {
+			ba.creds[k] = v
+		}
+	}
 	return nil
+}
+
+// BasicAuth handles normal user/password Basic Auth requests, multiple
+// password for the same user and is safe for concurrent use.
+type BasicAuth struct {
+	sync.RWMutex
+	creds map[string][]string
+}
+
+// NewBasicAuthFromString creates and populates a BasicAuth from the provided
+// credentials, encoded as a string, in the following format:
+// user:password|user:password|...
+func NewBasicAuthFromString(creds string) (*BasicAuth, error) {
+	ba := NewBasicAuth()
+	for _, u := range strings.Split(creds, "|") {
+		uparts := strings.SplitN(u, ":", 2)
+		if len(uparts) != 2 || len(uparts[0]) == 0 || len(uparts[1]) == 0 {
+			return ba, fmt.Errorf("Unable to create credentials from '%s'", u)
+		}
+
+		ba.AddPrincipal(uparts[0], uparts[1])
+	}
+	return ba, nil
+}
+
+func NewBasicAuth() *BasicAuth {
+	return &BasicAuth{
+		creds: make(map[string][]string),
+	}
+}
+
+// AddPrincipal add's a user/password combo to the list of valid combinations
+func (ba *BasicAuth) AddPrincipal(user, pass string) {
+	ba.Lock()
+	u, existed := ba.creds[user]
+	if !existed {
+		u = make([]string, 0, 1)
+	}
+	ba.creds[user] = append(u, pass)
+	ba.Unlock()
+}
+
+// Authenticate is true if the Request has a valid BasicAuth signature and
+// that signature encodes a known username/password combo.
+func (ba *BasicAuth) Authenticate(r *http.Request) bool {
+	user, pass, ok := r.BasicAuth()
+	if !ok {
+		return false
+	}
+
+	ba.RLock()
+	defer ba.RUnlock()
+
+	if passwords, exists := ba.creds[user]; exists {
+		for _, password := range passwords {
+			if password == pass {
+				return true
+			}
+		}
+	}
+
+	return false
 }
