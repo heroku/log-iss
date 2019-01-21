@@ -59,8 +59,8 @@ func refreshAuth(ba *BasicAuth, client smi.SecretsManagerAPI, prefix string, con
 	err = client.ListSecretsPages(nil,
 		func(page *secretsmanager.ListSecretsOutput, lastPage bool) bool {
 			for _, sle := range page.SecretList {
-				if strings.HasPrefix(prefix, *(sle.Name)) {
-					user := (*sle.Name)[prefixLength:len(*sle.Name)]
+				if strings.HasPrefix(*(sle.Name), prefix) {
+					user := (*sle.Name)[prefixLength+1 : len(*sle.Name)]
 					gsvi := secretsmanager.GetSecretValueInput{
 						SecretId: sle.ARN,
 					}
