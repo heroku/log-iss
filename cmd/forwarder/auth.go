@@ -81,14 +81,7 @@ func refreshAuth(ba *BasicAuth, client smi.SecretsManagerAPI, prefix string, con
 	if !reflect.DeepEqual(ba.creds, nba.creds) {
 		ba.Lock()
 		defer ba.Unlock()
-
-		for k, _ := range ba.creds {
-			delete(ba.creds, k)
-		}
-
-		for k, v := range nba.creds {
-			ba.creds[k] = v
-		}
+		ba.creds = nba.creds
 		return true, nil
 	}
 	return false, nil
