@@ -9,12 +9,6 @@
 	"ignore": "test",
 	"package": [
 		{
-			"checksumSHA1": "0eqQ5WXYjf+zYRCzYpQZkNoGm2E=",
-			"path": "github.com/aws/aws-sdk-go",
-			"revision": "d6cb382cd727ad4e3beb77e2c1935d85314ace0a",
-			"revisionTime": "2019-01-18T21:48:02Z"
-		},
-		{
 			"checksumSHA1": "16v3KZ/bE7zLuq8cDMX7nAoKaqY=",
 			"path": "github.com/bmizerany/lpx",
 			"revision": "af85cf24c1567bcb5a2e4c21597cc049eab31f55",
@@ -25,6 +19,54 @@
 			"path": "github.com/davecgh/go-spew/spew",
 			"revision": "8991bc29aa16c548c550c7ff78260e27b9ab7c73",
 			"revisionTime": "2018-02-21T22:46:20Z"
+		},
+		{
+			"checksumSHA1": "C3QEaB3TK85gYM9FwMcnZeemE6Y=",
+			"path": "github.com/elliotchance/redismock",
+			"revision": "11ab9de4762a6fb401bf1c5049bc21c8798de3fc",
+			"revisionTime": "2019-01-03T22:15:42Z"
+		},
+		{
+			"checksumSHA1": "Bfy1uubkbAOD7iaS7ruomaB588I=",
+			"path": "github.com/go-redis/redis",
+			"revision": "40336e5ef89189115c9897cdc8f2b13d7a470015",
+			"revisionTime": "2019-01-21T14:27:48Z"
+		},
+		{
+			"checksumSHA1": "z12gGj6VbVBcPOvof1aCM+DVGRU=",
+			"path": "github.com/go-redis/redis/internal",
+			"revision": "40336e5ef89189115c9897cdc8f2b13d7a470015",
+			"revisionTime": "2019-01-21T14:27:48Z"
+		},
+		{
+			"checksumSHA1": "GQZsUVg/+6UpQAYpc4luMvMutSI=",
+			"path": "github.com/go-redis/redis/internal/consistenthash",
+			"revision": "40336e5ef89189115c9897cdc8f2b13d7a470015",
+			"revisionTime": "2019-01-21T14:27:48Z"
+		},
+		{
+			"checksumSHA1": "l66eTZiJqueypc56HXCakGDm784=",
+			"path": "github.com/go-redis/redis/internal/hashtag",
+			"revision": "40336e5ef89189115c9897cdc8f2b13d7a470015",
+			"revisionTime": "2019-01-21T14:27:48Z"
+		},
+		{
+			"checksumSHA1": "WoUjtqpn00RUnAgZLljk3lWfpSQ=",
+			"path": "github.com/go-redis/redis/internal/pool",
+			"revision": "40336e5ef89189115c9897cdc8f2b13d7a470015",
+			"revisionTime": "2019-01-21T14:27:48Z"
+		},
+		{
+			"checksumSHA1": "zCo0t+gRBbctwyIpkDLrqRFtXew=",
+			"path": "github.com/go-redis/redis/internal/proto",
+			"revision": "40336e5ef89189115c9897cdc8f2b13d7a470015",
+			"revisionTime": "2019-01-21T14:27:48Z"
+		},
+		{
+			"checksumSHA1": "1PH2NoAB/u3IZmLYyCrIbOzqLZ4=",
+			"path": "github.com/go-redis/redis/internal/util",
+			"revision": "40336e5ef89189115c9897cdc8f2b13d7a470015",
+			"revisionTime": "2019-01-21T14:27:48Z"
 		},
 		{
 			"checksumSHA1": "RzTq0lZZ9oRSEHuRqcTpFrFDgbo=",

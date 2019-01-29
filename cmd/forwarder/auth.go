@@ -1,17 +1,17 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/url"
 	"reflect"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/secretsmanager"
-
-	smi "github.com/aws/aws-sdk-go/service/secretsmanager/secretsmanageriface"
+	"github.com/go-redis/redis"
 	metrics "github.com/rcrowley/go-metrics"
 )
 
@@ -25,12 +25,37 @@ func newAuth(config AuthConfig, registry metrics.Registry) (BasicAuth, error) {
 	pFailures := metrics.GetOrRegisterCounter("log-iss.auth_refresh.failures", registry)
 	pSuccesses := metrics.GetOrRegisterCounter("log-iss.auth_refresh.successes", registry)
 
+	// Parse redis db out of url
+	u, err := url.Parse(config.RedisUrl)
+	if err != nil {
+		return *result, err
+	}
+
+	var db int
+	if u.Path != "" {
+		db, err = strconv.Atoi(u.Path)
+		if err != nil {
+			return *result, err
+		}
+	}
+
+	ui := u.User
+	password := ""
+	if ui != nil {
+		password, _ = ui.Password()
+	}
+	client := redis.NewClient(
+		&redis.Options{
+			Addr:     u.Host,
+			Password: password,
+			DB:       db,
+		},
+	)
+
 	ticker := time.NewTicker(config.RefreshInterval)
 	go func() {
-		sess := session.Must(session.NewSession())
-		client := secretsmanager.New(sess)
 		for _ = range ticker.C {
-			changed, err := refreshAuth(result, client, config.SecretPrefix, config.Tokens)
+			changed, err := refreshAuth(result, client, config.RedisKey, config.Tokens)
 			if err == nil {
 				pSuccesses.Inc(1)
 				if changed {
@@ -47,34 +72,28 @@ func newAuth(config AuthConfig, registry metrics.Registry) (BasicAuth, error) {
 
 // Refresh auth credentials.
 // Return true if credentials changed, false otherwise.
-func refreshAuth(ba *BasicAuth, client smi.SecretsManagerAPI, prefix string, config string) (bool, error) {
+func refreshAuth(ba *BasicAuth, client redis.Cmdable, key string, config string) (bool, error) {
 	// Start out using the strings from config
-	prefixLength := len(prefix)
 	nba, err := NewBasicAuthFromString(config)
 	if err != nil {
 		return false, err
 	}
 
 	// Retrieve all secrets and construct a string in the format expected by BasicAuth
-	err = client.ListSecretsPages(nil,
-		func(page *secretsmanager.ListSecretsOutput, lastPage bool) bool {
-			for _, sle := range page.SecretList {
-				if strings.HasPrefix(*(sle.Name), prefix) {
-					user := (*sle.Name)[prefixLength+1 : len(*sle.Name)]
-					gsvi := secretsmanager.GetSecretValueInput{
-						SecretId: sle.ARN,
-					}
-					gsvo, err := client.GetSecretValue(&gsvi)
-					if err != nil {
-						return true
-					}
-					nba.creds[user] = []string{*gsvo.SecretString}
-				}
-			}
-			return page.NextToken == nil
-		})
+	val := client.HGetAll(key)
+	r, err := val.Result()
 	if err != nil {
 		return false, err
+	}
+
+	for k, v := range r {
+		var arr []string
+		fmt.Printf("\n%+v\n", v)
+		err = json.Unmarshal([]byte(v), &arr)
+		if err != nil {
+			return false, err
+		}
+		nba.creds[k] = arr
 	}
 
 	// Swap the secrets if there are changes
