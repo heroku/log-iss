@@ -20,10 +20,10 @@ type Credential struct {
 	Value string `json:value`
 }
 
-func newAuth(config AuthConfig, registry metrics.Registry) (BasicAuth, error) {
+func newAuth(config AuthConfig, registry metrics.Registry) (*BasicAuth, error) {
 	result, err := NewBasicAuthFromString(config.Tokens)
 	if err != nil {
-		return *result, err
+		return result, err
 	}
 
 	pChanges := metrics.GetOrRegisterCounter("log-iss.auth_refresh.changes", registry)
@@ -33,14 +33,14 @@ func newAuth(config AuthConfig, registry metrics.Registry) (BasicAuth, error) {
 	// Parse redis db out of url
 	u, err := url.Parse(config.RedisUrl)
 	if err != nil {
-		return *result, err
+		return result, err
 	}
 
 	var db int
 	if u.Path != "" {
 		db, err = strconv.Atoi(u.Path)
 		if err != nil {
-			return *result, err
+			return result, err
 		}
 	}
 
@@ -67,12 +67,13 @@ func newAuth(config AuthConfig, registry metrics.Registry) (BasicAuth, error) {
 					pChanges.Inc(1)
 				}
 			} else {
+				fmt.Printf("Unable to refresh credentials: %s", err)
 				pFailures.Inc(1)
 			}
 		}
 	}()
 
-	return *result, err
+	return result, err
 }
 
 // Refresh auth credentials.

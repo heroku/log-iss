@@ -38,7 +38,7 @@ type httpServer struct {
 	shutdownCh            shutdownCh
 	deliverer             deliverer
 	isShuttingDown        bool
-	auth                  BasicAuth
+	auth                  *BasicAuth
 	posts                 metrics.Timer   // tracks metrics about posts
 	healthChecks          metrics.Timer   // tracks metrics about health checks
 	pErrors               metrics.Counter // tracks the count of post errors
@@ -53,7 +53,7 @@ type httpServer struct {
 	sync.WaitGroup
 }
 
-func newHTTPServer(config IssConfig, auth BasicAuth, fixerFunc FixerFunc, deliverer deliverer) *httpServer {
+func newHTTPServer(config IssConfig, auth *BasicAuth, fixerFunc FixerFunc, deliverer deliverer) *httpServer {
 	return &httpServer{
 		auth:                  auth,
 		Config:                config,
