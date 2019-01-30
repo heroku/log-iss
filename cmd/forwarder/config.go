@@ -34,7 +34,7 @@ type IssConfig struct {
 type AuthConfig struct {
 	RedisUrl        string        `env:"REDIS_URL,required"`
 	RedisKey        string        `env:"REDIS_KEY",required`
-	RefreshInterval time.Duration `env:"TOKEN_REFRESH_INTERVAL,default=1m,strict"`
+	RefreshInterval time.Duration `env:"CREDENTIAL_REFRESH_INTERVAL,default=1m,strict"`
 	Tokens          string        `env:"TOKEN_MAP,required"`
 }
 

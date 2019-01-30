@@ -15,6 +15,11 @@ import (
 	metrics "github.com/rcrowley/go-metrics"
 )
 
+type Credential struct {
+	Stage string `json:stage`
+	Value string `json:value`
+}
+
 func newAuth(config AuthConfig, registry metrics.Registry) (BasicAuth, error) {
 	result, err := NewBasicAuthFromString(config.Tokens)
 	if err != nil {
@@ -87,8 +92,7 @@ func refreshAuth(ba *BasicAuth, client redis.Cmdable, key string, config string)
 	}
 
 	for k, v := range r {
-		var arr []string
-		fmt.Printf("\n%+v\n", v)
+		var arr []Credential
 		err = json.Unmarshal([]byte(v), &arr)
 		if err != nil {
 			return false, err
@@ -110,7 +114,7 @@ func refreshAuth(ba *BasicAuth, client redis.Cmdable, key string, config string)
 // password for the same user and is safe for concurrent use.
 type BasicAuth struct {
 	sync.RWMutex
-	creds map[string][]string
+	creds map[string][]Credential
 }
 
 // NewBasicAuthFromString creates and populates a BasicAuth from the provided
@@ -124,25 +128,25 @@ func NewBasicAuthFromString(creds string) (*BasicAuth, error) {
 			return ba, fmt.Errorf("Unable to create credentials from '%s'", u)
 		}
 
-		ba.AddPrincipal(uparts[0], uparts[1])
+		ba.AddPrincipal(uparts[0], uparts[1], "env")
 	}
 	return ba, nil
 }
 
 func NewBasicAuth() *BasicAuth {
 	return &BasicAuth{
-		creds: make(map[string][]string),
+		creds: make(map[string][]Credential),
 	}
 }
 
 // AddPrincipal add's a user/password combo to the list of valid combinations
-func (ba *BasicAuth) AddPrincipal(user, pass string) {
+func (ba *BasicAuth) AddPrincipal(user string, password string, stage string) {
 	ba.Lock()
 	u, existed := ba.creds[user]
 	if !existed {
-		u = make([]string, 0, 1)
+		u = make([]Credential, 0, 1)
 	}
-	ba.creds[user] = append(u, pass)
+	ba.creds[user] = append(u, Credential{Stage: stage, Value: password})
 	ba.Unlock()
 }
 
@@ -157,9 +161,9 @@ func (ba *BasicAuth) Authenticate(r *http.Request) bool {
 	ba.RLock()
 	defer ba.RUnlock()
 
-	if passwords, exists := ba.creds[user]; exists {
-		for _, password := range passwords {
-			if password == pass {
+	if credentials, exists := ba.creds[user]; exists {
+		for _, credential := range credentials {
+			if credential.Value == pass {
 				return true
 			}
 		}
