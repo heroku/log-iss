@@ -57,10 +57,17 @@ func newAuth(config AuthConfig, registry metrics.Registry) (*BasicAuth, error) {
 		},
 	)
 
+	// Refresh once at the start
+	changed, err := refreshAuth(result, client, config.RedisKey, config.Tokens)
+	if err != nil {
+		return result, err
+	}
+
+	// Refresh forever
 	ticker := time.NewTicker(config.RefreshInterval)
 	go func() {
 		for _ = range ticker.C {
-			changed, err := refreshAuth(result, client, config.RedisKey, config.Tokens)
+			_, err := refreshAuth(result, client, config.RedisKey, config.Tokens)
 			if err == nil {
 				pSuccesses.Inc(1)
 				if changed {
