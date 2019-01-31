@@ -174,7 +174,7 @@ func (ba *BasicAuth) Authenticate(r *http.Request) bool {
 	if credentials, exists := ba.creds[user]; exists {
 		for _, credential := range credentials {
 			if credential.Value == pass {
-				countName := fmt.Sprintf("log-iss.auth.%s.%s.success", user, credential.Stage)
+				countName := fmt.Sprintf("log-iss.auth.successes.%s.%s", user, credential.Stage)
 				counter := metrics.GetOrRegisterCounter(countName, ba.registry)
 				counter.Inc(1)
 				return true
