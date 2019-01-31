@@ -6,6 +6,7 @@ import (
 
 	"github.com/elliotchance/redismock"
 	"github.com/go-redis/redis"
+	metrics "github.com/rcrowley/go-metrics"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -46,7 +47,7 @@ func marshal(creds []Credential) string {
 }
 
 func defaultCreds() *BasicAuth {
-	ba := NewBasicAuth()
+	ba := NewBasicAuth(metrics.NewRegistry())
 	ba.AddPrincipal("user", "password", "env")
 	return ba
 }
@@ -58,7 +59,7 @@ func newSecretCreds() *BasicAuth {
 }
 
 func overrideCreds() *BasicAuth {
-	ba := NewBasicAuth()
+	ba := NewBasicAuth(metrics.NewRegistry())
 	ba.AddPrincipal("user", "newpassword", "current")
 	return ba
 }

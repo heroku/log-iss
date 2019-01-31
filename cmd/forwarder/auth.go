@@ -21,7 +21,7 @@ type Credential struct {
 }
 
 func newAuth(config AuthConfig, registry metrics.Registry) (*BasicAuth, error) {
-	result, err := NewBasicAuthFromString(config.Tokens)
+	result, err := NewBasicAuthFromString(config.Tokens, registry)
 	if err != nil {
 		return result, err
 	}
@@ -87,7 +87,7 @@ func newAuth(config AuthConfig, registry metrics.Registry) (*BasicAuth, error) {
 // Return true if credentials changed, false otherwise.
 func refreshAuth(ba *BasicAuth, client redis.Cmdable, key string, config string) (bool, error) {
 	// Start out using the strings from config
-	nba, err := NewBasicAuthFromString(config)
+	nba, err := NewBasicAuthFromString(config, ba.registry)
 	if err != nil {
 		return false, err
 	}
@@ -122,14 +122,15 @@ func refreshAuth(ba *BasicAuth, client redis.Cmdable, key string, config string)
 // password for the same user and is safe for concurrent use.
 type BasicAuth struct {
 	sync.RWMutex
-	creds map[string][]Credential
+	creds    map[string][]Credential
+	registry metrics.Registry
 }
 
 // NewBasicAuthFromString creates and populates a BasicAuth from the provided
 // credentials, encoded as a string, in the following format:
 // user:password|user:password|...
-func NewBasicAuthFromString(creds string) (*BasicAuth, error) {
-	ba := NewBasicAuth()
+func NewBasicAuthFromString(creds string, registry metrics.Registry) (*BasicAuth, error) {
+	ba := NewBasicAuth(registry)
 	for _, u := range strings.Split(creds, "|") {
 		uparts := strings.SplitN(u, ":", 2)
 		if len(uparts) != 2 || len(uparts[0]) == 0 || len(uparts[1]) == 0 {
@@ -141,9 +142,10 @@ func NewBasicAuthFromString(creds string) (*BasicAuth, error) {
 	return ba, nil
 }
 
-func NewBasicAuth() *BasicAuth {
+func NewBasicAuth(registry metrics.Registry) *BasicAuth {
 	return &BasicAuth{
-		creds: make(map[string][]Credential),
+		creds:    make(map[string][]Credential),
+		registry: registry,
 	}
 }
 
@@ -172,6 +174,9 @@ func (ba *BasicAuth) Authenticate(r *http.Request) bool {
 	if credentials, exists := ba.creds[user]; exists {
 		for _, credential := range credentials {
 			if credential.Value == pass {
+				countName := fmt.Sprintf("log-iss.auth.%s.%s.success", user, credential.Stage)
+				counter := metrics.GetOrRegisterCounter(countName, ba.registry)
+				counter.Inc(1)
 				return true
 			}
 		}
