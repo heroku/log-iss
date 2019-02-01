@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"net/http"
 	"testing"
 	"time"
 
@@ -21,7 +22,7 @@ func oneSecretRedis() redis.Cmdable {
 	r := redismock.NewMock()
 	m := make(map[string]string)
 	creds := make([]Credential, 0, 1)
-	creds = append(creds, Credential{Stage: "current", Value: "newpassword"})
+	creds = append(creds, Credential{Stage: "current", Value: hmacEncode("hmacKey", "newpassword")})
 	m["newuser"] = marshal(creds)
 	cmd := redis.NewStringStringMapResult(m, nil)
 	r.On("HGetAll").Return(cmd)
@@ -32,7 +33,7 @@ func overrideRedis() redis.Cmdable {
 	r := redismock.NewMock()
 	m := make(map[string]string)
 	creds := make([]Credential, 0, 1)
-	creds = append(creds, Credential{Stage: "current", Value: "newpassword"})
+	creds = append(creds, Credential{Stage: "current", Value: hmacEncode("hmacKey", "newpassword")})
 	m["user"] = marshal(creds)
 	cmd := redis.NewStringStringMapResult(m, nil)
 	r.On("HGetAll").Return(cmd)
@@ -48,20 +49,20 @@ func marshal(creds []Credential) string {
 }
 
 func defaultCreds() *BasicAuth {
-	ba := NewBasicAuth(metrics.NewRegistry())
-	ba.AddPrincipal("user", "password", "env")
+	ba := NewBasicAuth(metrics.NewRegistry(), "hmacKey")
+	ba.AddPrincipal("user", hmacEncode("hmacKey", "password"), "env")
 	return ba
 }
 
 func newSecretCreds() *BasicAuth {
 	ba := defaultCreds()
-	ba.AddPrincipal("newuser", "newpassword", "current")
+	ba.AddPrincipal("newuser", hmacEncode("hmacKey", "newpassword"), "current")
 	return ba
 }
 
 func overrideCreds() *BasicAuth {
-	ba := NewBasicAuth(metrics.NewRegistry())
-	ba.AddPrincipal("user", "newpassword", "current")
+	ba := NewBasicAuth(metrics.NewRegistry(), "hmacKey")
+	ba.AddPrincipal("user", hmacEncode("hmacKey", "newpassword"), "current")
 	return ba
 }
 
@@ -99,7 +100,7 @@ func TestRefreshAuth(t *testing.T) {
 
 	for name, test := range tests {
 		t.Logf("Running test case %s", name)
-		changed, err := refreshAuth(test.auth, test.client, "key", test.config)
+		changed, err := refreshAuth(test.auth, test.client, "hmacKey", "key", test.config)
 		assert.Equal(t, test.expectChanged, changed)
 		assert.Equal(t, test.expectError, err)
 		assert.Equal(t, test.expectedCreds.creds, test.auth.creds)
@@ -172,5 +173,36 @@ func TestNewAuth(t *testing.T) {
 		if test.success && err != nil {
 			assert.Fail(t, err.Error())
 		}
+	}
+}
+
+func TestAuthenticate(t *testing.T) {
+	tests := map[string]struct {
+		password      string
+		authenticated bool
+	}{
+		"User is authenticated if input password matches": {
+			password:      "password",
+			authenticated: true,
+		},
+		"User is not authenticated if input password does not match": {
+			password:      "invalidpassword",
+			authenticated: false,
+		},
+	}
+
+	auth, err := NewBasicAuthFromString("user:password", "hmacKey", metrics.NewRegistry())
+	if err != nil {
+		panic(err.Error())
+	}
+
+	for name, test := range tests {
+		t.Logf("Running test case %s", name)
+		r, err := http.NewRequest("POST", "http://localhost", nil)
+		if err != nil {
+			panic(err.Error())
+		}
+		r.SetBasicAuth("user", test.password)
+		assert.Equal(t, test.authenticated, auth.Authenticate(r))
 	}
 }
