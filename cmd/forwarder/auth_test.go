@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"testing"
+	"time"
 
 	"github.com/elliotchance/redismock"
 	"github.com/go-redis/redis"
@@ -102,5 +103,74 @@ func TestRefreshAuth(t *testing.T) {
 		assert.Equal(t, test.expectChanged, changed)
 		assert.Equal(t, test.expectError, err)
 		assert.Equal(t, test.expectedCreds.creds, test.auth.creds)
+	}
+}
+
+func refreshInterval() time.Duration {
+	d, err := time.ParseDuration("1m")
+	if err != nil {
+		panic(err)
+	}
+	return d
+}
+
+func TestNewAuth(t *testing.T) {
+	tests := map[string]struct {
+		config  AuthConfig
+		success bool
+	}{
+		"Fail if RedisUrl is set but RedisKey is not set": {
+			config: AuthConfig{
+				RefreshInterval: refreshInterval(),
+				RedisUrl:        "redis://localhost:6379/0",
+				Tokens:          "user:password",
+			},
+			success: false,
+		},
+		"Fail if RedisUrl is unset and Tokens is unset": {
+			config:  AuthConfig{},
+			success: false,
+		},
+		"Fail if Token format is invalid": {
+			config: AuthConfig{
+				RefreshInterval: refreshInterval(),
+				RedisUrl:        "redis://localhost:6379/0",
+				RedisKey:        "key",
+				Tokens:          ":|:",
+			},
+			success: false,
+		},
+		"Fail if RedisUrl is not a valid url": {
+			config: AuthConfig{
+				RefreshInterval: refreshInterval(),
+				RedisUrl:        "not-a-real-url",
+				RedisKey:        "key",
+			},
+			success: false,
+		},
+		"Succeed if Tokens is set properly": {
+			config: AuthConfig{
+				Tokens: "u1:p1|u2:p2,p3",
+			},
+			success: true,
+		},
+		"Succeed if RedisUrl and RedisKey are set properly": {
+			config: AuthConfig{
+				RefreshInterval: refreshInterval(),
+				RedisUrl:        "redis://localhost:6379/0",
+				RedisKey:        "key",
+			},
+			success: true,
+		},
+	}
+
+	registry := metrics.NewRegistry()
+
+	for name, test := range tests {
+		t.Logf("Running test case %s", name)
+		_, err := newAuth(test.config, registry)
+		if test.success && err != nil {
+			assert.Fail(t, err.Error())
+		}
 	}
 }

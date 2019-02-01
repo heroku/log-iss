@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -21,6 +22,18 @@ type Credential struct {
 }
 
 func newAuth(config AuthConfig, registry metrics.Registry) (*BasicAuth, error) {
+	var err error
+
+	if config.RedisUrl != "" && config.RedisKey == "" {
+		err = errors.New("RedisKey must be set if RedisUrl is set")
+		return nil, err
+	}
+
+	if config.RedisUrl == "" && config.Tokens == "" {
+		err = errors.New("At least one of RedisUrl or Tokens must be set.")
+		return nil, err
+	}
+
 	result, err := NewBasicAuthFromString(config.Tokens, registry)
 	if err != nil {
 		return result, err
@@ -30,55 +43,56 @@ func newAuth(config AuthConfig, registry metrics.Registry) (*BasicAuth, error) {
 	pFailures := metrics.GetOrRegisterCounter("log-iss.auth_refresh.failures", registry)
 	pSuccesses := metrics.GetOrRegisterCounter("log-iss.auth_refresh.successes", registry)
 
-	// Parse redis db out of url
-	u, err := url.Parse(config.RedisUrl)
-	if err != nil {
-		return result, err
-	}
-
-	var db int
-	if u.Path != "" {
-		db, err = strconv.Atoi(u.Path)
+	if config.RedisUrl != "" {
+		// Parse redis db out of url
+		u, err := url.Parse(config.RedisUrl)
 		if err != nil {
 			return result, err
 		}
-	}
 
-	ui := u.User
-	password := ""
-	if ui != nil {
-		password, _ = ui.Password()
-	}
-	client := redis.NewClient(
-		&redis.Options{
-			Addr:     u.Host,
-			Password: password,
-			DB:       db,
-		},
-	)
-
-	// Refresh once at the start
-	changed, err := refreshAuth(result, client, config.RedisKey, config.Tokens)
-	if err != nil {
-		return result, err
-	}
-
-	// Refresh forever
-	ticker := time.NewTicker(config.RefreshInterval)
-	go func() {
-		for _ = range ticker.C {
-			_, err := refreshAuth(result, client, config.RedisKey, config.Tokens)
-			if err == nil {
-				pSuccesses.Inc(1)
-				if changed {
-					pChanges.Inc(1)
-				}
-			} else {
-				fmt.Printf("Unable to refresh credentials: %s", err)
-				pFailures.Inc(1)
+		var db int
+		if u.Path != "" && u.Path != "/" {
+			db, err = strconv.Atoi(u.Path[1:len(u.Path)])
+			if err != nil {
+				return result, err
 			}
 		}
-	}()
+
+		ui := u.User
+		password := ""
+		if ui != nil {
+			password, _ = ui.Password()
+		}
+		client := redis.NewClient(
+			&redis.Options{
+				Addr:     u.Host,
+				Password: password,
+				DB:       db,
+			},
+		)
+
+		// Refresh once at the start.
+		// Ignore errors here - if redis is down, we don't want the process to fail to start.
+		_, _ = refreshAuth(result, client, config.RedisKey, config.Tokens)
+
+		// Refresh forever
+		ticker := time.NewTicker(config.RefreshInterval)
+		go func() {
+			changed := false
+			for _ = range ticker.C {
+				_, err := refreshAuth(result, client, config.RedisKey, config.Tokens)
+				if err == nil {
+					pSuccesses.Inc(1)
+					if changed {
+						pChanges.Inc(1)
+					}
+				} else {
+					fmt.Printf("Unable to refresh credentials: %s", err)
+					pFailures.Inc(1)
+				}
+			}
+		}()
+	}
 
 	return result, err
 }
@@ -131,6 +145,12 @@ type BasicAuth struct {
 // user:password|user:password|...
 func NewBasicAuthFromString(creds string, registry metrics.Registry) (*BasicAuth, error) {
 	ba := NewBasicAuth(registry)
+
+	// If the string is empty, that's allowed.
+	if creds == "" {
+		return ba, nil
+	}
+
 	for _, u := range strings.Split(creds, "|") {
 		uparts := strings.SplitN(u, ":", 2)
 		if len(uparts) != 2 || len(uparts[0]) == 0 || len(uparts[1]) == 0 {
