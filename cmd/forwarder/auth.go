@@ -18,11 +18,6 @@ import (
 	metrics "github.com/rcrowley/go-metrics"
 )
 
-type Credential struct {
-	Stage string `json:stage`
-	Value string `json:value`
-}
-
 func newAuth(config AuthConfig, registry metrics.Registry) (*BasicAuth, error) {
 	result, err := NewBasicAuthFromString(config.Tokens, config.HmacKey, registry)
 	if err != nil {
@@ -142,7 +137,8 @@ func NewBasicAuthFromString(creds string, hmacKey string, registry metrics.Regis
 			return ba, fmt.Errorf("Unable to create credentials from '%s'", u)
 		}
 
-		ba.AddPrincipal(uparts[0], hmacEncode(hmacKey, uparts[1]), "env")
+		value := uparts[1]
+		ba.AddPrincipal(uparts[0], hmacEncode(hmacKey, value), "env")
 	}
 	return ba, nil
 }
@@ -164,13 +160,13 @@ func NewBasicAuth(registry metrics.Registry, hmacKey string) *BasicAuth {
 }
 
 // AddPrincipal add's a user/password combo to the list of valid combinations
-func (ba *BasicAuth) AddPrincipal(user string, password string, stage string) {
+func (ba *BasicAuth) AddPrincipal(user string, hmac string, stage string) {
 	ba.Lock()
 	u, existed := ba.creds[user]
 	if !existed {
 		u = make([]Credential, 0, 1)
 	}
-	ba.creds[user] = append(u, Credential{Stage: stage, Value: password})
+	ba.creds[user] = append(u, Credential{Stage: stage, Hmac: hmac})
 	ba.Unlock()
 }
 
@@ -186,9 +182,9 @@ func (ba *BasicAuth) Authenticate(r *http.Request) bool {
 	defer ba.RUnlock()
 
 	if credentials, exists := ba.creds[user]; exists {
-		for _, credential := range credentials {
-			if credential.Value == hmacEncode(ba.hmacKey, pass) {
-				countName := fmt.Sprintf("log-iss.auth.successes.%s.%s", user, credential.Stage)
+		for _, c := range credentials {
+			if c.Hmac == hmacEncode(ba.hmacKey, pass) {
+				countName := fmt.Sprintf("log-iss.auth.successes.%s.%s", user, c.Stage)
 				counter := metrics.GetOrRegisterCounter(countName, ba.registry)
 				counter.Inc(1)
 				return true
