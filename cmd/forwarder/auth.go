@@ -58,6 +58,7 @@ func newAuth(config AuthConfig, registry metrics.Registry) (*BasicAuth, error) {
 	// Refresh once at the start
 	changed, err := refreshAuth(result, client, config.HmacKey, config.RedisKey, config.Tokens)
 	if err != nil {
+		fmt.Printf("oh noes")
 		return result, err
 	}
 
