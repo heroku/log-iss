@@ -184,6 +184,9 @@ func (ba *BasicAuth) Authenticate(r *http.Request) bool {
 	if credentials, exists := ba.creds[user]; exists {
 		for _, c := range credentials {
 			if c.Hmac == hmacEncode(ba.hmacKey, pass) {
+				fmt.Printf("hmac key: %s", ba.hmacKey)
+				fmt.Printf("saved password hash: %s", hmacEncode(ba.hmacKey, pass))
+				fmt.Printf("input password hash: %s", c.Hmac)
 				countName := fmt.Sprintf("log-iss.auth.successes.%s.%s", user, c.Stage)
 				counter := metrics.GetOrRegisterCounter(countName, ba.registry)
 				counter.Inc(1)
