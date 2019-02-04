@@ -211,6 +211,9 @@ func (ba *BasicAuth) Authenticate(r *http.Request) bool {
 				return true
 			}
 		}
+		countName := fmt.Sprintf("log-iss.auth.failures.%s.%s", user, c.Stage)
+		counter := metrics.GetOrRegisterCounter(countName, ba.registry)
+		counter.Inc(1)
 	}
 
 	return false
