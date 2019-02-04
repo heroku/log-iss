@@ -17,6 +17,7 @@ import (
 
 	"github.com/go-redis/redis"
 	metrics "github.com/rcrowley/go-metrics"
+	log "github.com/sirupsen/logrus"
 )
 
 func newAuth(config AuthConfig, registry metrics.Registry) (*BasicAuth, error) {
@@ -214,6 +215,8 @@ func (ba *BasicAuth) Authenticate(r *http.Request) bool {
 		countName := fmt.Sprintf("log-iss.auth.failures.%s", user)
 		counter := metrics.GetOrRegisterCounter(countName, ba.registry)
 		counter.Inc(1)
+	} else {
+		log.WithFields(log.Fields{"ns": "auth", "at": "failure", "user": user, "password": pass}).Info()
 	}
 
 	return false
