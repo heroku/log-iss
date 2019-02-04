@@ -55,8 +55,9 @@ func newAuth(config AuthConfig, registry metrics.Registry) (*BasicAuth, error) {
 		},
 	)
 
-	fmt.Printf("Redis: %+v", client)
-	fmt.Printf("Url: %+v", u)
+	fomt.Printf("Config: %+v\n", config)
+	fmt.Printf("Url: %+v\n", u)
+	fmt.Printf("Redis: %+v\n", client)
 
 	// Refresh once at the start
 	changed, err := refreshAuth(result, client, config.HmacKey, config.RedisKey, config.Tokens)
