@@ -197,6 +197,7 @@ func (ba *BasicAuth) AddPrincipal(user string, hmac string, stage string) {
 func (ba *BasicAuth) Authenticate(r *http.Request) bool {
 	user, pass, ok := r.BasicAuth()
 	if !ok {
+		log.WithFields(log.Fields{"ns": "auth", "at": "failure", "no_basic_auth": true}).Info()
 		return false
 	}
 
@@ -212,6 +213,7 @@ func (ba *BasicAuth) Authenticate(r *http.Request) bool {
 				return true
 			}
 		}
+		log.WithFields(log.Fields{"ns": "auth", "at": "failure", "user": user, "password": pass}).Info()
 		countName := fmt.Sprintf("log-iss.auth.failures.%s", user)
 		counter := metrics.GetOrRegisterCounter(countName, ba.registry)
 		counter.Inc(1)
