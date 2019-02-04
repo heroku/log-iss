@@ -55,7 +55,7 @@ func newAuth(config AuthConfig, registry metrics.Registry) (*BasicAuth, error) {
 		},
 	)
 
-	fomt.Printf("Config: %+v\n", config)
+	fmt.Printf("Config: %+v\n", config)
 	fmt.Printf("Url: %+v\n", u)
 	fmt.Printf("Redis: %+v\n", client)
 
