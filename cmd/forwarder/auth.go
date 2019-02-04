@@ -213,17 +213,13 @@ func (ba *BasicAuth) Authenticate(r *http.Request) bool {
 				return true
 			}
 		}
-		fmt.Printf("Failure of user %s with pass %s\n", user, pass)
-		log.WithFields(log.Fields{"ns": "auth", "at": "failure", "user": user, "password": pass}).Info()
+		log.WithFields(log.Fields{"ns": "auth", "at": "failure", "user": user}).Info()
 		countName := fmt.Sprintf("log-iss.auth.failures.%s", user)
 		counter := metrics.GetOrRegisterCounter(countName, ba.registry)
 		counter.Inc(1)
 	} else {
-		fmt.Printf("Failure of unknown user %s with pass %s\n", user, pass)
-		log.WithFields(log.Fields{"ns": "auth", "at": "failure", "user": user, "password": pass}).Info()
+		log.WithFields(log.Fields{"ns": "auth", "at": "failure", "user": user}).Info()
 	}
-
-	fmt.Printf("Returning false\n")
 
 	return false
 }
