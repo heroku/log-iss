@@ -32,7 +32,8 @@ type IssConfig struct {
 }
 
 type AuthConfig struct {
-	RedisUrl        string        `env:"REDIS_URL`
+	HmacKey         string        `env:"HMAC_KEY,required"`
+	RedisUrl        string        `env:"REDIS_URL"`
 	RedisKey        string        `env:"REDIS_KEY"`
 	RefreshInterval time.Duration `env:"CREDENTIAL_REFRESH_INTERVAL,default=1m,strict"`
 	Tokens          string        `env:"TOKEN_MAP"`
