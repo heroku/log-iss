@@ -207,14 +207,14 @@ func (ba *BasicAuth) Authenticate(r *http.Request) bool {
 	if credentials, exists := ba.creds[user]; exists {
 		for _, c := range credentials {
 			if c.Hmac == hmacEncode(ba.hmacKey, pass) {
-				countName := fmt.Sprintf("log-iss.auth.successes.%s.%s", user, c.Stage)
+				countName := fmt.Sprintf("log-iss.auth.%s.%s.successes", user, c.Stage)
 				counter := metrics.GetOrRegisterCounter(countName, ba.registry)
 				counter.Inc(1)
 				return true
 			}
 		}
 		log.WithFields(log.Fields{"ns": "auth", "at": "failure", "user": user}).Info()
-		countName := fmt.Sprintf("log-iss.auth.failures.%s", user)
+		countName := fmt.Sprintf("log-iss.auth.%s.failures", user)
 		counter := metrics.GetOrRegisterCounter(countName, ba.registry)
 		counter.Inc(1)
 	} else {
