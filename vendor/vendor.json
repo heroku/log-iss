@@ -69,12 +69,6 @@
 			"revisionTime": "2019-01-21T14:27:48Z"
 		},
 		{
-			"checksumSHA1": "RzTq0lZZ9oRSEHuRqcTpFrFDgbo=",
-			"path": "github.com/heroku/authenticater",
-			"revision": "463c5fd4fa1798d3a421a44f76f404616ee3cda5",
-			"revisionTime": "2015-03-10T21:53:23Z"
-		},
-		{
 			"checksumSHA1": "R0+odgmi2ofJnjGwrA5d5eOHmXY=",
 			"path": "github.com/heroku/rollrus",
 			"revision": "8c4f823801514d40d7c7d6cfa13320af0a091611",
