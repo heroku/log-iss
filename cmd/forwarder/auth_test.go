@@ -21,8 +21,8 @@ func noSecretsRedis() redis.Cmdable {
 func oneSecretRedis() redis.Cmdable {
 	r := redismock.NewMock()
 	m := make(map[string]string)
-	creds := make([]Credential, 0, 1)
-	creds = append(creds, Credential{Stage: "current", Hmac: hmacEncode("hmacKey", "newpassword")})
+	creds := make([]credential, 0, 1)
+	creds = append(creds, credential{Stage: "current", Hmac: hmacEncode("hmacKey", "newpassword")})
 	m["newuser"] = marshal(creds)
 	cmd := redis.NewStringStringMapResult(m, nil)
 	r.On("HGetAll").Return(cmd)
@@ -32,15 +32,15 @@ func oneSecretRedis() redis.Cmdable {
 func overrideRedis() redis.Cmdable {
 	r := redismock.NewMock()
 	m := make(map[string]string)
-	creds := make([]Credential, 0, 1)
-	creds = append(creds, Credential{Stage: "current", Hmac: hmacEncode("hmacKey", "newpassword")})
+	creds := make([]credential, 0, 1)
+	creds = append(creds, credential{Stage: "current", Hmac: hmacEncode("hmacKey", "newpassword")})
 	m["user"] = marshal(creds)
 	cmd := redis.NewStringStringMapResult(m, nil)
 	r.On("HGetAll").Return(cmd)
 	return r
 }
 
-func marshal(creds []Credential) string {
+func marshal(creds []credential) string {
 	b, err := json.Marshal(creds)
 	if err != nil {
 		panic(err)
@@ -99,11 +99,12 @@ func TestRefreshAuth(t *testing.T) {
 	}
 
 	for name, test := range tests {
-		t.Logf("Running test case %s", name)
-		changed, err := refreshAuth(test.auth, test.client, "hmacKey", "key", test.config)
-		assert.Equal(t, test.expectChanged, changed)
-		assert.Equal(t, test.expectError, err)
-		assert.Equal(t, test.expectedCreds.creds, test.auth.creds)
+		t.Run(name, func(t *testing.T) {
+			changed, err := refreshAuth(test.auth, test.client, "hmacKey", "key", test.config)
+			assert.Equal(t, test.expectChanged, changed)
+			assert.Equal(t, test.expectError, err)
+			assert.Equal(t, test.expectedCreds.creds, test.auth.creds)
+		})
 	}
 }
 

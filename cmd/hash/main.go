@@ -26,7 +26,6 @@ func hmacEncode(key string, value string) string {
 func main() {
 	var config AuthConfig
 	err := envdecode.Decode(&config)
-
 	if err != nil {
 		log.Fatalln(err)
 	}

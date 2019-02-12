@@ -20,17 +20,21 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func newAuth(config AuthConfig, registry metrics.Registry) (*BasicAuth, error) {
-	var err error
+// credentials are used by basic auth and include the hash of a valid password, plus
+// a "stage" string which is used to emit metrics that are useful when managing credrolls, so that
+// we can track whether or not deprecated passwords are still in use.
+type credential struct {
+	Stage string `json:stage`
+	Hmac  string `json:hmac`
+}
 
+func newAuth(config AuthConfig, registry metrics.Registry) (*BasicAuth, error) {
 	if config.RedisUrl != "" && config.RedisKey == "" {
-		err = errors.New("RedisKey must be set if RedisUrl is set")
-		return nil, err
+		return nil, errors.New("RedisKey must be set if RedisUrl is set")
 	}
 
 	if config.RedisUrl == "" && config.Tokens == "" {
-		err = errors.New("At least one of RedisUrl or Tokens must be set.")
-		return nil, err
+		return nil, errors.New("At least one of RedisUrl or Tokens must be set.")
 	}
 
 	result, err := NewBasicAuthFromString(config.Tokens, config.HmacKey, registry)
@@ -39,60 +43,62 @@ func newAuth(config AuthConfig, registry metrics.Registry) (*BasicAuth, error) {
 		return result, err
 	}
 
+	if config.RedisUrl == "" {
+		return result, err
+	}
+	// Parse redis db out of url
+	u, err := url.Parse(config.RedisUrl)
+	if err != nil {
+		return result, err
+	}
+
+	var db int
+	if u.Path != "" && u.Path != "/" {
+		db, err = strconv.Atoi(u.Path[1:len(u.Path)])
+		if err != nil {
+			return result, err
+		}
+	}
+
+	ui := u.User
+	password := ""
+	if ui != nil {
+		password, _ = ui.Password()
+	}
+	client := redis.NewClient(
+		&redis.Options{
+			Addr:     u.Host,
+			Password: password,
+			DB:       db,
+		},
+	)
+
+	// Refresh once at the start.
+	// Ignore errors here - if redis is down, we don't want the process to fail to start.
+	_, _ = refreshAuth(result, client, config.HmacKey, config.RedisKey, config.Tokens)
+
+	// Initialize metrics
 	pChanges := metrics.GetOrRegisterCounter("log-iss.auth_refresh.changes", registry)
 	pFailures := metrics.GetOrRegisterCounter("log-iss.auth_refresh.failures", registry)
 	pSuccesses := metrics.GetOrRegisterCounter("log-iss.auth_refresh.successes", registry)
 
-	if config.RedisUrl != "" {
-		// Parse redis db out of url
-		u, err := url.Parse(config.RedisUrl)
-		if err != nil {
-			return result, err
-		}
-
-		var db int
-		if u.Path != "" && u.Path != "/" {
-			db, err = strconv.Atoi(u.Path[1:len(u.Path)])
-			if err != nil {
-				return result, err
-			}
-		}
-
-		ui := u.User
-		password := ""
-		if ui != nil {
-			password, _ = ui.Password()
-		}
-		client := redis.NewClient(
-			&redis.Options{
-				Addr:     u.Host,
-				Password: password,
-				DB:       db,
-			},
-		)
-
-		// Refresh once at the start.
-		// Ignore errors here - if redis is down, we don't want the process to fail to start.
-		_, _ = refreshAuth(result, client, config.HmacKey, config.RedisKey, config.Tokens)
-
-		// Refresh forever
-		ticker := time.NewTicker(config.RefreshInterval)
-		go func() {
-			changed := false
-			for _ = range ticker.C {
-				_, err := refreshAuth(result, client, config.HmacKey, config.RedisKey, config.Tokens)
-				if err == nil {
-					pSuccesses.Inc(1)
-					if changed {
-						pChanges.Inc(1)
-					}
-				} else {
-					fmt.Printf("Unable to refresh credentials: %s", err)
-					pFailures.Inc(1)
+	// Refresh forever
+	ticker := time.NewTicker(config.RefreshInterval)
+	go func() {
+		changed := false
+		for _ = range ticker.C {
+			_, err := refreshAuth(result, client, config.HmacKey, config.RedisKey, config.Tokens)
+			if err == nil {
+				pSuccesses.Inc(1)
+				if changed {
+					pChanges.Inc(1)
 				}
+			} else {
+				fmt.Printf("Unable to refresh credentials: %s", err)
+				pFailures.Inc(1)
 			}
-		}()
-	}
+		}
+	}()
 
 	return result, err
 }
@@ -114,7 +120,7 @@ func refreshAuth(ba *BasicAuth, client redis.Cmdable, hmacKey string, redisKey s
 	}
 
 	for k, v := range r {
-		var arr []Credential
+		var arr []credential
 		err = json.Unmarshal([]byte(v), &arr)
 
 		if err != nil {
@@ -137,7 +143,7 @@ func refreshAuth(ba *BasicAuth, client redis.Cmdable, hmacKey string, redisKey s
 // password for the same user and is safe for concurrent use.
 type BasicAuth struct {
 	sync.RWMutex
-	creds    map[string][]Credential
+	creds    map[string][]credential
 	hmacKey  string
 	registry metrics.Registry
 }
@@ -175,7 +181,7 @@ func hmacEncode(key string, value string) string {
 
 func NewBasicAuth(registry metrics.Registry, hmacKey string) *BasicAuth {
 	return &BasicAuth{
-		creds:    make(map[string][]Credential),
+		creds:    make(map[string][]credential),
 		hmacKey:  hmacKey,
 		registry: registry,
 	}
@@ -186,9 +192,9 @@ func (ba *BasicAuth) AddPrincipal(user string, hmac string, stage string) {
 	ba.Lock()
 	u, existed := ba.creds[user]
 	if !existed {
-		u = make([]Credential, 0, 1)
+		u = make([]credential, 0, 1)
 	}
-	ba.creds[user] = append(u, Credential{Stage: stage, Hmac: hmac})
+	ba.creds[user] = append(u, credential{Stage: stage, Hmac: hmac})
 	ba.Unlock()
 }
 
