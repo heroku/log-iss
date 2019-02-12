@@ -169,11 +169,12 @@ func TestNewAuth(t *testing.T) {
 	registry := metrics.NewRegistry()
 
 	for name, test := range tests {
-		t.Logf("Running test case %s", name)
-		_, err := newAuth(test.config, registry)
-		if test.success && err != nil {
-			assert.Fail(t, err.Error())
-		}
+		t.Run(name, func(t *testing.T) {
+			_, err := newAuth(test.config, registry)
+			if test.success && err != nil {
+				assert.Fail(t, err.Error())
+			}
+		})
 	}
 }
 
@@ -198,12 +199,13 @@ func TestAuthenticate(t *testing.T) {
 	}
 
 	for name, test := range tests {
-		t.Logf("Running test case %s", name)
-		r, err := http.NewRequest("POST", "http://localhost", nil)
-		if err != nil {
-			panic(err.Error())
-		}
-		r.SetBasicAuth("user", test.password)
-		assert.Equal(t, test.authenticated, auth.Authenticate(r))
+		t.Run(name, func(t *testing.T) {
+			r, err := http.NewRequest("POST", "http://localhost", nil)
+			if err != nil {
+				panic(err.Error())
+			}
+			r.SetBasicAuth("user", test.password)
+			assert.Equal(t, test.authenticated, auth.Authenticate(r))
+		})
 	}
 }
