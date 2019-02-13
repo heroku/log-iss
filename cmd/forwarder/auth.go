@@ -8,9 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"net/url"
 	"reflect"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -46,66 +44,48 @@ func newAuth(config AuthConfig, registry metrics.Registry) (*BasicAuth, error) {
 	if config.RedisUrl == "" {
 		return result, err
 	}
+
 	// Parse redis db out of url
-	u, err := url.Parse(config.RedisUrl)
+	opt, err := redis.ParseURL(config.RedisUrl)
 	if err != nil {
 		return result, err
 	}
-
-	var db int
-	if u.Path != "" && u.Path != "/" {
-		db, err = strconv.Atoi(u.Path[1:len(u.Path)])
-		if err != nil {
-			return result, err
-		}
-	}
-
-	ui := u.User
-	password := ""
-	if ui != nil {
-		password, _ = ui.Password()
-	}
-	client := redis.NewClient(
-		&redis.Options{
-			Addr:     u.Host,
-			Password: password,
-			DB:       db,
-		},
-	)
+	client := redis.NewClient(opt)
 
 	// Refresh once at the start.
 	// Ignore errors here - if redis is down, we don't want the process to fail to start.
-	_, _ = refreshAuth(result, client, config.HmacKey, config.RedisKey, config.Tokens)
+	_, _ = result.refresh(client, config.HmacKey, config.RedisKey, config.Tokens)
 
-	// Initialize metrics
-	pChanges := metrics.GetOrRegisterCounter("log-iss.auth_refresh.changes", registry)
-	pFailures := metrics.GetOrRegisterCounter("log-iss.auth_refresh.failures", registry)
-	pSuccesses := metrics.GetOrRegisterCounter("log-iss.auth_refresh.successes", registry)
-
-	// Refresh forever
-	ticker := time.NewTicker(config.RefreshInterval)
-	go func() {
-		changed := false
-		for _ = range ticker.C {
-			_, err := refreshAuth(result, client, config.HmacKey, config.RedisKey, config.Tokens)
-			if err == nil {
-				pSuccesses.Inc(1)
-				if changed {
-					pChanges.Inc(1)
-				}
-			} else {
-				fmt.Printf("Unable to refresh credentials: %s", err)
-				pFailures.Inc(1)
-			}
-		}
-	}()
+	// Refresh forever.
+	go result.startRefresh(client, config, registry)
 
 	return result, err
 }
 
+func (auth *BasicAuth) startRefresh(client *redis.Client, config AuthConfig, registry metrics.Registry) {
+	pChanges := metrics.GetOrRegisterCounter("log-iss.auth_refresh.changes", registry)
+	pFailures := metrics.GetOrRegisterCounter("log-iss.auth_refresh.failures", registry)
+	pSuccesses := metrics.GetOrRegisterCounter("log-iss.auth_refresh.successes", registry)
+	ticker := time.NewTicker(config.RefreshInterval)
+
+	for ; true; <-ticker.C {
+		changed, err := auth.refresh(client, config.HmacKey, config.RedisKey, config.Tokens)
+		if err == nil {
+			pSuccesses.Inc(1)
+			if changed {
+				pChanges.Inc(1)
+			}
+			continue
+		}
+		log.WithFields(log.Fields{"ns": "auth", "at": "error", "refresh": true, "message": err.Error()}).Info()
+		fmt.Printf("Unable to refresh credentials: %s", err)
+		pFailures.Inc(1)
+	}
+}
+
 // Refresh auth credentials.
 // Return true if credentials changed, false otherwise.
-func refreshAuth(ba *BasicAuth, client redis.Cmdable, hmacKey string, redisKey string, config string) (bool, error) {
+func (ba *BasicAuth) refresh(client redis.Cmdable, hmacKey string, redisKey string, config string) (bool, error) {
 	// Start out using the strings from config
 	nba, err := NewBasicAuthFromString(config, hmacKey, ba.registry)
 	if err != nil {
@@ -114,6 +94,11 @@ func refreshAuth(ba *BasicAuth, client redis.Cmdable, hmacKey string, redisKey s
 
 	// Retrieve all secrets and construct a string in the format expected by BasicAuth
 	val := client.HGetAll(redisKey)
+	// Return error if the key does not exist.
+	if val == nil {
+		return false, fmt.Errorf("Key %s not found", redisKey)
+	}
+
 	r, err := val.Result()
 	if err != nil {
 		return false, err
@@ -122,7 +107,6 @@ func refreshAuth(ba *BasicAuth, client redis.Cmdable, hmacKey string, redisKey s
 	for k, v := range r {
 		var arr []credential
 		err = json.Unmarshal([]byte(v), &arr)
-
 		if err != nil {
 			return false, err
 		}
@@ -165,17 +149,14 @@ func NewBasicAuthFromString(creds string, hmacKey string, registry metrics.Regis
 			return ba, fmt.Errorf("Unable to create credentials from '%s'", u)
 		}
 
-		value := uparts[1]
-		ba.AddPrincipal(uparts[0], hmacEncode(hmacKey, value), "env")
+		ba.AddPrincipal(uparts[0], hmacEncode(hmacKey, uparts[1]), "env")
 	}
 	return ba, nil
 }
 
-func hmacEncode(key string, value string) string {
-	secret := []byte(key)
-	message := []byte(value)
-	hash := hmac.New(sha512.New, secret)
-	hash.Write(message)
+func hmacEncode(key string, message string) string {
+	hash := hmac.New(sha512.New, []byte(key))
+	hash.Write([]byte(message))
 	return hex.EncodeToString(hash.Sum(nil))
 }
 
@@ -190,8 +171,8 @@ func NewBasicAuth(registry metrics.Registry, hmacKey string) *BasicAuth {
 // AddPrincipal add's a user/password combo to the list of valid combinations
 func (ba *BasicAuth) AddPrincipal(user string, hmac string, stage string) {
 	ba.Lock()
-	u, existed := ba.creds[user]
-	if !existed {
+	u, exists := ba.creds[user]
+	if !exists {
 		u = make([]credential, 0, 1)
 	}
 	ba.creds[user] = append(u, credential{Stage: stage, Hmac: hmac})
@@ -210,22 +191,22 @@ func (ba *BasicAuth) Authenticate(r *http.Request) bool {
 	ba.RLock()
 	defer ba.RUnlock()
 
-	if credentials, exists := ba.creds[user]; exists {
-		for _, c := range credentials {
-			if c.Hmac == hmacEncode(ba.hmacKey, pass) {
-				countName := fmt.Sprintf("log-iss.auth.%s.%s.successes", user, c.Stage)
-				counter := metrics.GetOrRegisterCounter(countName, ba.registry)
-				counter.Inc(1)
-				return true
-			}
-		}
+	credentials, exists := ba.creds[user]
+	if !exists {
 		log.WithFields(log.Fields{"ns": "auth", "at": "failure", "user": user}).Info()
-		countName := fmt.Sprintf("log-iss.auth.%s.failures", user)
-		counter := metrics.GetOrRegisterCounter(countName, ba.registry)
-		counter.Inc(1)
-	} else {
-		log.WithFields(log.Fields{"ns": "auth", "at": "failure", "user": user}).Info()
+		return false
 	}
 
+	for _, c := range credentials {
+		if c.Hmac == hmacEncode(ba.hmacKey, pass) {
+			countName := fmt.Sprintf("log-iss.auth.%s.%s.successes", user, c.Stage)
+			counter := metrics.GetOrRegisterCounter(countName, ba.registry)
+			counter.Inc(1)
+			return true
+		}
+	}
+	countName := fmt.Sprintf("log-iss.auth.%s.failures", user)
+	counter := metrics.GetOrRegisterCounter(countName, ba.registry)
+	counter.Inc(1)
 	return false
 }

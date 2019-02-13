@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"testing"
 	"time"
@@ -37,6 +38,12 @@ func overrideRedis() redis.Cmdable {
 	m["user"] = marshal(creds)
 	cmd := redis.NewStringStringMapResult(m, nil)
 	r.On("HGetAll").Return(cmd)
+	return r
+}
+
+func missingKeyRedis() redis.Cmdable {
+	r := redismock.NewMock()
+	r.On("HGetAll").Return((*redis.StringStringMapCmd)(nil))
 	return r
 }
 
@@ -96,11 +103,19 @@ func TestRefreshAuth(t *testing.T) {
 			expectedCreds: overrideCreds(),
 			expectChanged: true,
 		},
+		"Redis key does not exist": {
+			auth:          defaultCreds(),
+			client:        missingKeyRedis(),
+			config:        "user:password",
+			expectedCreds: defaultCreds(),
+			expectError:   fmt.Errorf("Key key not found"),
+			expectChanged: false,
+		},
 	}
 
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			changed, err := refreshAuth(test.auth, test.client, "hmacKey", "key", test.config)
+			changed, err := test.auth.refresh(test.client, "hmacKey", "key", test.config)
 			assert.Equal(t, test.expectChanged, changed)
 			assert.Equal(t, test.expectError, err)
 			assert.Equal(t, test.expectedCreds.creds, test.auth.creds)
