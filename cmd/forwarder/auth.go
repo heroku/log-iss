@@ -171,12 +171,12 @@ func NewBasicAuth(registry metrics.Registry, hmacKey string) *BasicAuth {
 // AddPrincipal add's a user/password combo to the list of valid combinations
 func (ba *BasicAuth) AddPrincipal(user string, hmac string, stage string) {
 	ba.Lock()
+	defer ba.Unlock()
 	u, exists := ba.creds[user]
 	if !exists {
 		u = make([]credential, 0, 1)
 	}
 	ba.creds[user] = append(u, credential{Stage: stage, Hmac: hmac})
-	ba.Unlock()
 }
 
 // Authenticate is true if the Request has a valid BasicAuth signature and
