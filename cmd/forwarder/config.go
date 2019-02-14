@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/joeshaw/envdecode"
@@ -20,7 +19,6 @@ type IssConfig struct {
 	ForwardDestConnectTimeout time.Duration `env:"FORWARD_DEST_CONNECT_TIMEOUT,default=10s"`
 	ForwardCount              int           `env:"FORWARD_COUNT,default=4"`
 	HttpPort                  string        `env:"PORT,required"`
-	Tokens                    string        `env:"TOKEN_MAP,required"`
 	EnforceSsl                bool          `env:"ENFORCE_SSL,default=false"`
 	PemFile                   string        `env:"PEMFILE"`
 	LibratoSource             string        `env:"LIBRATO_SOURCE"`
@@ -31,8 +29,20 @@ type IssConfig struct {
 	Debug                     bool          `env:"LOG_ISS_DEBUG"`
 	TlsConfig                 *tls.Config
 	MetricsRegistry           metrics.Registry
-	tokenMap                  map[string]string
-	tokenMapOnce              sync.Once
+}
+
+type AuthConfig struct {
+	HmacKey         string        `env:"HMAC_KEY,required"`
+	RedisUrl        string        `env:"REDIS_URL"`
+	RedisKey        string        `env:"REDIS_KEY"`
+	RefreshInterval time.Duration `env:"CREDENTIAL_REFRESH_INTERVAL,default=1m,strict"`
+	Tokens          string        `env:"TOKEN_MAP"`
+}
+
+func NewAuthConfig() (AuthConfig, error) {
+	var config AuthConfig
+	err := envdecode.Decode(&config)
+	return config, err
 }
 
 func NewIssConfig() (IssConfig, error) {
@@ -69,21 +79,4 @@ func NewIssConfig() (IssConfig, error) {
 	config.MetricsRegistry = metrics.NewRegistry()
 
 	return config, nil
-}
-
-func (c *IssConfig) TokenMap() map[string]string {
-	tmExtract := func() {
-		if c.tokenMap == nil {
-			pairs := strings.Split(c.Tokens, "|")
-			c.tokenMap = make(map[string]string)
-
-			for _, pair := range pairs {
-				unameToken := strings.Split(pair, ":")
-				c.tokenMap[unameToken[0]] = unameToken[1]
-			}
-		}
-	}
-	c.tokenMapOnce.Do(tmExtract)
-
-	return c.tokenMap
 }

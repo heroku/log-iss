@@ -10,7 +10,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/heroku/authenticater"
 	metrics "github.com/rcrowley/go-metrics"
 	log "github.com/sirupsen/logrus"
 )
@@ -31,7 +30,7 @@ func NewPayload(sa string, ri string, b []byte) payload {
 	}
 }
 
-type FixerFunc func(*http.Request, io.Reader, string, string, string, *IssConfig) (bool, int64, []byte, error)
+type FixerFunc func(*http.Request, io.Reader, string, string, string) (bool, int64, []byte, error)
 
 type httpServer struct {
 	Config                IssConfig
@@ -39,7 +38,7 @@ type httpServer struct {
 	shutdownCh            shutdownCh
 	deliverer             deliverer
 	isShuttingDown        bool
-	auth                  authenticater.Authenticater
+	auth                  *BasicAuth
 	posts                 metrics.Timer   // tracks metrics about posts
 	healthChecks          metrics.Timer   // tracks metrics about health checks
 	pErrors               metrics.Counter // tracks the count of post errors
@@ -54,7 +53,7 @@ type httpServer struct {
 	sync.WaitGroup
 }
 
-func newHTTPServer(config IssConfig, auth authenticater.Authenticater, fixerFunc FixerFunc, deliverer deliverer) *httpServer {
+func newHTTPServer(config IssConfig, auth *BasicAuth, fixerFunc FixerFunc, deliverer deliverer) *httpServer {
 	return &httpServer{
 		auth:                  auth,
 		Config:                config,
@@ -200,7 +199,7 @@ func (s *httpServer) process(req *http.Request, r io.Reader, remoteAddr string, 
 	s.Add(1)
 	defer s.Done()
 
-	hasMetadata, numLogs, fixedBody, err := s.FixerFunc(req, r, remoteAddr, logplexDrainToken, metadataId, &s.Config)
+	hasMetadata, numLogs, fixedBody, err := s.FixerFunc(req, r, remoteAddr, logplexDrainToken, metadataId)
 	if err != nil {
 		return errors.New("Problem fixing body: " + err.Error()), http.StatusBadRequest
 	}

@@ -8,7 +8,6 @@ import (
 
 	"github.com/rcrowley/go-metrics/librato"
 
-	"github.com/heroku/authenticater"
 	"github.com/heroku/rollrus"
 	log "github.com/sirupsen/logrus"
 )
@@ -36,7 +35,12 @@ func main() {
 
 	log.AddHook(&DefaultFieldsHook{log.Fields{"app": "log-iss", "source": config.Deploy}})
 
-	auth, err := authenticater.NewBasicAuthFromString(config.Tokens)
+	authConfig, err := NewAuthConfig()
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	auth, err := newAuth(authConfig, config.MetricsRegistry)
 	if err != nil {
 		log.Fatalln(err)
 	}

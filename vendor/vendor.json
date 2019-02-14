@@ -21,10 +21,52 @@
 			"revisionTime": "2018-02-21T22:46:20Z"
 		},
 		{
-			"checksumSHA1": "RzTq0lZZ9oRSEHuRqcTpFrFDgbo=",
-			"path": "github.com/heroku/authenticater",
-			"revision": "463c5fd4fa1798d3a421a44f76f404616ee3cda5",
-			"revisionTime": "2015-03-10T21:53:23Z"
+			"checksumSHA1": "C3QEaB3TK85gYM9FwMcnZeemE6Y=",
+			"path": "github.com/elliotchance/redismock",
+			"revision": "11ab9de4762a6fb401bf1c5049bc21c8798de3fc",
+			"revisionTime": "2019-01-03T22:15:42Z"
+		},
+		{
+			"checksumSHA1": "Bfy1uubkbAOD7iaS7ruomaB588I=",
+			"path": "github.com/go-redis/redis",
+			"revision": "40336e5ef89189115c9897cdc8f2b13d7a470015",
+			"revisionTime": "2019-01-21T14:27:48Z"
+		},
+		{
+			"checksumSHA1": "z12gGj6VbVBcPOvof1aCM+DVGRU=",
+			"path": "github.com/go-redis/redis/internal",
+			"revision": "40336e5ef89189115c9897cdc8f2b13d7a470015",
+			"revisionTime": "2019-01-21T14:27:48Z"
+		},
+		{
+			"checksumSHA1": "GQZsUVg/+6UpQAYpc4luMvMutSI=",
+			"path": "github.com/go-redis/redis/internal/consistenthash",
+			"revision": "40336e5ef89189115c9897cdc8f2b13d7a470015",
+			"revisionTime": "2019-01-21T14:27:48Z"
+		},
+		{
+			"checksumSHA1": "l66eTZiJqueypc56HXCakGDm784=",
+			"path": "github.com/go-redis/redis/internal/hashtag",
+			"revision": "40336e5ef89189115c9897cdc8f2b13d7a470015",
+			"revisionTime": "2019-01-21T14:27:48Z"
+		},
+		{
+			"checksumSHA1": "WoUjtqpn00RUnAgZLljk3lWfpSQ=",
+			"path": "github.com/go-redis/redis/internal/pool",
+			"revision": "40336e5ef89189115c9897cdc8f2b13d7a470015",
+			"revisionTime": "2019-01-21T14:27:48Z"
+		},
+		{
+			"checksumSHA1": "zCo0t+gRBbctwyIpkDLrqRFtXew=",
+			"path": "github.com/go-redis/redis/internal/proto",
+			"revision": "40336e5ef89189115c9897cdc8f2b13d7a470015",
+			"revisionTime": "2019-01-21T14:27:48Z"
+		},
+		{
+			"checksumSHA1": "1PH2NoAB/u3IZmLYyCrIbOzqLZ4=",
+			"path": "github.com/go-redis/redis/internal/util",
+			"revision": "40336e5ef89189115c9897cdc8f2b13d7a470015",
+			"revisionTime": "2019-01-21T14:27:48Z"
 		},
 		{
 			"checksumSHA1": "R0+odgmi2ofJnjGwrA5d5eOHmXY=",
