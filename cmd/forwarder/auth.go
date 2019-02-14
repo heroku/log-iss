@@ -22,8 +22,8 @@ import (
 // a "stage" string which is used to emit metrics that are useful when managing credrolls, so that
 // we can track whether or not deprecated passwords are still in use.
 type credential struct {
-	Stage string `json:stage`
-	Hmac  string `json:hmac`
+	Stage string `json:"stage"`
+	Hmac  string `json:"hmac"`
 }
 
 func newAuth(config AuthConfig, registry metrics.Registry) (*BasicAuth, error) {
