@@ -52,10 +52,6 @@ func newAuth(config AuthConfig, registry metrics.Registry) (*BasicAuth, error) {
 	}
 	client := redis.NewClient(opt)
 
-	// Refresh once at the start.
-	// Ignore errors here - if redis is down, we don't want the process to fail to start.
-	_, _ = result.refresh(client, config.HmacKey, config.RedisKey, config.Tokens)
-
 	// Refresh forever.
 	go result.startRefresh(client, config, registry)
 
@@ -78,7 +74,6 @@ func (auth *BasicAuth) startRefresh(client *redis.Client, config AuthConfig, reg
 			continue
 		}
 		log.WithFields(log.Fields{"ns": "auth", "at": "error", "refresh": true, "message": err.Error()}).Info()
-		fmt.Printf("Unable to refresh credentials: %s", err)
 		pFailures.Inc(1)
 	}
 }
