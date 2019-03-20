@@ -22,7 +22,7 @@ import (
 // a "stage" string which is used to emit metrics that are useful when managing credrolls, so that
 // we can track whether or not deprecated passwords are still in use.
 type credential struct {
-	Name       string
+	Name       string `json:"name"`
 	Stage      string `json:"stage"`
 	Deprecated bool   `json:"deprecated"`
 	Hmac       string `json:"hmac"`
@@ -106,9 +106,6 @@ func (ba *BasicAuth) refresh(client redis.Cmdable, hmacKey string, redisKey stri
 		err = json.Unmarshal([]byte(v), &arr)
 		if err != nil {
 			return false, err
-		}
-		for _, c := range arr {
-			c.Name = k
 		}
 		nba.creds[k] = arr
 	}
