@@ -51,12 +51,12 @@ func TestFixWithQueryParameters(t *testing.T) {
 	assert.Equal(int64(2), numLogs)
 }
 
-func TestFixWithPreviousCredential(t *testing.T) {
+func TestFixWithDeprecatedCredential(t *testing.T) {
 	assert := assert.New(t)
-	var output = []byte("177 <13>1 2013-06-07T13:17:49.468822+00:00 host heroku web.7 - [origin ip=\"1.2.3.4\"][metadata@123 index=\"i\" source=\"s\" sourcetype=\"st\" fields=\"{'credential_stage': 'previous'}\"] hi\n180 <13>1 2013-06-07T13:17:49.468822+00:00 host heroku web.7 - [origin ip=\"1.2.3.4\"][metadata@123 index=\"i\" source=\"s\" sourcetype=\"st\" fields=\"{'credential_stage': 'previous'}\"] hello\n")
+	var output = []byte("203 <13>1 2013-06-07T13:17:49.468822+00:00 host heroku web.7 - [origin ip=\"1.2.3.4\"][metadata@123 index=\"i\" source=\"s\" sourcetype=\"st\" fields=\"{'credential_deprecated': true, 'credential_name': 'cred'}\"] hi\n206 <13>1 2013-06-07T13:17:49.468822+00:00 host heroku web.7 - [origin ip=\"1.2.3.4\"][metadata@123 index=\"i\" source=\"s\" sourcetype=\"st\" fields=\"{'credential_deprecated': true, 'credential_name': 'cred'}\"] hello\n")
 
 	in := input[0]
-	cred := credential{Stage: "previous"}
+	cred := credential{Stage: "previous", Name: "cred", Deprecated: true}
 	hasMetadata, numLogs, fixed, _ := fix(httpRequestWithParams(), bytes.NewReader(in), "1.2.3.4", "", "metadata@123", &cred)
 
 	assert.Equal(string(fixed), string(output), "They should be equal")

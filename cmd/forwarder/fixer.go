@@ -42,14 +42,16 @@ func getMetadata(req *http.Request, cred *credential, metadataId string) ([]byte
 			}
 		}
 
-		// Add metadata about the credential stage, if an old credential is in use.
-		if cred != nil && cred.Stage == "previous" {
+		// Add metadata about the credential if it is deprecated
+		if cred != nil && cred.Deprecated == true {
 			if !foundMetadata {
 				metadataWriter.WriteString("[")
 				metadataWriter.WriteString(metadataId)
 				foundMetadata = true
 			}
-			metadataWriter.WriteString(" fields=\"{'credential_stage': 'previous'}\"")
+			metadataWriter.WriteString(" fields=\"{'credential_deprecated': true, 'credential_name': '")
+			metadataWriter.WriteString(cred.Name)
+			metadataWriter.WriteString("'}\"")
 		}
 
 		if foundMetadata {
