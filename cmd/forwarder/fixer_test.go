@@ -33,7 +33,7 @@ func TestFix(t *testing.T) {
 		[]byte("118 <13>1 2013-06-07T13:17:49.468822+00:00 host heroku web.7 - [origin ip=\"1.2.3.4\"][60607e20-f12d-483e-aa89-ffaf954e7527]"),
 	}
 	for x, in := range input {
-		hasMetadata, _, fixed, _ := fix(simpleHttpRequest(), bytes.NewReader(in), "1.2.3.4", "", "")
+		hasMetadata, _, fixed, _ := fix(simpleHttpRequest(), bytes.NewReader(in), "1.2.3.4", "", "", nil)
 		assert.Equal(string(fixed), string(output[x]))
 		assert.False(hasMetadata)
 	}
@@ -44,7 +44,20 @@ func TestFixWithQueryParameters(t *testing.T) {
 	var output = []byte("135 <13>1 2013-06-07T13:17:49.468822+00:00 host heroku web.7 - [origin ip=\"1.2.3.4\"][metadata@123 index=\"i\" source=\"s\" sourcetype=\"st\"] hi\n138 <13>1 2013-06-07T13:17:49.468822+00:00 host heroku web.7 - [origin ip=\"1.2.3.4\"][metadata@123 index=\"i\" source=\"s\" sourcetype=\"st\"] hello\n")
 
 	in := input[0]
-	hasMetadata, numLogs, fixed, _ := fix(httpRequestWithParams(), bytes.NewReader(in), "1.2.3.4", "", "metadata@123")
+	hasMetadata, numLogs, fixed, _ := fix(httpRequestWithParams(), bytes.NewReader(in), "1.2.3.4", "", "metadata@123", nil)
+
+	assert.Equal(string(fixed), string(output), "They should be equal")
+	assert.True(hasMetadata)
+	assert.Equal(int64(2), numLogs)
+}
+
+func TestFixWithPreviousCredential(t *testing.T) {
+	assert := assert.New(t)
+	var output = []byte("177 <13>1 2013-06-07T13:17:49.468822+00:00 host heroku web.7 - [origin ip=\"1.2.3.4\"][metadata@123 index=\"i\" source=\"s\" sourcetype=\"st\" fields=\"{'credential_stage': 'previous'}\"] hi\n180 <13>1 2013-06-07T13:17:49.468822+00:00 host heroku web.7 - [origin ip=\"1.2.3.4\"][metadata@123 index=\"i\" source=\"s\" sourcetype=\"st\" fields=\"{'credential_stage': 'previous'}\"] hello\n")
+
+	in := input[0]
+	cred := credential{Stage: "previous"}
+	hasMetadata, numLogs, fixed, _ := fix(httpRequestWithParams(), bytes.NewReader(in), "1.2.3.4", "", "metadata@123", &cred)
 
 	assert.Equal(string(fixed), string(output), "They should be equal")
 	assert.True(hasMetadata)
@@ -64,7 +77,7 @@ func TestFixWithLogplexDrainToken(t *testing.T) {
 	}
 
 	for x, in := range input {
-		hasMetadata, _, fixed, _ := fix(simpleHttpRequest(), bytes.NewReader(in), "1.2.3.4", testToken, "")
+		hasMetadata, _, fixed, _ := fix(simpleHttpRequest(), bytes.NewReader(in), "1.2.3.4", testToken, "", nil)
 		assert.Equal(string(fixed), string(output[x]))
 		assert.False(hasMetadata)
 	}
@@ -75,7 +88,7 @@ func BenchmarkFixNoSD(b *testing.B) {
 	b.SetBytes(int64(len(input)))
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		fix(simpleHttpRequest(), bytes.NewReader(input), "1.2.3.4", "", "")
+		fix(simpleHttpRequest(), bytes.NewReader(input), "1.2.3.4", "", "", nil)
 	}
 }
 
@@ -84,7 +97,7 @@ func BenchmarkFixSD(b *testing.B) {
 	b.SetBytes(int64(len(input)))
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		fix(simpleHttpRequest(), bytes.NewReader(input), "1.2.3.4", "", "")
+		fix(simpleHttpRequest(), bytes.NewReader(input), "1.2.3.4", "", "", nil)
 	}
 }
 

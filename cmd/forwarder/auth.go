@@ -174,13 +174,13 @@ func (ba *BasicAuth) AddPrincipal(user string, hmac string, stage string) {
 	ba.creds[user] = append(u, credential{Stage: stage, Hmac: hmac})
 }
 
-// Authenticate is true if the Request has a valid BasicAuth signature and
+// Authenticate returns the credential used to authenticate if the Request has a valid BasicAuth signature and
 // that signature encodes a known username/password combo.
-func (ba *BasicAuth) Authenticate(r *http.Request) bool {
+func (ba *BasicAuth) Authenticate(r *http.Request) *credential {
 	user, pass, ok := r.BasicAuth()
 	if !ok {
 		log.WithFields(log.Fields{"ns": "auth", "at": "failure", "no_basic_auth": true}).Info()
-		return false
+		return nil
 	}
 
 	ba.RLock()
@@ -189,7 +189,7 @@ func (ba *BasicAuth) Authenticate(r *http.Request) bool {
 	credentials, exists := ba.creds[user]
 	if !exists {
 		log.WithFields(log.Fields{"ns": "auth", "at": "failure", "user": user}).Info()
-		return false
+		return nil
 	}
 
 	for _, c := range credentials {
@@ -197,11 +197,11 @@ func (ba *BasicAuth) Authenticate(r *http.Request) bool {
 			countName := fmt.Sprintf("log-iss.auth.%s.%s.successes", user, c.Stage)
 			counter := metrics.GetOrRegisterCounter(countName, ba.registry)
 			counter.Inc(1)
-			return true
+			return &c
 		}
 	}
 	countName := fmt.Sprintf("log-iss.auth.%s.failures", user)
 	counter := metrics.GetOrRegisterCounter(countName, ba.registry)
 	counter.Inc(1)
-	return false
+	return nil
 }

@@ -21,7 +21,7 @@ var queryParams = []string{"index", "source", "sourcetype"}
 
 // Get metadata from the http request.
 // Returns an empty byte array if there isn't any.
-func getMetadata(req *http.Request, metadataId string) ([]byte, bool) {
+func getMetadata(req *http.Request, cred *credential, metadataId string) ([]byte, bool) {
 	var metadataWriter bytes.Buffer
 	var foundMetadata bool
 	// Calculate metadata query parameters
@@ -41,6 +41,17 @@ func getMetadata(req *http.Request, metadataId string) ([]byte, bool) {
 				metadataWriter.WriteString("\"")
 			}
 		}
+
+		// Add metadata about the credential stage, if an old credential is in use.
+		if cred != nil && cred.Stage == "previous" {
+			if !foundMetadata {
+				metadataWriter.WriteString("[")
+				metadataWriter.WriteString(metadataId)
+				foundMetadata = true
+			}
+			metadataWriter.WriteString(" fields=\"{'credential_stage': 'previous'}\"")
+		}
+
 		if foundMetadata {
 			metadataWriter.WriteString("]")
 		}
@@ -54,11 +65,11 @@ func getMetadata(req *http.Request, metadataId string) ([]byte, bool) {
 // * integer representing the number of logplex frames parsed from the HTTP request.
 // * byte array of syslog data.
 // * error if something went wrong.
-func fix(req *http.Request, r io.Reader, remoteAddr string, logplexDrainToken string, metadataId string) (bool, int64, []byte, error) {
+func fix(req *http.Request, r io.Reader, remoteAddr string, logplexDrainToken string, metadataId string, cred *credential) (bool, int64, []byte, error) {
 	var messageWriter bytes.Buffer
 	var messageLenWriter bytes.Buffer
 
-	metadataBytes, hasMetadata := getMetadata(req, metadataId)
+	metadataBytes, hasMetadata := getMetadata(req, cred, metadataId)
 
 	lp := lpx.NewReader(bufio.NewReader(r))
 	numLogs := int64(0)

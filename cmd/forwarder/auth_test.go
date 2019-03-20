@@ -220,7 +220,11 @@ func TestAuthenticate(t *testing.T) {
 				panic(err.Error())
 			}
 			r.SetBasicAuth("user", test.password)
-			assert.Equal(t, test.authenticated, auth.Authenticate(r))
+			if test.authenticated {
+				assert.NotNil(t, auth.Authenticate(r))
+			} else {
+				assert.Nil(t, auth.Authenticate(r))
+			}
 		})
 	}
 }
