@@ -76,7 +76,7 @@ func newHTTPServer(config IssConfig, auth *BasicAuth, fixerFunc FixerFunc, deliv
 		pErrors:               metrics.GetOrRegisterCounter("log-iss.http.logs.errors", config.MetricsRegistry),
 		pSuccesses:            metrics.GetOrRegisterCounter("log-iss.http.logs.successes", config.MetricsRegistry),
 		pAuthErrors:           metrics.GetOrRegisterCounter("log-iss.auth.errors", config.MetricsRegistry),
-		pAuthSuccesses:        metrics.GetOrRegisterCounter("log-is.auth.successes", config.MetricsRegistry),
+		pAuthSuccesses:        metrics.GetOrRegisterCounter("log-iss.auth.successes", config.MetricsRegistry),
 		pMetadataLogsReceived: metrics.GetOrRegisterCounter("log-iss.metadata_logs.received", config.MetricsRegistry),
 		pLogsReceived:         metrics.GetOrRegisterCounter("log-iss.logs.received", config.MetricsRegistry),
 		pMetadataLogsSent:     metrics.GetOrRegisterCounter("log-iss.metadata_logs.sent", config.MetricsRegistry),
