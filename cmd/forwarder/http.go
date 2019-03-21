@@ -30,7 +30,18 @@ func NewPayload(sa string, ri string, b []byte) payload {
 	}
 }
 
-type FixerFunc func(*http.Request, io.Reader, string, string, string) (bool, int64, []byte, error)
+// FixerFunc params:
+//  * http.Request -- incoming http request
+//  * io.Reader - request body stream
+//  * string - remote address of incoming request
+//  * string - logplex drain token
+//  * metadataId - ID to use when adding metadata to logs
+//  * credential - the credential used to authenticate
+// FixerFunc returns:
+//	* boolean - indicating whether the request has query params (aka metadata).
+//  * int64  - number of log lines read from the stream
+//  * error - if something went wrong.
+type FixerFunc func(*http.Request, io.Reader, string, string, string, *credential) (bool, int64, []byte, error)
 
 type httpServer struct {
 	Config                IssConfig
@@ -133,7 +144,8 @@ func (s *httpServer) Run() error {
 			return
 		}
 
-		if !s.auth.Authenticate(r) {
+		cred := s.auth.Authenticate(r)
+		if cred == nil {
 			s.pAuthErrors.Inc(1)
 			s.handleHTTPError(w, "Unable to authenticate request", 401)
 			return
@@ -175,7 +187,7 @@ func (s *httpServer) Run() error {
 			um.Inc(1)
 		}
 
-		if err, status := s.process(r, body, remoteAddr, requestID, logplexDrainToken, s.Config.MetadataId); err != nil {
+		if err, status := s.process(r, body, remoteAddr, requestID, logplexDrainToken, s.Config.MetadataId, cred); err != nil {
 			s.handleHTTPError(
 				w, err.Error(), status,
 				log.Fields{"remote_addr": remoteAddr, "requestId": requestID, "logdrain_token": logplexDrainToken},
@@ -195,11 +207,11 @@ func (s *httpServer) awaitShutdown() {
 	log.WithFields(log.Fields{"ns": "http", "at": "shutdown"}).Info()
 }
 
-func (s *httpServer) process(req *http.Request, r io.Reader, remoteAddr string, requestID string, logplexDrainToken string, metadataId string) (error, int) {
+func (s *httpServer) process(req *http.Request, r io.Reader, remoteAddr string, requestID string, logplexDrainToken string, metadataId string, cred *credential) (error, int) {
 	s.Add(1)
 	defer s.Done()
 
-	hasMetadata, numLogs, fixedBody, err := s.FixerFunc(req, r, remoteAddr, logplexDrainToken, metadataId)
+	hasMetadata, numLogs, fixedBody, err := s.FixerFunc(req, r, remoteAddr, logplexDrainToken, metadataId, cred)
 	if err != nil {
 		return errors.New("Problem fixing body: " + err.Error()), http.StatusBadRequest
 	}

@@ -195,16 +195,16 @@ func TestNewAuth(t *testing.T) {
 
 func TestAuthenticate(t *testing.T) {
 	tests := map[string]struct {
-		password      string
-		authenticated bool
+		password string
+		cred     *credential
 	}{
 		"User is authenticated if input password matches": {
-			password:      "password",
-			authenticated: true,
+			password: "password",
+			cred:     &credential{Stage: "env", Hmac: hmacEncode("hmacKey", "password")},
 		},
 		"User is not authenticated if input password does not match": {
-			password:      "invalidpassword",
-			authenticated: false,
+			password: "invalidpassword",
+			cred:     nil,
 		},
 	}
 
@@ -220,7 +220,7 @@ func TestAuthenticate(t *testing.T) {
 				panic(err.Error())
 			}
 			r.SetBasicAuth("user", test.password)
-			assert.Equal(t, test.authenticated, auth.Authenticate(r))
+			assert.Equal(t, test.cred, auth.Authenticate(r))
 		})
 	}
 }
