@@ -1,0 +1,39 @@
+# github.com/bmizerany/lpx v0.0.0-20130503172629-af85cf24c156
+github.com/bmizerany/lpx
+# github.com/davecgh/go-spew v1.1.1
+github.com/davecgh/go-spew/spew
+# github.com/elliotchance/redismock v1.4.0
+github.com/elliotchance/redismock
+# github.com/go-redis/redis v0.0.0-20190121142748-40336e5ef891
+github.com/go-redis/redis
+github.com/go-redis/redis/internal
+github.com/go-redis/redis/internal/consistenthash
+github.com/go-redis/redis/internal/hashtag
+github.com/go-redis/redis/internal/pool
+github.com/go-redis/redis/internal/proto
+github.com/go-redis/redis/internal/util
+# github.com/heroku/rollrus v0.0.0-20170818212624-8c4f82380151
+github.com/heroku/rollrus
+# github.com/joeshaw/envdecode v0.0.0-20180312135643-c9e015854467
+github.com/joeshaw/envdecode
+# github.com/pkg/errors v0.0.0-20170910134614-2b3a18b5f0fb
+github.com/pkg/errors
+# github.com/pmezard/go-difflib v1.0.0
+github.com/pmezard/go-difflib/difflib
+# github.com/rcrowley/go-metrics v0.0.0-20150601143443-a5cfc242a56b
+github.com/rcrowley/go-metrics
+github.com/rcrowley/go-metrics/librato
+# github.com/sirupsen/logrus v0.0.0-20180207182717-9f91ab2ef975
+github.com/sirupsen/logrus
+# github.com/stretchr/objx v0.0.0-20180426105006-a5cfa15c000a
+github.com/stretchr/objx
+# github.com/stretchr/testify v0.0.0-20180319223459-c679ae2cc0cb
+github.com/stretchr/testify/assert
+github.com/stretchr/testify/mock
+# github.com/stvp/roll v0.0.0-20170522205222-3627a5cbeaea
+github.com/stvp/roll
+# golang.org/x/crypto v0.0.0-20180206190813-d9133f546934
+golang.org/x/crypto/ssh/terminal
+# golang.org/x/sys v0.0.0-20190204203706-41f3e6584952
+golang.org/x/sys/unix
+golang.org/x/sys/windows
