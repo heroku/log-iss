@@ -4,19 +4,13 @@ GO_LINKER_VALUE := $(shell git describe --tags --always | sed s/^v//)
 all: test
 
 test:
-	govendor test -v +local
+	go test -v ./cmd/...
 
 bench:
-	govendor test -v -bench=. +local
+	go test -v -bench=. ./cmd/...
 
 install:
-	go install -a -ldflags "-X ${GO_LINKER_SYMBOL}=${GO_LINKER_VALUE}" ./...
+	go install -a -ldflags "-X ${GO_LINKER_SYMBOL}=${GO_LINKER_VALUE}" ./cmd/...
 
 build:
-	go build -a -ldflags "-X ${GO_LINKER_SYMBOL}=${GO_LINKER_VALUE}" ./...
-
-update-deps: govendor
-	govendor fetch +out
-
-govendor:
-	go get -u github.com/kardianos/govendor
+	go build -a -ldflags "-X ${GO_LINKER_SYMBOL}=${GO_LINKER_VALUE}" ./cmd/...

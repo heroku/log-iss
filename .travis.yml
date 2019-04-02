@@ -1,10 +1,9 @@
 language: go
 go:
-  - 1.9.4
+  - 1.12.1
 install:
-  - go get -u github.com/kardianos/govendor
   - npm install -g snyk
 script:
-- make test
-- snyk test
-- snyk monitor --org=sr-tools
+  - make test
+#  - snyk test
+#  - snyk monitor --org=sr-tools
