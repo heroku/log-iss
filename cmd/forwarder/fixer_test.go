@@ -101,6 +101,15 @@ func BenchmarkFixSD(b *testing.B) {
 	}
 }
 
+func BenchmarkFixSDWithMetadata(b *testing.B) {
+	input := []byte("106 <13>1 2013-06-07T13:17:49.468822+00:00 host heroku web.7 - [meta sequenceId=\"hello\"][foo bar=\"baz\"] hello\n")
+	b.SetBytes(int64(len(input)))
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		fix(simpleHttpRequest(), bytes.NewReader(input), "1.2.3.4", "", "meta", nil)
+	}
+}
+
 func httpRequestWithParams() *http.Request {
 	req, _ := http.NewRequest("POST", "/logs?index=i&source=s&sourcetype=st", nil)
 	return req
