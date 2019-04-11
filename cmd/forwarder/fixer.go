@@ -6,7 +6,6 @@ import (
 	"io"
 	"net/http"
 	"strconv"
-	"sync"
 
 	"github.com/bmizerany/lpx"
 )
@@ -20,63 +19,46 @@ const (
 var nilVal = []byte(`- `)
 var queryParams = []string{"index", "source", "sourcetype"}
 
-var pool = sync.Pool{
-	New: func() interface{} {
-		return &bytes.Buffer{}
-	},
-}
-
-func getBuffer() *bytes.Buffer {
-	return pool.Get().(*bytes.Buffer)
-}
-
-func putBuffer(b *bytes.Buffer) {
-	b.Reset() // ensure that the buffer is ready for re-use
-	pool.Put(b)
-}
-
 // Get metadata from the http request.
 // Returns an empty byte array if there isn't any.
-func getMetadata(req *http.Request, cred *credential, metadataId string) []byte {
-	if metadataId == "" { // short circuit when metadataId is empty
-		return nil
-	}
-
-	metadataWriter := getBuffer()
-	defer putBuffer(metadataWriter)
-	writeSDElementStart := func() {
-		metadataWriter.WriteString("[")
-		metadataWriter.WriteString(metadataId)
-	}
-
+func getMetadata(req *http.Request, cred *credential, metadataId string) ([]byte, bool) {
+	var metadataWriter bytes.Buffer
+	var foundMetadata bool
 	// Calculate metadata query parameters
-	for _, k := range queryParams {
-		if v := req.FormValue(k); v != "" {
-			if metadataWriter.Len() == 0 {
-				writeSDElementStart()
+	if metadataId != "" {
+		for _, k := range queryParams {
+			v := req.FormValue(k)
+			if v != "" {
+				if !foundMetadata {
+					metadataWriter.WriteString("[")
+					metadataWriter.WriteString(metadataId)
+					foundMetadata = true
+				}
+				metadataWriter.WriteString(" ")
+				metadataWriter.WriteString(k)
+				metadataWriter.WriteString("=\"")
+				metadataWriter.WriteString(v)
+				metadataWriter.WriteString("\"")
 			}
-			metadataWriter.WriteString(" ")
-			metadataWriter.WriteString(k)
-			metadataWriter.WriteString("=\"")
-			metadataWriter.WriteString(v)
-			metadataWriter.WriteString("\"")
+		}
+
+		// Add metadata about the credential if it is deprecated
+		if cred != nil && cred.Deprecated == true {
+			if !foundMetadata {
+				metadataWriter.WriteString("[")
+				metadataWriter.WriteString(metadataId)
+				foundMetadata = true
+			}
+			metadataWriter.WriteString(" fields=\"{'credential_deprecated': true, 'credential_name': '")
+			metadataWriter.WriteString(cred.Name)
+			metadataWriter.WriteString("'}\"")
+		}
+
+		if foundMetadata {
+			metadataWriter.WriteString("]")
 		}
 	}
-
-	// Add metadata about the credential if it is deprecated
-	if cred != nil && cred.Deprecated == true {
-		if metadataWriter.Len() == 0 {
-			writeSDElementStart()
-		}
-		metadataWriter.WriteString(` fields="credential_deprecated=true,credential_name=`)
-		metadataWriter.WriteString(cred.Name)
-		metadataWriter.WriteString(`"`)
-	}
-
-	if metadataWriter.Len() > 0 {
-		metadataWriter.WriteString("]")
-	}
-	return metadataWriter.Bytes()
+	return metadataWriter.Bytes(), foundMetadata
 }
 
 // Fix function to convert post data to length prefixed syslog frames
@@ -86,18 +68,15 @@ func getMetadata(req *http.Request, cred *credential, metadataId string) []byte 
 // * byte array of syslog data.
 // * error if something went wrong.
 func fix(req *http.Request, r io.Reader, remoteAddr string, logplexDrainToken string, metadataId string, cred *credential) (bool, int64, []byte, error) {
-	messageWriter := getBuffer()
-	messageLenWriter := getBuffer()
-	defer func() {
-		putBuffer(messageWriter)
-		putBuffer(messageLenWriter)
-	}()
+	var messageWriter bytes.Buffer
+	var messageLenWriter bytes.Buffer
 
-	metadataBytes := getMetadata(req, cred, metadataId)
+	metadataBytes, hasMetadata := getMetadata(req, cred, metadataId)
 
 	lp := lpx.NewReader(bufio.NewReader(r))
-	var numLogs int64
-	for ; lp.Next(); numLogs++ {
+	numLogs := int64(0)
+	for lp.Next() {
+		numLogs++
 		header := lp.Header()
 
 		// LEN SP PRI VERSION SP TIMESTAMP SP HOSTNAME SP APP-NAME SP PROCID SP MSGID SP STRUCTURED-DATA MSG
@@ -121,9 +100,12 @@ func fix(req *http.Request, r io.Reader, remoteAddr string, logplexDrainToken st
 		messageWriter.WriteString("\"]")
 
 		// Write metadata
-		messageWriter.Write(metadataBytes)
+		if hasMetadata {
+			messageWriter.Write(metadataBytes)
+		}
 
-		if b := lp.Bytes(); len(b) >= 2 && bytes.Equal(b[0:2], nilVal) {
+		b := lp.Bytes()
+		if len(b) >= 2 && bytes.Equal(b[0:2], nilVal) {
 			messageWriter.Write(b[1:])
 		} else if len(b) > 0 {
 			if b[0] != '[' {
@@ -134,8 +116,8 @@ func fix(req *http.Request, r io.Reader, remoteAddr string, logplexDrainToken st
 
 		messageLenWriter.WriteString(strconv.Itoa(messageWriter.Len()))
 		messageLenWriter.WriteString(" ")
-		messageWriter.WriteTo(messageLenWriter)
+		messageWriter.WriteTo(&messageLenWriter)
 	}
 
-	return len(metadataBytes) > 0, numLogs, messageLenWriter.Bytes(), lp.Err()
+	return hasMetadata, numLogs, messageLenWriter.Bytes(), lp.Err()
 }
