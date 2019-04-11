@@ -49,9 +49,9 @@ func getMetadata(req *http.Request, cred *credential, metadataId string) ([]byte
 				metadataWriter.WriteString(metadataId)
 				foundMetadata = true
 			}
-			metadataWriter.WriteString(" fields=\"{'credential_deprecated': true, 'credential_name': '")
+			metadataWriter.WriteString(` fields="credential_deprecated=true,credential_name=`)
 			metadataWriter.WriteString(cred.Name)
-			metadataWriter.WriteString("'}\"")
+			metadataWriter.WriteString(`"`)
 		}
 
 		if foundMetadata {
