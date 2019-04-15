@@ -21,44 +21,45 @@ var queryParams = []string{"index", "source", "sourcetype"}
 
 // Get metadata from the http request.
 // Returns an empty byte array if there isn't any.
-func getMetadata(req *http.Request, cred *credential, metadataId string) ([]byte, bool) {
+func getMetadata(req *http.Request, cred *credential, metadataId string) []byte {
+	if metadataId == "" { // short circuit when metadataId is empty
+		return nil
+	}
+
 	var metadataWriter bytes.Buffer
-	var foundMetadata bool
+	writeSDElementStart := func() {
+		metadataWriter.WriteString("[")
+		metadataWriter.WriteString(metadataId)
+	}
+
 	// Calculate metadata query parameters
-	if metadataId != "" {
-		for _, k := range queryParams {
-			v := req.FormValue(k)
-			if v != "" {
-				if !foundMetadata {
-					metadataWriter.WriteString("[")
-					metadataWriter.WriteString(metadataId)
-					foundMetadata = true
-				}
-				metadataWriter.WriteString(" ")
-				metadataWriter.WriteString(k)
-				metadataWriter.WriteString("=\"")
-				metadataWriter.WriteString(v)
-				metadataWriter.WriteString("\"")
+	for _, k := range queryParams {
+		if v := req.FormValue(k); v != "" {
+			if metadataWriter.Len() == 0 {
+				writeSDElementStart()
 			}
-		}
-
-		// Add metadata about the credential if it is deprecated
-		if cred != nil && cred.Deprecated == true {
-			if !foundMetadata {
-				metadataWriter.WriteString("[")
-				metadataWriter.WriteString(metadataId)
-				foundMetadata = true
-			}
-			metadataWriter.WriteString(" fields=\"{'credential_deprecated': true, 'credential_name': '")
-			metadataWriter.WriteString(cred.Name)
-			metadataWriter.WriteString("'}\"")
-		}
-
-		if foundMetadata {
-			metadataWriter.WriteString("]")
+			metadataWriter.WriteString(" ")
+			metadataWriter.WriteString(k)
+			metadataWriter.WriteString("=\"")
+			metadataWriter.WriteString(v)
+			metadataWriter.WriteString("\"")
 		}
 	}
-	return metadataWriter.Bytes(), foundMetadata
+
+	// Add metadata about the credential if it is deprecated
+	if cred != nil && cred.Deprecated == true {
+		if metadataWriter.Len() == 0 {
+			writeSDElementStart()
+		}
+		metadataWriter.WriteString(" fields=\"{'credential_deprecated': true, 'credential_name': '")
+		metadataWriter.WriteString(cred.Name)
+		metadataWriter.WriteString("'}\"")
+	}
+
+	if metadataWriter.Len() > 0 {
+		metadataWriter.WriteString("]")
+	}
+	return metadataWriter.Bytes()
 }
 
 // Fix function to convert post data to length prefixed syslog frames
@@ -71,7 +72,7 @@ func fix(req *http.Request, r io.Reader, remoteAddr string, logplexDrainToken st
 	var messageWriter bytes.Buffer
 	var messageLenWriter bytes.Buffer
 
-	metadataBytes, hasMetadata := getMetadata(req, cred, metadataId)
+	metadataBytes := getMetadata(req, cred, metadataId)
 
 	lp := lpx.NewReader(bufio.NewReader(r))
 	numLogs := int64(0)
@@ -99,8 +100,8 @@ func fix(req *http.Request, r io.Reader, remoteAddr string, logplexDrainToken st
 		messageWriter.WriteString(remoteAddr)
 		messageWriter.WriteString("\"]")
 
-		// Write metadata
-		if hasMetadata {
+		// Write metadata bytes if there are any
+		if len(metadataBytes) > 0 {
 			messageWriter.Write(metadataBytes)
 		}
 
@@ -119,5 +120,5 @@ func fix(req *http.Request, r io.Reader, remoteAddr string, logplexDrainToken st
 		messageWriter.WriteTo(&messageLenWriter)
 	}
 
-	return hasMetadata, numLogs, messageLenWriter.Bytes(), lp.Err()
+	return len(metadataBytes) > 0, numLogs, messageLenWriter.Bytes(), lp.Err()
 }
