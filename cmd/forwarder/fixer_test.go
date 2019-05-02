@@ -39,6 +39,29 @@ func TestFix(t *testing.T) {
 	}
 }
 
+func TestTruncation(t *testing.T) {
+	assert := assert.New(t)
+	for _, test := range []struct {
+		name     string
+		in       string
+		token    string
+		expected string
+	}{
+		{
+			name:     "test that app name gets truncated",
+			in:       "a logplex input that contains a really long app name",
+			token:    "",
+			expected: "a syslog output that contains an appropriately truncated app name field, according to the rfc",
+		},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			_, _, fixed, err := fix(simpleHttpRequest(), bytes.NewReader([]byte(test.in)), "1.2.3.4", test.token, "", nil)
+			assert.Equal(err, nil)
+			assert.Equal(test.expected, string(fixed))
+		})
+	}
+}
+
 func TestFixWithQueryParameters(t *testing.T) {
 	assert := assert.New(t)
 	var output = []byte("135 <13>1 2013-06-07T13:17:49.468822+00:00 host heroku web.7 - [origin ip=\"1.2.3.4\"][metadata@123 index=\"i\" source=\"s\" sourcetype=\"st\"] hi\n138 <13>1 2013-06-07T13:17:49.468822+00:00 host heroku web.7 - [origin ip=\"1.2.3.4\"][metadata@123 index=\"i\" source=\"s\" sourcetype=\"st\"] hello\n")
