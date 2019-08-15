@@ -60,13 +60,22 @@ func getMetadata(req *http.Request, cred *credential, metadataId string) ([]byte
 	}
 	return metadataWriter.Bytes(), foundMetadata
 }
-
+// Truncate log messages to set length
+// Returns:
+// * string truncated version of the input string
+func truncate(str string, len int64) string {
+	if len(str) > n {
+		return str[:n]
+	}
+	return str
+}
 // Fix function to convert post data to length prefixed syslog frames
 // Returns:
 // * boolean indicating whether metadata was present in the query parameters.
 // * integer representing the number of logplex frames parsed from the HTTP request.
 // * byte array of syslog data.
 // * error if something went wrong.
+
 func fix(req *http.Request, r io.Reader, remoteAddr string, logplexDrainToken string, metadataId string, cred *credential) (bool, int64, []byte, error) {
 	var messageWriter bytes.Buffer
 	var messageLenWriter bytes.Buffer
