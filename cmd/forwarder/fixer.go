@@ -64,8 +64,8 @@ func getMetadata(req *http.Request, cred *credential, metadataId string) ([]byte
 // Returns:
 // * string truncated version of the input string
 func truncate(str string, len int64) string {
-	if len(str) > n {
-		return str[:n]
+	if len(str) > len {
+		return str[:len]
 	}
 	return str
 }
