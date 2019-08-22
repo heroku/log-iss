@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"fmt"
 	"net/http"
 	"testing"
 
@@ -22,6 +23,44 @@ var (
 		[]byte("97 <13>1 2013-06-07T13:17:49.468822+00:00 host heroku web.7 - [60607e20-f12d-483e-aa89-ffaf954e7527]"),
 	}
 )
+
+func logFrame(
+	pri string,
+	version string,
+	hostname string,
+	appname string,
+	procid string,
+	msgid string) string {
+	date := "2013-06-07T13:17:49.468822+00:00"
+	msg := "hi"
+	length := 10 + len(date) + len(pri) + len(version) + len(hostname) + len(appname) + len(procid) + len(msgid)
+
+	return fmt.Sprintf("%d <%s>%s %s %s %s %s %s - %s",
+		length,
+		pri,
+		version,
+		date,
+		hostname,
+		appname,
+		procid,
+		msgid,
+		msg)
+}
+
+func TestFixTruncation(t *testing.T) {
+	assert := assert.New(t)
+	line := logFrame(
+		"1234",
+		"123",
+		"PUT A 256 CHARACTER STRING HERE",
+		"PUT A 49 CHARACTER STRING HERE",
+		"PUT A 129 CHARACTER STRING HERE",
+		"PUT A 33 CHARACTER STRING HERE")
+	fix, err := fix(simpleHttpRequest(), bytes.NewReader([]byte(line)), "1.2.3.4", "", "", nil)
+	assert.Equal(nil, err)
+	assert.Equal("EXPECTED STRING GOES HERE", string(fixed))
+
+}
 
 func TestFix(t *testing.T) {
 	assert := assert.New(t)
