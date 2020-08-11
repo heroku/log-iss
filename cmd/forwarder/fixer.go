@@ -61,6 +61,19 @@ func getMetadata(req *http.Request, cred *credential, metadataId string) ([]byte
 	return metadataWriter.Bytes(), foundMetadata
 }
 
+
+// Write a header field into the messageWriter buffer. Truncates to maxLength
+// Returns true if the input string was truncated, and false otherwise.
+func writeField(messageWriter *bytes.Buffer, str []byte, maxLength int) bool {
+	if maxLength > 48 {
+		messageWriter.Write(str[0:maxLength])
+		return true
+	} else {
+		messageWriter.Write(str)
+		return false
+	}
+}
+
 // Fix function to convert post data to length prefixed syslog frames
 // Returns:
 // * boolean indicating whether metadata was present in the query parameters.
@@ -84,11 +97,11 @@ func fix(req *http.Request, r io.Reader, remoteAddr string, logplexDrainToken st
 		messageWriter.WriteString(" ")
 		messageWriter.Write(header.Time)
 		messageWriter.WriteString(" ")
+		host := header.Hostname
 		if string(header.Hostname) == logplexDefaultHost && logplexDrainToken != "" {
-			messageWriter.WriteString(logplexDrainToken)
-		} else {
-			messageWriter.Write(header.Hostname)
+			host = []byte(logplexDrainToken)
 		}
+		_ = writeField(&messageWriter, host, 48)
 		messageWriter.WriteString(" ")
 		messageWriter.Write(header.Name)
 		messageWriter.WriteString(" ")
