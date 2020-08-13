@@ -1,7 +1,5 @@
 # github.com/bmizerany/lpx v0.0.0-20130503172629-af85cf24c156
 github.com/bmizerany/lpx
-# github.com/crewjam/rfc5424 v0.1.0
-github.com/crewjam/rfc5424
 # github.com/davecgh/go-spew v1.1.1
 github.com/davecgh/go-spew/spew
 # github.com/elliotchance/redismock v1.4.0
