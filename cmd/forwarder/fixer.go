@@ -65,7 +65,8 @@ func getMetadata(req *http.Request, cred *credential, metadataId string) ([]byte
 // Write a header field into the messageWriter buffer. Truncates to maxLength
 // Returns true if the input string was truncated, and false otherwise.
 func writeField(messageWriter *bytes.Buffer, str []byte, maxLength int) bool {
-	if maxLength > 48 {
+	length := len(string(str))
+	if length > maxLength {
 		messageWriter.Write(str[0:maxLength])
 		return true
 	} else {

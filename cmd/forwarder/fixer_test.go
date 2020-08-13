@@ -4,10 +4,8 @@ import (
 	"bytes"
 	"net/http"
 	"testing"
-	"time"
-	"strings"
 
-	"github.com/crewjam/rfc5424"
+	//"github.com/crewjam/rfc5424"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -35,6 +33,10 @@ func TestFix(t *testing.T) {
 		[]byte("80 <13>1 2013-06-07T13:17:49.468822+00:00 host heroku web.7 - [origin ip=\"1.2.3.4\"]"),
 		[]byte("118 <13>1 2013-06-07T13:17:49.468822+00:00 host heroku web.7 - [origin ip=\"1.2.3.4\"][60607e20-f12d-483e-aa89-ffaf954e7527]"),
 	}
+
+	//fmt.Printf("input: %s\n", input[3])
+	//fmt.Printf("otput: %s\n", output[3])
+
 	for x, in := range input {
 		hasMetadata, _, fixed, _ := fix(simpleHttpRequest(), bytes.NewReader(in), "1.2.3.4", "", "", nil)
 		assert.Equal(string(fixed), string(output[x]))
@@ -44,23 +46,13 @@ func TestFix(t *testing.T) {
 
 func TestTruncate(t *testing.T) {
 	assert := assert.New(t)
-	var output = []byte("135 <13>1 2013-06-07T13:17:49.468822+00:00 host heroku web.7 - [origin ip=\"1.2.3.4\"][metadata@123 index=\"i\" source=\"s\" sourcetype=\"st\"] hi\n138 <13>1 2013-06-07T13:17:49.468822+00:00 host heroku web.7 - [origin ip=\"1.2.3.4\"][metadata@123 index=\"i\" source=\"s\" sourcetype=\"st\"] hello\n")
+	in := []byte("103 <13>1 2013-06-07T13:17:49.468822+00:00 hosthosthosthosthosthosthosthosthosthosthosthosts heroku web.7 - ")
+	var output = []byte("124 <13>1 2013-06-07T13:17:49.468822+00:00 hosthosthosthosthosthosthosthosthosthosthosthost heroku web.7 - [origin ip=\"1.2.3.4\"]")
 
-	message := rfc5424.Message{
-		Priority: rfc5424.Daemon | rfc5424.Info,
-		Timestamp: time.Unix(0,0),
-		Hostname: strings.Repeat("a",49),
-		AppName: "someapp",
-		Message: []byte("Hello, World!"),
-	}
-	message.AddDatum("metadata@123", "", "1.2.3.4")
-
-	in := input[0]
-	hasMetadata, numLogs, fixed, _ := fix(httpRequestWithParams(), bytes.NewReader(in), "1.2.3.4", "", "metadata@123", nil)
+	hasMetadata, _, fixed, _ := fix(simpleHttpRequest(), bytes.NewReader(in), "1.2.3.4", "", "", nil)
 
 	assert.Equal(string(fixed), string(output), "They should be equal")
-	assert.True(hasMetadata)
-	assert.Equal(int64(2), numLogs)
+	assert.False(hasMetadata)
 }
 
 func TestFixWithQueryParameters(t *testing.T) {
