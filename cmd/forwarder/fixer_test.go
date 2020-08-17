@@ -2,10 +2,10 @@ package main
 
 import (
 	"bytes"
-	"net/http"
-	"testing"
-	"strings"
 	"fmt"
+	"net/http"
+	"strings"
+	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -45,30 +45,30 @@ func TestFix(t *testing.T) {
 func TestTruncationOfFields(t *testing.T) {
 	assert := assert.New(t)
 	type setup struct {
-		name 				string
-		input 			[]byte
-		expected 		[]byte
+		name        string
+		input       []byte
+		expected    []byte
 		hasMetadata bool
 		err         error
 	}
-// LEN SP PRI VERSION SP TIMESTAMP SP HOSTNAME SP APP-NAME SP PROCID SP MSGID SP STRUCTURED-DATA MSG
-		tests := []setup {
-			{
-				name: "truncate HOSTNAME",
-				input: []byte(fmt.Sprintf("310 <13>1 2013-06-07T13:17:49.468822+00:00 %s heroku web.7 - ", strings.Repeat("a", 256))),
-				expected: []byte(fmt.Sprintf("309 <13>1 2013-06-07T13:17:49.468822+00:00 %s heroku web.7 - [origin ip=\"1.2.3.4\"]", strings.Repeat("a", 255))),
-				hasMetadata: false,
-			},
-		}
+	// LEN SP PRI VERSION SP TIMESTAMP SP HOSTNAME SP APP-NAME SP PROCID SP MSGID SP STRUCTURED-DATA MSG
+	tests := []setup{
+		{
+			name:        "truncate HOSTNAME",
+			input:       []byte(fmt.Sprintf("310 <13>1 2013-06-07T13:17:49.468822+00:00 %s heroku web.7 - ", strings.Repeat("a", 256))),
+			expected:    []byte(fmt.Sprintf("309 <13>1 2013-06-07T13:17:49.468822+00:00 %s heroku web.7 - ", strings.Repeat("a", 255))),
+			hasMetadata: false,
+		},
+	}
 
-		for _, test := range tests {
-			t.Run(test.name, func(t *testing.T) {
-				hasMetadata, _, output, err :=  fix(simpleHttpRequest(), bytes.NewReader(test.input), "1.2.3.4", "", "", nil)
-				assert.Equal(test.err, err)
-				assert.Equal(string(test.expected), string(output), "They should be equal.")
-				assert.Equal(hasMetadata, test.hasMetadata, "They should be equal.")
-			})
-		}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			hasMetadata, _, output, err := fix(simpleHttpRequest(), bytes.NewReader(test.input), "", "", "", nil)
+			assert.Equal(test.err, err)
+			assert.Equal(string(test.expected), string(output), "They should be equal.")
+			assert.Equal(hasMetadata, test.hasMetadata, "They should be equal.")
+		})
+	}
 }
 
 /*
@@ -111,7 +111,7 @@ func TestFixWithLogplexDrainToken(t *testing.T) {
 	fmt.Println("Length of []byte:")
 	for x, in := range input {
 		hasMetadata, _, fixed, _ := fix(simpleHttpRequest(), bytes.NewReader(in), "1.2.3.4", testToken, "", nil)
-		fmt.Println("str: ",string(in))
+		fmt.Println("str: ", string(in))
 		fmt.Printf("length @ index %x: %x\n\n", x, len(in))
 
 		assert.Equal(string(fixed), string(output[x]))
