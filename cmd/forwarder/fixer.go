@@ -65,8 +65,7 @@ func getMetadata(req *http.Request, cred *credential, metadataId string) ([]byte
 // Write a header field into the messageWriter buffer. Truncates to maxLength
 // Returns true if the input string was truncated, and false otherwise.
 func writeField(messageWriter *bytes.Buffer, str []byte, maxLength int) bool {
-	length := len(string(str))
-	if length > maxLength {
+	if len(str) > maxLength {
 		messageWriter.Write(str[0:maxLength])
 		return true
 	} else {
@@ -102,13 +101,16 @@ func fix(req *http.Request, r io.Reader, remoteAddr string, logplexDrainToken st
 		if string(header.Hostname) == logplexDefaultHost && logplexDrainToken != "" {
 			host = []byte(logplexDrainToken)
 		}
-		_ = writeField(&messageWriter, host, 48)
+		_ = writeField(&messageWriter, host, 255)
 		messageWriter.WriteString(" ")
-		messageWriter.Write(header.Name)
+		//messageWriter.Write(header.Name)
+		_ = writeField(&messageWriter, header.Name, 48)
 		messageWriter.WriteString(" ")
-		messageWriter.Write(header.Procid)
+		//messageWriter.Write(header.Procid)
+		_ = writeField(&messageWriter, header.Procid, 128)
 		messageWriter.WriteString(" ")
-		messageWriter.Write(header.Msgid)
+		//messageWriter.Write(header.Msgid)
+		_ = writeField(&messageWriter, header.Msgid, 32)
 		messageWriter.WriteString(" [origin ip=\"")
 		messageWriter.WriteString(remoteAddr)
 		messageWriter.WriteString("\"]")

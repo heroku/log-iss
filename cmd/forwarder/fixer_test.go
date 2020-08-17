@@ -42,17 +42,43 @@ func TestFix(t *testing.T) {
 	}
 }
 
+func TestTruncationOfFields(t *testing.T) {
+		type setup struct {
+			name 				string
+			input 			[]byte
+			expected 		[]byte
+			hasMetadata bool
+		}
+// LEN SP PRI VERSION SP TIMESTAMP SP HOSTNAME SP APP-NAME SP PROCID SP MSGID SP STRUCTURED-DATA MSG
+		tests := []setup {
+			{
+				name: "truncate HOSTNAME",
+				input: []byte(fmt.Sprintf("310 <13>1 2013-06-07T13:17:49.468822+00:00 %s heroku web.7 - ", strings.Repeat("a", 256))),
+				expected: []byte(fmt.Sprintf("309 <13>1 2013-06-07T13:17:49.468822+00:00 %s heroku web.7 - [origin ip=\"1.2.3.4\"]", strings.Repeat("a", 255))),
+				hasMetadata: false,
+			},
+		}
+
+		for test := range tests {
+			t.Run(test.name, func(t *testing.T) {
+				hasMetadata, _, output, _ :=  fix(simpleHttpRequest(), bytes.NewReader(test.input), "1.2.3.4", "", "", nil)
+				assert.Equal(string(output), string(test.expected), "They should be equal.")
+				assert.Equal(hasMetadata, test.hasMetadata)
+			})
+		}
+}
+
 func TestTruncate(t *testing.T) {
 	assert := assert.New(t)
 	longHostname := strings.Repeat("a",49)
 	truncatedHostame := strings.Repeat("a",48)
 
 	in := []byte(fmt.Sprintf("103 <13>1 2013-06-07T13:17:49.468822+00:00 %s heroku web.7 - ", longHostname))
-	var output = []byte(fmt.Sprintf("124 <13>1 2013-06-07T13:17:49.468822+00:00 %s heroku web.7 - [origin ip=\"1.2.3.4\"]", truncatedHostame))
+	expected := []byte(fmt.Sprintf("124 <13>1 2013-06-07T13:17:49.468822+00:00 %s heroku web.7 - [origin ip=\"1.2.3.4\"]", truncatedHostame))
 
 	hasMetadata, _, fixed, _ := fix(simpleHttpRequest(), bytes.NewReader(in), "1.2.3.4", "", "", nil)
 
-	assert.Equal(string(fixed), string(output), "They should be equal")
+	assert.Equal(string(fixed), string(expected), "They should be equal")
 	assert.False(hasMetadata)
 }
 
@@ -92,9 +118,12 @@ func TestFixWithLogplexDrainToken(t *testing.T) {
 		[]byte("114 <13>1 2013-06-07T13:17:49.468822+00:00 d.34bc219c-983b-463e-a17d-3d34ee7db812 heroku web.7 - [origin ip=\"1.2.3.4\"]"),
 		[]byte("152 <13>1 2013-06-07T13:17:49.468822+00:00 d.34bc219c-983b-463e-a17d-3d34ee7db812 heroku web.7 - [origin ip=\"1.2.3.4\"][60607e20-f12d-483e-aa89-ffaf954e7527]"),
 	}
-
+	fmt.Println("Length of []byte:")
 	for x, in := range input {
 		hasMetadata, _, fixed, _ := fix(simpleHttpRequest(), bytes.NewReader(in), "1.2.3.4", testToken, "", nil)
+		fmt.Println("str: ",string(in))
+		fmt.Printf("length @ index %x: %x\n\n", x, len(in))
+
 		assert.Equal(string(fixed), string(output[x]))
 		assert.False(hasMetadata)
 	}
