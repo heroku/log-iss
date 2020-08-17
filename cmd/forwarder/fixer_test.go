@@ -43,12 +43,14 @@ func TestFix(t *testing.T) {
 }
 
 func TestTruncationOfFields(t *testing.T) {
-		type setup struct {
-			name 				string
-			input 			[]byte
-			expected 		[]byte
-			hasMetadata bool
-		}
+	assert := assert.New(t)
+	type setup struct {
+		name 				string
+		input 			[]byte
+		expected 		[]byte
+		hasMetadata bool
+		err         error
+	}
 // LEN SP PRI VERSION SP TIMESTAMP SP HOSTNAME SP APP-NAME SP PROCID SP MSGID SP STRUCTURED-DATA MSG
 		tests := []setup {
 			{
@@ -59,29 +61,17 @@ func TestTruncationOfFields(t *testing.T) {
 			},
 		}
 
-		for test := range tests {
+		for _, test := range tests {
 			t.Run(test.name, func(t *testing.T) {
-				hasMetadata, _, output, _ :=  fix(simpleHttpRequest(), bytes.NewReader(test.input), "1.2.3.4", "", "", nil)
-				assert.Equal(string(output), string(test.expected), "They should be equal.")
-				assert.Equal(hasMetadata, test.hasMetadata)
+				hasMetadata, _, output, err :=  fix(simpleHttpRequest(), bytes.NewReader(test.input), "1.2.3.4", "", "", nil)
+				assert.Equal(test.err, err)
+				assert.Equal(string(test.expected), string(output), "They should be equal.")
+				assert.Equal(hasMetadata, test.hasMetadata, "They should be equal.")
 			})
 		}
 }
 
-func TestTruncate(t *testing.T) {
-	assert := assert.New(t)
-	longHostname := strings.Repeat("a",49)
-	truncatedHostame := strings.Repeat("a",48)
-
-	in := []byte(fmt.Sprintf("103 <13>1 2013-06-07T13:17:49.468822+00:00 %s heroku web.7 - ", longHostname))
-	expected := []byte(fmt.Sprintf("124 <13>1 2013-06-07T13:17:49.468822+00:00 %s heroku web.7 - [origin ip=\"1.2.3.4\"]", truncatedHostame))
-
-	hasMetadata, _, fixed, _ := fix(simpleHttpRequest(), bytes.NewReader(in), "1.2.3.4", "", "", nil)
-
-	assert.Equal(string(fixed), string(expected), "They should be equal")
-	assert.False(hasMetadata)
-}
-
+/*
 func TestFixWithQueryParameters(t *testing.T) {
 	assert := assert.New(t)
 	var output = []byte("135 <13>1 2013-06-07T13:17:49.468822+00:00 host heroku web.7 - [origin ip=\"1.2.3.4\"][metadata@123 index=\"i\" source=\"s\" sourcetype=\"st\"] hi\n138 <13>1 2013-06-07T13:17:49.468822+00:00 host heroku web.7 - [origin ip=\"1.2.3.4\"][metadata@123 index=\"i\" source=\"s\" sourcetype=\"st\"] hello\n")
@@ -92,7 +82,7 @@ func TestFixWithQueryParameters(t *testing.T) {
 	assert.Equal(string(fixed), string(output), "They should be equal")
 	assert.True(hasMetadata)
 	assert.Equal(int64(2), numLogs)
-}
+}*/
 
 func TestFixWithDeprecatedCredential(t *testing.T) {
 	assert := assert.New(t)
