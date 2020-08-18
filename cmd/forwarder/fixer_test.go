@@ -56,14 +56,40 @@ func TestTruncationOfFields(t *testing.T) {
 			{
 				name: "truncate HOSTNAME",
 				input: []byte(fmt.Sprintf("310 <13>1 2013-06-07T13:17:49.468822+00:00 %s heroku web.7 - ", strings.Repeat("a", 256))),
-				expected: []byte(fmt.Sprintf("309 <13>1 2013-06-07T13:17:49.468822+00:00 %s heroku web.7 - [origin ip=\"1.2.3.4\"]", strings.Repeat("a", 255))),
+				expected: []byte(fmt.Sprintf("331 <13>1 2013-06-07T13:17:49.468822+00:00 %s heroku web.7 - [origin ip=\"1.2.3.4\"]", strings.Repeat("a", 255))),
 				hasMetadata: false,
 			},
+			{
+			  name: "truncate APP-NAME",
+			  input: []byte(fmt.Sprintf("105 <13>1 2013-06-07T13:17:49.468822+00:00 host %s web.7 - ", strings.Repeat("a", 49))),
+			  expected: []byte(fmt.Sprintf("104 <13>1 2013-06-07T13:17:49.468822+00:00 host %s web.7 - [origin ip=\"1.2.3.4\"]", strings.Repeat("a", 48))),
+			  hasMetadata: false,
+			},
+			{
+			  name: "truncate PROCID",
+			  input: []byte(fmt.Sprintf("185 <13>1 2013-06-07T13:17:49.468822+00:00 host heroku %s - ", strings.Repeat("a", 129))),
+			  expected: []byte(fmt.Sprintf("184 <13>1 2013-06-07T13:17:49.468822+00:00 host heroku %s - [origin ip=\"1.2.3.4\"]", strings.Repeat("a", 128))),
+			  hasMetadata: false,
+			},
+			/*{
+			  name: "truncate MSGID",
+			  input: []byte(fmt.Sprintf("103 <13>1 2013-06-07T13:17:49.468822+00:00 host heroku web.7 %s ", strings.Repeat("a", 33))),
+			  expected: []byte(fmt.Sprintf("124 <13>1 2013-06-07T13:17:49.468822+00:00 host heroku web.7 %s [origin ip=\"1.2.3.4\"]", strings.Repeat("a", 32))),
+			  hasMetadata: false,
+			},*/
 		}
 
 		for _, test := range tests {
 			t.Run(test.name, func(t *testing.T) {
+				fmt.Printf("input      : %v", string(test.input))
+				fmt.Printf("\n")
+				fmt.Printf("expected   : %v", string(test.expected))
 				hasMetadata, _, output, err :=  fix(simpleHttpRequest(), bytes.NewReader(test.input), "1.2.3.4", "", "", nil)
+				fmt.Printf("\n")
+				fmt.Printf("error      : %v", err)
+				fmt.Printf("\n")
+				fmt.Printf("output     : %v", string(output))
+				fmt.Printf("\n")
 				assert.Equal(test.err, err)
 				assert.Equal(string(test.expected), string(output), "They should be equal.")
 				assert.Equal(hasMetadata, test.hasMetadata, "They should be equal.")
@@ -108,11 +134,11 @@ func TestFixWithLogplexDrainToken(t *testing.T) {
 		[]byte("114 <13>1 2013-06-07T13:17:49.468822+00:00 d.34bc219c-983b-463e-a17d-3d34ee7db812 heroku web.7 - [origin ip=\"1.2.3.4\"]"),
 		[]byte("152 <13>1 2013-06-07T13:17:49.468822+00:00 d.34bc219c-983b-463e-a17d-3d34ee7db812 heroku web.7 - [origin ip=\"1.2.3.4\"][60607e20-f12d-483e-aa89-ffaf954e7527]"),
 	}
-	fmt.Println("Length of []byte:")
+	//fmt.Println("Length of []byte:")
 	for x, in := range input {
 		hasMetadata, _, fixed, _ := fix(simpleHttpRequest(), bytes.NewReader(in), "1.2.3.4", testToken, "", nil)
-		fmt.Println("str: ",string(in))
-		fmt.Printf("length @ index %x: %x\n\n", x, len(in))
+		//fmt.Println("str: ",string(in))
+		//fmt.Printf("length @ index %x: %x\n\n", x, len(in))
 
 		assert.Equal(string(fixed), string(output[x]))
 		assert.False(hasMetadata)
