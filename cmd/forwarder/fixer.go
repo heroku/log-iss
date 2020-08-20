@@ -111,9 +111,12 @@ func fix(req *http.Request, r io.Reader, remoteAddr string, logplexDrainToken st
 		messageWriter.WriteString(" ")
 		//messageWriter.Write(header.Msgid)
 		_ = writeField(&messageWriter, header.Msgid, 32)
-		messageWriter.WriteString(" [origin ip=\"")
-		messageWriter.WriteString(remoteAddr)
-		messageWriter.WriteString("\"]")
+		messageWriter.WriteString(" ")
+		if remoteAddr != "" {
+			messageWriter.WriteString("[origin ip=\"")
+			messageWriter.WriteString(remoteAddr)
+			messageWriter.WriteString("\"]")
+		}
 
 		// Write metadata
 		if hasMetadata {
