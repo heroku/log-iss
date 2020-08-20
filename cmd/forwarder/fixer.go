@@ -103,13 +103,10 @@ func fix(req *http.Request, r io.Reader, remoteAddr string, logplexDrainToken st
 		}
 		_ = writeField(&messageWriter, host, 255)
 		messageWriter.WriteString(" ")
-		//messageWriter.Write(header.Name)
 		_ = writeField(&messageWriter, header.Name, 48)
 		messageWriter.WriteString(" ")
-		//messageWriter.Write(header.Procid)
 		_ = writeField(&messageWriter, header.Procid, 128)
 		messageWriter.WriteString(" ")
-		//messageWriter.Write(header.Msgid)
 		_ = writeField(&messageWriter, header.Msgid, 32)
 		messageWriter.WriteString(" ")
 		if remoteAddr != "" {
