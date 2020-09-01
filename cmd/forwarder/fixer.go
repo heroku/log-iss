@@ -14,6 +14,11 @@ const (
 	// LogplexDefaultHost is the default host from logplex:
 	// https://github.com/heroku/logplex/blob/master/src/logplex_http_drain.erl#L443
 	logplexDefaultHost = "host"
+
+	maxHostnameLength = 255
+	maxAppnameLength  = 48
+	maxProcidLength   = 128
+	maxMsgidLength    = 32
 )
 
 var nilVal = []byte(`- `)
@@ -61,7 +66,6 @@ func getMetadata(req *http.Request, cred *credential, metadataId string) ([]byte
 	return metadataWriter.Bytes(), foundMetadata
 }
 
-
 // Write a header field into the messageWriter buffer. Truncates to maxLength
 // Returns true if the input string was truncated, and false otherwise.
 func writeField(messageWriter *bytes.Buffer, str []byte, maxLength int) bool {
@@ -101,13 +105,13 @@ func fix(req *http.Request, r io.Reader, remoteAddr string, logplexDrainToken st
 		if string(header.Hostname) == logplexDefaultHost && logplexDrainToken != "" {
 			host = []byte(logplexDrainToken)
 		}
-		_ = writeField(&messageWriter, host, 255)
+		_ = writeField(&messageWriter, host, maxHostnameLength)
 		messageWriter.WriteString(" ")
-		_ = writeField(&messageWriter, header.Name, 48)
+		_ = writeField(&messageWriter, header.Name, maxAppnameLength)
 		messageWriter.WriteString(" ")
-		_ = writeField(&messageWriter, header.Procid, 128)
+		_ = writeField(&messageWriter, header.Procid, maxProcidLength)
 		messageWriter.WriteString(" ")
-		_ = writeField(&messageWriter, header.Msgid, 32)
+		_ = writeField(&messageWriter, header.Msgid, maxMsgidLength)
 		messageWriter.WriteString(" ")
 		if remoteAddr != "" {
 			messageWriter.WriteString("[origin ip=\"")

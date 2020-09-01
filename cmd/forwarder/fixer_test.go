@@ -2,10 +2,10 @@ package main
 
 import (
 	"bytes"
-	"net/http"
-	"testing"
-	"strings"
 	"fmt"
+	"net/http"
+	"strings"
+	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -44,51 +44,50 @@ func TestFix(t *testing.T) {
 
 func TestTruncationOfFields(t *testing.T) {
 	assert := assert.New(t)
-	type setup struct {
-		name 				string
-		input 			[]byte
-		expected 		[]byte
+	type input struct {
+		name        string
+		bytes       []byte
+		expected    []byte
 		hasMetadata bool
 		err         error
 	}
-	tests := []setup {
+	tests := []input{
 		{
-			name: "truncate HOSTNAME",
-			input: []byte(fmt.Sprintf("311 <13>1 2013-06-07T13:17:49.468822+00:00 %s heroku web.7 - ", strings.Repeat("a", 256))),
-			expected: []byte(fmt.Sprintf("310 <13>1 2013-06-07T13:17:49.468822+00:00 %s heroku web.7 - ", strings.Repeat("a", 255))),
+			name:        "truncate HOSTNAME",
+			bytes:       []byte(fmt.Sprintf("311 <13>1 2013-06-07T13:17:49.468822+00:00 %s heroku web.7 - ", strings.Repeat("a", 256))),
+			expected:    []byte(fmt.Sprintf("310 <13>1 2013-06-07T13:17:49.468822+00:00 %s heroku web.7 - ", strings.Repeat("a", 255))),
 			hasMetadata: false,
 		},
 		{
-			name: "truncate APP-NAME",
-			input: []byte(fmt.Sprintf("102 <13>1 2013-06-07T13:17:49.468822+00:00 host %s web.7 - ", strings.Repeat("a", 49))),
-			expected: []byte(fmt.Sprintf("101 <13>1 2013-06-07T13:17:49.468822+00:00 host %s web.7 - ", strings.Repeat("a", 48))),
+			name:        "truncate APP-NAME",
+			bytes:       []byte(fmt.Sprintf("102 <13>1 2013-06-07T13:17:49.468822+00:00 host %s web.7 - ", strings.Repeat("a", 49))),
+			expected:    []byte(fmt.Sprintf("101 <13>1 2013-06-07T13:17:49.468822+00:00 host %s web.7 - ", strings.Repeat("a", 48))),
 			hasMetadata: false,
 		},
 		{
-			name: "truncate PROCID",
-			input: []byte(fmt.Sprintf("183 <13>1 2013-06-07T13:17:49.468822+00:00 host heroku %s - ", strings.Repeat("a", 129))),
-			expected: []byte(fmt.Sprintf("182 <13>1 2013-06-07T13:17:49.468822+00:00 host heroku %s - ", strings.Repeat("a", 128))),
+			name:        "truncate PROCID",
+			bytes:       []byte(fmt.Sprintf("183 <13>1 2013-06-07T13:17:49.468822+00:00 host heroku %s - ", strings.Repeat("a", 129))),
+			expected:    []byte(fmt.Sprintf("182 <13>1 2013-06-07T13:17:49.468822+00:00 host heroku %s - ", strings.Repeat("a", 128))),
 			hasMetadata: false,
 		},
 		{
-			name: "truncate MSGID",
-			input: []byte(fmt.Sprintf("91 <13>1 2013-06-07T13:17:49.468822+00:00 host heroku web.7 %s ", strings.Repeat("a", 33))),
-			expected: []byte(fmt.Sprintf("90 <13>1 2013-06-07T13:17:49.468822+00:00 host heroku web.7 %s ", strings.Repeat("a", 32))),
+			name:        "truncate MSGID",
+			bytes:       []byte(fmt.Sprintf("91 <13>1 2013-06-07T13:17:49.468822+00:00 host heroku web.7 %s ", strings.Repeat("a", 33))),
+			expected:    []byte(fmt.Sprintf("90 <13>1 2013-06-07T13:17:49.468822+00:00 host heroku web.7 %s ", strings.Repeat("a", 32))),
 			hasMetadata: false,
 		},
 	}
 
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			hasMetadata, _, output, err :=  fix(simpleHttpRequest(), bytes.NewReader(test.input), "", "", "", nil)
+	for _, i := range tests {
+		t.Run(i.name, func(t *testing.T) {
+			hasMetadata, _, output, err := fix(simpleHttpRequest(), bytes.NewReader(i.bytes), "", "", "", nil)
 
-			assert.Equal(test.err, err)
-			assert.Equal(string(test.expected), string(output), "They should be equal.")
-			assert.Equal(hasMetadata, test.hasMetadata, "They should be equal.")
+			assert.Equal(i.err, err)
+			assert.Equal(string(i.expected), string(output))
+			assert.Equal(i.hasMetadata, hasMetadata)
 		})
 	}
 }
-
 
 func TestFixWithQueryParameters(t *testing.T) {
 	assert := assert.New(t)
@@ -126,12 +125,8 @@ func TestFixWithLogplexDrainToken(t *testing.T) {
 		[]byte("114 <13>1 2013-06-07T13:17:49.468822+00:00 d.34bc219c-983b-463e-a17d-3d34ee7db812 heroku web.7 - [origin ip=\"1.2.3.4\"]"),
 		[]byte("152 <13>1 2013-06-07T13:17:49.468822+00:00 d.34bc219c-983b-463e-a17d-3d34ee7db812 heroku web.7 - [origin ip=\"1.2.3.4\"][60607e20-f12d-483e-aa89-ffaf954e7527]"),
 	}
-	//fmt.Println("Length of []byte:")
 	for x, in := range input {
 		hasMetadata, _, fixed, _ := fix(simpleHttpRequest(), bytes.NewReader(in), "1.2.3.4", testToken, "", nil)
-		//fmt.Println("str: ",string(in))
-		//fmt.Printf("length @ index %x: %x\n\n", x, len(in))
-
 		assert.Equal(string(fixed), string(output[x]))
 		assert.False(hasMetadata)
 	}
