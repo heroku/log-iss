@@ -60,6 +60,10 @@ type httpServer struct {
 	pLogsReceived         metrics.Counter // tracks the number of logs that have been received
 	pMetadataLogsSent     metrics.Counter // tracks the number of logs that have metadata that have been received
 	pLogsSent             metrics.Counter // tracks the number of logs that have been received
+	pHostnameTruncations  metrics.Counter // tracks the number of hostname fields in logs that have been truncated
+	pAppnameTruncations   metrics.Counter // tracks the number of appname fields in logs that have been truncated
+	pProcidTruncations    metrics.Counter // tracks the number of procid fields in logs that have been truncated
+	pMsgidTruncations     metrics.Counter // trakcs the number of msgid fields in logs that have been truncated
 	pAuthUsers            map[string]metrics.Counter
 	sync.WaitGroup
 }
@@ -81,6 +85,10 @@ func newHTTPServer(config IssConfig, auth *BasicAuth, fixerFunc FixerFunc, deliv
 		pLogsReceived:         metrics.GetOrRegisterCounter("log-iss.logs.received", config.MetricsRegistry),
 		pMetadataLogsSent:     metrics.GetOrRegisterCounter("log-iss.metadata_logs.sent", config.MetricsRegistry),
 		pLogsSent:             metrics.GetOrRegisterCounter("log-iss.logs.sent", config.MetricsRegistry),
+		pHostnameTruncations:  metrics.GetOrRegisterCounter("log-iss.logs.hostname_truncations", config.MetricsRegistry),
+		pAppnameTruncations:   metrics.GetOrRegisterCounter("log-iss.logs.appname_truncations", config.MetricsRegistry),
+		pProcidTruncations:    metrics.GetOrRegisterCounter("log-iss.logs.procid_truncations", config.MetricsRegistry),
+		pMsgidTruncations:     metrics.GetOrRegisterCounter("log-iss.logs.msgid_truncations", config.MetricsRegistry),
 		pAuthUsers:            make(map[string]metrics.Counter),
 		isShuttingDown:        false,
 	}
@@ -230,6 +238,10 @@ func (s *httpServer) process(req *http.Request, reader io.Reader, remoteAddr str
 	if r.hasMetadata {
 		s.pMetadataLogsSent.Inc(r.numLogs)
 	}
+	s.pHostnameTruncations.Inc(r.hostnameTruncs)
+	s.pAppnameTruncations.Inc(r.appnameTruncs)
+	s.pProcidTruncations.Inc(r.procidTruncs)
+	s.pMsgidTruncations.Inc(r.msgidTruncs)
 
 	return nil, 200
 }
