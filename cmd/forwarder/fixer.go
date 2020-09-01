@@ -78,7 +78,7 @@ func writeField(messageWriter *bytes.Buffer, str []byte, maxLength int) bool {
 	}
 }
 
-type FixResult struct {
+type fixResult struct {
 	hasMetadata bool
 	numLogs     int64
 	bytes       []byte
@@ -90,7 +90,7 @@ type FixResult struct {
 // * integer representing the number of logplex frames parsed from the HTTP request.
 // * byte array of syslog data.
 // * error if something went wrong.
-func fix(req *http.Request, r io.Reader, remoteAddr string, logplexDrainToken string, metadataId string, cred *credential) (FixResult, error) {
+func fix(req *http.Request, r io.Reader, remoteAddr string, logplexDrainToken string, metadataId string, cred *credential) (fixResult, error) {
 	var messageWriter bytes.Buffer
 	var messageLenWriter bytes.Buffer
 
@@ -145,7 +145,7 @@ func fix(req *http.Request, r io.Reader, remoteAddr string, logplexDrainToken st
 		messageWriter.WriteTo(&messageLenWriter)
 	}
 
-	return FixResult{
+	return fixResult{
 		hasMetadata: hasMetadata,
 		numLogs:     numLogs,
 		bytes:       messageLenWriter.Bytes(),

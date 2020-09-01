@@ -93,7 +93,7 @@ func TestFixWithQueryParameters(t *testing.T) {
 
 	assert.Equal(string(output), string(r.bytes))
 	assert.True(r.hasMetadata)
-	assert.Equal(r.numLogs, int64(2))
+	assert.Equal(int64(2), r.numLogs)
 }
 
 func TestFixWithDeprecatedCredential(t *testing.T) {

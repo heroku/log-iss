@@ -41,7 +41,7 @@ func NewPayload(sa string, ri string, b []byte) payload {
 //	* boolean - indicating whether the request has query params (aka metadata).
 //  * int64  - number of log lines read from the stream
 //  * error - if something went wrong.
-type FixerFunc func(*http.Request, io.Reader, string, string, string, *credential) (FixResult, error)
+type FixerFunc func(*http.Request, io.Reader, string, string, string, *credential) (fixResult, error)
 
 type httpServer struct {
 	Config                IssConfig
