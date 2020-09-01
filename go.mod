@@ -6,6 +6,7 @@ require (
 	github.com/alicebob/gopher-json v0.0.0-20180125190556-5a6b3ba71ee6 // indirect
 	github.com/alicebob/miniredis v2.4.6+incompatible // indirect
 	github.com/bmizerany/lpx v0.0.0-20130503172629-af85cf24c156
+	github.com/crewjam/rfc5424 v0.1.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/elliotchance/redismock v1.4.0
 	github.com/go-redis/redis v0.0.0-20190121142748-40336e5ef891

@@ -41,7 +41,7 @@ func NewPayload(sa string, ri string, b []byte) payload {
 //	* boolean - indicating whether the request has query params (aka metadata).
 //  * int64  - number of log lines read from the stream
 //  * error - if something went wrong.
-type FixerFunc func(*http.Request, io.Reader, string, string, string, *credential) (bool, int64, []byte, error)
+type FixerFunc func(*http.Request, io.Reader, string, string, string, *credential) (fixResult, error)
 
 type httpServer struct {
 	Config                IssConfig
@@ -60,6 +60,10 @@ type httpServer struct {
 	pLogsReceived         metrics.Counter // tracks the number of logs that have been received
 	pMetadataLogsSent     metrics.Counter // tracks the number of logs that have metadata that have been received
 	pLogsSent             metrics.Counter // tracks the number of logs that have been received
+	pHostnameTruncations  metrics.Counter // tracks the number of hostname fields in logs that have been truncated
+	pAppnameTruncations   metrics.Counter // tracks the number of appname fields in logs that have been truncated
+	pProcidTruncations    metrics.Counter // tracks the number of procid fields in logs that have been truncated
+	pMsgidTruncations     metrics.Counter // trakcs the number of msgid fields in logs that have been truncated
 	pAuthUsers            map[string]metrics.Counter
 	sync.WaitGroup
 }
@@ -81,6 +85,10 @@ func newHTTPServer(config IssConfig, auth *BasicAuth, fixerFunc FixerFunc, deliv
 		pLogsReceived:         metrics.GetOrRegisterCounter("log-iss.logs.received", config.MetricsRegistry),
 		pMetadataLogsSent:     metrics.GetOrRegisterCounter("log-iss.metadata_logs.sent", config.MetricsRegistry),
 		pLogsSent:             metrics.GetOrRegisterCounter("log-iss.logs.sent", config.MetricsRegistry),
+		pHostnameTruncations:  metrics.GetOrRegisterCounter("log-iss.logs.hostname_truncations", config.MetricsRegistry),
+		pAppnameTruncations:   metrics.GetOrRegisterCounter("log-iss.logs.appname_truncations", config.MetricsRegistry),
+		pProcidTruncations:    metrics.GetOrRegisterCounter("log-iss.logs.procid_truncations", config.MetricsRegistry),
+		pMsgidTruncations:     metrics.GetOrRegisterCounter("log-iss.logs.msgid_truncations", config.MetricsRegistry),
 		pAuthUsers:            make(map[string]metrics.Counter),
 		isShuttingDown:        false,
 	}
@@ -207,29 +215,33 @@ func (s *httpServer) awaitShutdown() {
 	log.WithFields(log.Fields{"ns": "http", "at": "shutdown"}).Info()
 }
 
-func (s *httpServer) process(req *http.Request, r io.Reader, remoteAddr string, requestID string, logplexDrainToken string, metadataId string, cred *credential) (error, int) {
+func (s *httpServer) process(req *http.Request, reader io.Reader, remoteAddr string, requestID string, logplexDrainToken string, metadataId string, cred *credential) (error, int) {
 	s.Add(1)
 	defer s.Done()
 
-	hasMetadata, numLogs, fixedBody, err := s.FixerFunc(req, r, remoteAddr, logplexDrainToken, metadataId, cred)
+	r, err := s.FixerFunc(req, reader, remoteAddr, logplexDrainToken, metadataId, cred)
 	if err != nil {
 		return errors.New("Problem fixing body: " + err.Error()), http.StatusBadRequest
 	}
 
-	s.pLogsReceived.Inc(numLogs)
-	if hasMetadata {
-		s.pMetadataLogsReceived.Inc(numLogs)
+	s.pLogsReceived.Inc(r.numLogs)
+	if r.hasMetadata {
+		s.pMetadataLogsReceived.Inc(r.numLogs)
 	}
 
-	payload := NewPayload(remoteAddr, requestID, fixedBody)
+	payload := NewPayload(remoteAddr, requestID, r.bytes)
 	if err := s.deliverer.Deliver(payload); err != nil {
 		return errors.New("Problem delivering body: " + err.Error()), http.StatusGatewayTimeout
 	}
 
-	s.pLogsSent.Inc(numLogs)
-	if hasMetadata {
-		s.pMetadataLogsSent.Inc(numLogs)
+	s.pLogsSent.Inc(r.numLogs)
+	if r.hasMetadata {
+		s.pMetadataLogsSent.Inc(r.numLogs)
 	}
+	s.pHostnameTruncations.Inc(r.hostnameTruncs)
+	s.pAppnameTruncations.Inc(r.appnameTruncs)
+	s.pProcidTruncations.Inc(r.procidTruncs)
+	s.pMsgidTruncations.Inc(r.msgidTruncs)
 
 	return nil, 200
 }

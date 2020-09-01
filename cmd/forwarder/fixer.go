@@ -14,6 +14,11 @@ const (
 	// LogplexDefaultHost is the default host from logplex:
 	// https://github.com/heroku/logplex/blob/master/src/logplex_http_drain.erl#L443
 	logplexDefaultHost = "host"
+
+	maxHostnameLength = 255
+	maxAppnameLength  = 48
+	maxProcidLength   = 128
+	maxMsgidLength    = 32
 )
 
 var nilVal = []byte(`- `)
@@ -61,13 +66,35 @@ func getMetadata(req *http.Request, cred *credential, metadataId string) ([]byte
 	return metadataWriter.Bytes(), foundMetadata
 }
 
+// Write a header field into the messageWriter buffer. Truncates to maxLength
+// Returns true if the input string was truncated, and false otherwise.
+func writeField(messageWriter *bytes.Buffer, str []byte, maxLength int) bool {
+	if len(str) > maxLength {
+		messageWriter.Write(str[0:maxLength])
+		return true
+	} else {
+		messageWriter.Write(str)
+		return false
+	}
+}
+
+type fixResult struct {
+	hasMetadata    bool
+	numLogs        int64
+	bytes          []byte
+	hostnameTruncs int64
+	appnameTruncs  int64
+	procidTruncs   int64
+	msgidTruncs    int64
+}
+
 // Fix function to convert post data to length prefixed syslog frames
 // Returns:
 // * boolean indicating whether metadata was present in the query parameters.
 // * integer representing the number of logplex frames parsed from the HTTP request.
 // * byte array of syslog data.
 // * error if something went wrong.
-func fix(req *http.Request, r io.Reader, remoteAddr string, logplexDrainToken string, metadataId string, cred *credential) (bool, int64, []byte, error) {
+func fix(req *http.Request, r io.Reader, remoteAddr string, logplexDrainToken string, metadataId string, cred *credential) (fixResult, error) {
 	var messageWriter bytes.Buffer
 	var messageLenWriter bytes.Buffer
 
@@ -75,6 +102,10 @@ func fix(req *http.Request, r io.Reader, remoteAddr string, logplexDrainToken st
 
 	lp := lpx.NewReader(bufio.NewReader(r))
 	numLogs := int64(0)
+	hostnameTruncs := int64(0)
+	appnameTruncs := int64(0)
+	procidTruncs := int64(0)
+	msgidTruncs := int64(0)
 	for lp.Next() {
 		numLogs++
 		header := lp.Header()
@@ -84,20 +115,31 @@ func fix(req *http.Request, r io.Reader, remoteAddr string, logplexDrainToken st
 		messageWriter.WriteString(" ")
 		messageWriter.Write(header.Time)
 		messageWriter.WriteString(" ")
+		host := header.Hostname
 		if string(header.Hostname) == logplexDefaultHost && logplexDrainToken != "" {
-			messageWriter.WriteString(logplexDrainToken)
-		} else {
-			messageWriter.Write(header.Hostname)
+			host = []byte(logplexDrainToken)
+		}
+		if writeField(&messageWriter, host, maxHostnameLength) {
+			hostnameTruncs++
 		}
 		messageWriter.WriteString(" ")
-		messageWriter.Write(header.Name)
+		if writeField(&messageWriter, header.Name, maxAppnameLength) {
+			appnameTruncs++
+		}
 		messageWriter.WriteString(" ")
-		messageWriter.Write(header.Procid)
+		if writeField(&messageWriter, header.Procid, maxProcidLength) {
+			procidTruncs++
+		}
 		messageWriter.WriteString(" ")
-		messageWriter.Write(header.Msgid)
-		messageWriter.WriteString(" [origin ip=\"")
-		messageWriter.WriteString(remoteAddr)
-		messageWriter.WriteString("\"]")
+		if writeField(&messageWriter, header.Msgid, maxMsgidLength) {
+			msgidTruncs++
+		}
+		messageWriter.WriteString(" ")
+		if remoteAddr != "" {
+			messageWriter.WriteString("[origin ip=\"")
+			messageWriter.WriteString(remoteAddr)
+			messageWriter.WriteString("\"]")
+		}
 
 		// Write metadata
 		if hasMetadata {
@@ -119,5 +161,13 @@ func fix(req *http.Request, r io.Reader, remoteAddr string, logplexDrainToken st
 		messageWriter.WriteTo(&messageLenWriter)
 	}
 
-	return hasMetadata, numLogs, messageLenWriter.Bytes(), lp.Err()
+	return fixResult{
+		hasMetadata:    hasMetadata,
+		numLogs:        numLogs,
+		bytes:          messageLenWriter.Bytes(),
+		hostnameTruncs: hostnameTruncs,
+		appnameTruncs:  appnameTruncs,
+		procidTruncs:   procidTruncs,
+		msgidTruncs:    msgidTruncs,
+	}, lp.Err()
 }
