@@ -78,13 +78,19 @@ func writeField(messageWriter *bytes.Buffer, str []byte, maxLength int) bool {
 	}
 }
 
+type FixResult struct {
+	hasMetadata bool
+	numLogs     int64
+	bytes       []byte
+}
+
 // Fix function to convert post data to length prefixed syslog frames
 // Returns:
 // * boolean indicating whether metadata was present in the query parameters.
 // * integer representing the number of logplex frames parsed from the HTTP request.
 // * byte array of syslog data.
 // * error if something went wrong.
-func fix(req *http.Request, r io.Reader, remoteAddr string, logplexDrainToken string, metadataId string, cred *credential) (bool, int64, []byte, error) {
+func fix(req *http.Request, r io.Reader, remoteAddr string, logplexDrainToken string, metadataId string, cred *credential) (FixResult, error) {
 	var messageWriter bytes.Buffer
 	var messageLenWriter bytes.Buffer
 
@@ -139,5 +145,9 @@ func fix(req *http.Request, r io.Reader, remoteAddr string, logplexDrainToken st
 		messageWriter.WriteTo(&messageLenWriter)
 	}
 
-	return hasMetadata, numLogs, messageLenWriter.Bytes(), lp.Err()
+	return FixResult{
+		hasMetadata: hasMetadata,
+		numLogs:     numLogs,
+		bytes:       messageLenWriter.Bytes(),
+	}, lp.Err()
 }

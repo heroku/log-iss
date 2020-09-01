@@ -41,7 +41,7 @@ func NewPayload(sa string, ri string, b []byte) payload {
 //	* boolean - indicating whether the request has query params (aka metadata).
 //  * int64  - number of log lines read from the stream
 //  * error - if something went wrong.
-type FixerFunc func(*http.Request, io.Reader, string, string, string, *credential) (bool, int64, []byte, error)
+type FixerFunc func(*http.Request, io.Reader, string, string, string, *credential) (FixResult, error)
 
 type httpServer struct {
 	Config                IssConfig
@@ -207,28 +207,28 @@ func (s *httpServer) awaitShutdown() {
 	log.WithFields(log.Fields{"ns": "http", "at": "shutdown"}).Info()
 }
 
-func (s *httpServer) process(req *http.Request, r io.Reader, remoteAddr string, requestID string, logplexDrainToken string, metadataId string, cred *credential) (error, int) {
+func (s *httpServer) process(req *http.Request, reader io.Reader, remoteAddr string, requestID string, logplexDrainToken string, metadataId string, cred *credential) (error, int) {
 	s.Add(1)
 	defer s.Done()
 
-	hasMetadata, numLogs, fixedBody, err := s.FixerFunc(req, r, remoteAddr, logplexDrainToken, metadataId, cred)
+	r, err := s.FixerFunc(req, reader, remoteAddr, logplexDrainToken, metadataId, cred)
 	if err != nil {
 		return errors.New("Problem fixing body: " + err.Error()), http.StatusBadRequest
 	}
 
-	s.pLogsReceived.Inc(numLogs)
-	if hasMetadata {
-		s.pMetadataLogsReceived.Inc(numLogs)
+	s.pLogsReceived.Inc(r.numLogs)
+	if r.hasMetadata {
+		s.pMetadataLogsReceived.Inc(r.numLogs)
 	}
 
-	payload := NewPayload(remoteAddr, requestID, fixedBody)
+	payload := NewPayload(remoteAddr, requestID, r.bytes)
 	if err := s.deliverer.Deliver(payload); err != nil {
 		return errors.New("Problem delivering body: " + err.Error()), http.StatusGatewayTimeout
 	}
 
-	s.pLogsSent.Inc(numLogs)
-	if hasMetadata {
-		s.pMetadataLogsSent.Inc(numLogs)
+	s.pLogsSent.Inc(r.numLogs)
+	if r.hasMetadata {
+		s.pMetadataLogsSent.Inc(r.numLogs)
 	}
 
 	return nil, 200
