@@ -79,9 +79,13 @@ func writeField(messageWriter *bytes.Buffer, str []byte, maxLength int) bool {
 }
 
 type fixResult struct {
-	hasMetadata bool
-	numLogs     int64
-	bytes       []byte
+	hasMetadata    bool
+	numLogs        int64
+	bytes          []byte
+	hostnameTruncs int64
+	appnameTruncs  int64
+	procidTruncs   int64
+	msgidTruncs    int64
 }
 
 // Fix function to convert post data to length prefixed syslog frames
@@ -98,6 +102,10 @@ func fix(req *http.Request, r io.Reader, remoteAddr string, logplexDrainToken st
 
 	lp := lpx.NewReader(bufio.NewReader(r))
 	numLogs := int64(0)
+	hostnameTruncs := int64(0)
+	appnameTruncs := int64(0)
+	procidTruncs := int64(0)
+	msgidTruncs := int64(0)
 	for lp.Next() {
 		numLogs++
 		header := lp.Header()
@@ -111,13 +119,21 @@ func fix(req *http.Request, r io.Reader, remoteAddr string, logplexDrainToken st
 		if string(header.Hostname) == logplexDefaultHost && logplexDrainToken != "" {
 			host = []byte(logplexDrainToken)
 		}
-		_ = writeField(&messageWriter, host, maxHostnameLength)
+		if writeField(&messageWriter, host, maxHostnameLength) {
+			hostnameTruncs++
+		}
 		messageWriter.WriteString(" ")
-		_ = writeField(&messageWriter, header.Name, maxAppnameLength)
+		if writeField(&messageWriter, header.Name, maxAppnameLength) {
+			appnameTruncs++
+		}
 		messageWriter.WriteString(" ")
-		_ = writeField(&messageWriter, header.Procid, maxProcidLength)
+		if writeField(&messageWriter, header.Procid, maxProcidLength) {
+			procidTruncs++
+		}
 		messageWriter.WriteString(" ")
-		_ = writeField(&messageWriter, header.Msgid, maxMsgidLength)
+		if writeField(&messageWriter, header.Msgid, maxMsgidLength) {
+			msgidTruncs++
+		}
 		messageWriter.WriteString(" ")
 		if remoteAddr != "" {
 			messageWriter.WriteString("[origin ip=\"")
@@ -146,8 +162,12 @@ func fix(req *http.Request, r io.Reader, remoteAddr string, logplexDrainToken st
 	}
 
 	return fixResult{
-		hasMetadata: hasMetadata,
-		numLogs:     numLogs,
-		bytes:       messageLenWriter.Bytes(),
+		hasMetadata:    hasMetadata,
+		numLogs:        numLogs,
+		bytes:          messageLenWriter.Bytes(),
+		hostnameTruncs: hostnameTruncs,
+		appnameTruncs:  appnameTruncs,
+		procidTruncs:   procidTruncs,
+		msgidTruncs:    msgidTruncs,
 	}, lp.Err()
 }

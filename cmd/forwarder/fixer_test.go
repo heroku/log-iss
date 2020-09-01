@@ -40,46 +40,55 @@ func TestFix(t *testing.T) {
 func TestTruncationOfFields(t *testing.T) {
 	assert := assert.New(t)
 	type input struct {
-		name        string
-		bytes       []byte
-		expected    []byte
-		hasMetadata bool
-		err         error
+		name     string
+		bytes    []byte
+		expected fixResult
+		err      error
 	}
 	tests := []input{
 		{
-			name:        "truncate HOSTNAME",
-			bytes:       []byte(fmt.Sprintf("311 <13>1 2013-06-07T13:17:49.468822+00:00 %s heroku web.7 - ", strings.Repeat("a", 256))),
-			expected:    []byte(fmt.Sprintf("310 <13>1 2013-06-07T13:17:49.468822+00:00 %s heroku web.7 - ", strings.Repeat("a", 255))),
-			hasMetadata: false,
+			name:  "truncate HOSTNAME",
+			bytes: []byte(fmt.Sprintf("311 <13>1 2013-06-07T13:17:49.468822+00:00 %s heroku web.7 - ", strings.Repeat("a", 256))),
+			expected: fixResult{
+				numLogs:        1,
+				bytes:          []byte(fmt.Sprintf("310 <13>1 2013-06-07T13:17:49.468822+00:00 %s heroku web.7 - ", strings.Repeat("a", 255))),
+				hostnameTruncs: 1,
+			},
 		},
 		{
-			name:        "truncate APP-NAME",
-			bytes:       []byte(fmt.Sprintf("102 <13>1 2013-06-07T13:17:49.468822+00:00 host %s web.7 - ", strings.Repeat("a", 49))),
-			expected:    []byte(fmt.Sprintf("101 <13>1 2013-06-07T13:17:49.468822+00:00 host %s web.7 - ", strings.Repeat("a", 48))),
-			hasMetadata: false,
+			name:  "truncate APP-NAME",
+			bytes: []byte(fmt.Sprintf("102 <13>1 2013-06-07T13:17:49.468822+00:00 host %s web.7 - ", strings.Repeat("a", 49))),
+			expected: fixResult{
+				numLogs:       1,
+				bytes:         []byte(fmt.Sprintf("101 <13>1 2013-06-07T13:17:49.468822+00:00 host %s web.7 - ", strings.Repeat("a", 48))),
+				appnameTruncs: 1,
+			},
 		},
 		{
-			name:        "truncate PROCID",
-			bytes:       []byte(fmt.Sprintf("183 <13>1 2013-06-07T13:17:49.468822+00:00 host heroku %s - ", strings.Repeat("a", 129))),
-			expected:    []byte(fmt.Sprintf("182 <13>1 2013-06-07T13:17:49.468822+00:00 host heroku %s - ", strings.Repeat("a", 128))),
-			hasMetadata: false,
+			name:  "truncate PROCID",
+			bytes: []byte(fmt.Sprintf("183 <13>1 2013-06-07T13:17:49.468822+00:00 host heroku %s - ", strings.Repeat("a", 129))),
+			expected: fixResult{
+				numLogs:      1,
+				bytes:        []byte(fmt.Sprintf("182 <13>1 2013-06-07T13:17:49.468822+00:00 host heroku %s - ", strings.Repeat("a", 128))),
+				procidTruncs: 1,
+			},
 		},
 		{
-			name:        "truncate MSGID",
-			bytes:       []byte(fmt.Sprintf("91 <13>1 2013-06-07T13:17:49.468822+00:00 host heroku web.7 %s ", strings.Repeat("a", 33))),
-			expected:    []byte(fmt.Sprintf("90 <13>1 2013-06-07T13:17:49.468822+00:00 host heroku web.7 %s ", strings.Repeat("a", 32))),
-			hasMetadata: false,
+			name:  "truncate MSGID",
+			bytes: []byte(fmt.Sprintf("91 <13>1 2013-06-07T13:17:49.468822+00:00 host heroku web.7 %s ", strings.Repeat("a", 33))),
+			expected: fixResult{
+				numLogs:     1,
+				bytes:       []byte(fmt.Sprintf("90 <13>1 2013-06-07T13:17:49.468822+00:00 host heroku web.7 %s ", strings.Repeat("a", 32))),
+				msgidTruncs: 1,
+			},
 		},
 	}
 
 	for _, i := range tests {
 		t.Run(i.name, func(t *testing.T) {
 			r, err := fix(simpleHttpRequest(), bytes.NewReader(i.bytes), "", "", "", nil)
-
 			assert.Equal(i.err, err)
-			assert.Equal(string(i.expected), string(r.bytes))
-			assert.Equal(i.hasMetadata, r.hasMetadata)
+			assert.Equal(i.expected, r)
 		})
 	}
 }
