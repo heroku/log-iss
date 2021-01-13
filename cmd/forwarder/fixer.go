@@ -5,7 +5,9 @@ import (
 	"bytes"
 	"io"
 	"net/http"
+	"os"
 	"strconv"
+	"strings"
 
 	"github.com/bmizerany/lpx"
 )
@@ -22,45 +24,60 @@ const (
 )
 
 var nilVal = []byte(`- `)
-var queryParams = []string{"index", "source", "sourcetype"}
+
+// Searches a slice for a string
+func containsString(a []string, x string) bool {
+	for _, n := range a {
+		if x == n {
+			return true
+		}
+	}
+	return false
+}
 
 // Get metadata from the http request.
 // Returns an empty byte array if there isn't any.
 func getMetadata(req *http.Request, cred *credential, metadataId string) ([]byte, bool) {
 	var metadataWriter bytes.Buffer
 	var foundMetadata bool
+	var metadataString string = "[" + metadataId
+	var fieldsString string
+	var queryParams = []string{"index", "source", "sourcetype"}
+	//var queryFieldParams []string
+
+	queryFieldParams := strings.Split(os.Getenv("QUERY_FIELD_PARAMS"), ",")
+
 	// Calculate metadata query parameters
 	if metadataId != "" {
 		for _, k := range queryParams {
 			v := req.FormValue(k)
 			if v != "" {
-				if !foundMetadata {
-					metadataWriter.WriteString("[")
-					metadataWriter.WriteString(metadataId)
-					foundMetadata = true
+				if containsString(queryFieldParams, k) {
+					if fieldsString != "" {
+						fieldsString += ","
+					}
+					fieldsString += k + "=" + v
+				} else {
+					metadataString += " " + k + `="` + v + `"`
 				}
-				metadataWriter.WriteString(" ")
-				metadataWriter.WriteString(k)
-				metadataWriter.WriteString("=\"")
-				metadataWriter.WriteString(v)
-				metadataWriter.WriteString("\"")
+				foundMetadata = true
 			}
 		}
 
 		// Add metadata about the credential if it is deprecated
-		if cred != nil && cred.Deprecated == true {
-			if !foundMetadata {
-				metadataWriter.WriteString("[")
-				metadataWriter.WriteString(metadataId)
-				foundMetadata = true
+		if cred != nil && cred.Deprecated {
+			if fieldsString != "" {
+				fieldsString += ","
 			}
-			metadataWriter.WriteString(` fields="credential_deprecated=true,credential_name=`)
-			metadataWriter.WriteString(cred.Name)
-			metadataWriter.WriteString(`"`)
+			fieldsString += `credential_deprecated=true,credential_name=` + cred.Name
+			foundMetadata = true
 		}
 
 		if foundMetadata {
-			metadataWriter.WriteString("]")
+			if fieldsString != "" {
+				fieldsString = ` fields="` + fieldsString + `"`
+			}
+			metadataWriter.WriteString(metadataString + fieldsString + "]")
 		}
 	}
 	return metadataWriter.Bytes(), foundMetadata
