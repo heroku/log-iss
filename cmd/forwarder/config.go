@@ -27,6 +27,7 @@ type IssConfig struct {
 	Dyno                      string        `env:"DYNO"`
 	MetadataId                string        `env:"METADATA_ID"`
 	Debug                     bool          `env:"LOG_ISS_DEBUG"`
+	QueryFieldParams          []string      `env:"LOG_ISS_FIELD_PARAMS"`
 	TlsConfig                 *tls.Config
 	MetricsRegistry           metrics.Registry
 }

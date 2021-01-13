@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/bmizerany/lpx"
 )
@@ -21,49 +22,69 @@ const (
 	maxMsgidLength    = 32
 )
 
-var nilVal = []byte(`- `)
+var nilVal = []byte("- ")
 var queryParams = []string{"index", "source", "sourcetype"}
 
 // Get metadata from the http request.
 // Returns an empty byte array if there isn't any.
-func getMetadata(req *http.Request, cred *credential, metadataId string) ([]byte, bool) {
-	var metadataWriter bytes.Buffer
+func getMetadata(req *http.Request, cred *credential, metadataId string, queryFieldParams []string) (string, bool) {
+	var metadataWriter strings.Builder
 	var foundMetadata bool
+
 	// Calculate metadata query parameters
 	if metadataId != "" {
-		for _, k := range queryParams {
+		var fieldsBuilder strings.Builder
+
+		// Pre-grow to minimize extra slice allocations
+		metadataWriter.Grow(1024)
+		fieldsBuilder.Grow(256)
+
+		metadataWriter.WriteString("[")
+		metadataWriter.WriteString(metadataId)
+
+		for _, k := range append(queryParams, queryFieldParams...) {
 			v := req.FormValue(k)
 			if v != "" {
-				if !foundMetadata {
-					metadataWriter.WriteString("[")
-					metadataWriter.WriteString(metadataId)
-					foundMetadata = true
+				if containsString(queryFieldParams, k) {
+					if fieldsBuilder.Len() > 0 {
+						fieldsBuilder.WriteString(",")
+					}
+					fieldsBuilder.WriteString(k)
+					fieldsBuilder.WriteString("=")
+					fieldsBuilder.WriteString(v)
+				} else {
+					metadataWriter.WriteString(" ")
+					metadataWriter.WriteString(k)
+					metadataWriter.WriteString(`="`)
+					metadataWriter.WriteString(v)
+					metadataWriter.WriteString(`"`)
 				}
-				metadataWriter.WriteString(" ")
-				metadataWriter.WriteString(k)
-				metadataWriter.WriteString("=\"")
-				metadataWriter.WriteString(v)
-				metadataWriter.WriteString("\"")
+				foundMetadata = true
 			}
 		}
 
 		// Add metadata about the credential if it is deprecated
-		if cred != nil && cred.Deprecated == true {
-			if !foundMetadata {
-				metadataWriter.WriteString("[")
-				metadataWriter.WriteString(metadataId)
-				foundMetadata = true
+		if cred != nil && cred.Deprecated {
+			if fieldsBuilder.Len() > 0 {
+				fieldsBuilder.WriteString(",")
 			}
-			metadataWriter.WriteString(` fields="credential_deprecated=true,credential_name=`)
-			metadataWriter.WriteString(cred.Name)
-			metadataWriter.WriteString(`"`)
+			fieldsBuilder.WriteString(`credential_deprecated=true,credential_name=`)
+			fieldsBuilder.WriteString(cred.Name)
+			foundMetadata = true
 		}
 
 		if foundMetadata {
+			if fieldsBuilder.Len() > 0 {
+				metadataWriter.WriteString(` fields="`)
+				metadataWriter.WriteString(fieldsBuilder.String())
+				metadataWriter.WriteString(`"`)
+			}
+
 			metadataWriter.WriteString("]")
 		}
 	}
-	return metadataWriter.Bytes(), foundMetadata
+
+	return metadataWriter.String(), foundMetadata
 }
 
 // Write a header field into the messageWriter buffer. Truncates to maxLength
@@ -94,11 +115,11 @@ type fixResult struct {
 // * integer representing the number of logplex frames parsed from the HTTP request.
 // * byte array of syslog data.
 // * error if something went wrong.
-func fix(req *http.Request, r io.Reader, remoteAddr string, logplexDrainToken string, metadataId string, cred *credential) (fixResult, error) {
+func fix(req *http.Request, r io.Reader, remoteAddr string, logplexDrainToken string, metadataId string, cred *credential, queryFieldParams []string) (fixResult, error) {
 	var messageWriter bytes.Buffer
 	var messageLenWriter bytes.Buffer
 
-	metadataBytes, hasMetadata := getMetadata(req, cred, metadataId)
+	metadataString, hasMetadata := getMetadata(req, cred, metadataId, queryFieldParams)
 
 	lp := lpx.NewReader(bufio.NewReader(r))
 	numLogs := int64(0)
@@ -143,7 +164,7 @@ func fix(req *http.Request, r io.Reader, remoteAddr string, logplexDrainToken st
 
 		// Write metadata
 		if hasMetadata {
-			messageWriter.Write(metadataBytes)
+			messageWriter.WriteString(metadataString)
 		}
 
 		b := lp.Bytes()
