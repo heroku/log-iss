@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/bmizerany/lpx"
 )
@@ -25,19 +26,26 @@ const (
 var nilVal = []byte("- ")
 var queryParams = []string{"index", "source", "sourcetype"}
 
+var builderPool *sync.Pool = initPool()
+
+func initPool() *sync.Pool {
+	return &sync.Pool{
+		New: func() interface{} {
+			var b strings.Builder
+			return &b
+		},
+	}
+}
+
 // Get metadata from the http request.
 // Returns an empty byte array if there isn't any.
 func getMetadata(req *http.Request, cred *credential, metadataId string, queryFieldParams []string) (string, bool) {
-	var metadataWriter strings.Builder
+	var metadataWriter = builderPool.Get().(*strings.Builder)
 	var foundMetadata bool
 
 	// Calculate metadata query parameters
 	if metadataId != "" {
-		var fieldsBuilder strings.Builder
-
-		// Pre-grow to minimize extra slice allocations
-		metadataWriter.Grow(1024)
-		fieldsBuilder.Grow(256)
+		var fieldsBuilder = builderPool.Get().(*strings.Builder)
 
 		metadataWriter.WriteString("[")
 		metadataWriter.WriteString(metadataId)
@@ -82,9 +90,14 @@ func getMetadata(req *http.Request, cred *credential, metadataId string, queryFi
 
 			metadataWriter.WriteString("]")
 		}
+		fieldsBuilder.Reset()
+		builderPool.Put(fieldsBuilder)
 	}
+	result := metadataWriter.String()
+	metadataWriter.Reset()
+	builderPool.Put(metadataWriter)
 
-	return metadataWriter.String(), foundMetadata
+	return result, foundMetadata
 }
 
 // Write a header field into the messageWriter buffer. Truncates to maxLength
