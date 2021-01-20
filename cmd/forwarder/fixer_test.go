@@ -171,6 +171,7 @@ func BenchmarkGetMetadata(b *testing.B) {
 	cred := credential{Stage: "previous", Name: "cred", Deprecated: true}
 
 	b.SetBytes(int64(len(input)))
+	b.ReportAllocs()
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		fix(httpRequestWithCustomParams(), bytes.NewReader(input), "1.2.3.4", "", "metadata@123", &cred, customQueryParams)
@@ -180,6 +181,7 @@ func BenchmarkGetMetadata(b *testing.B) {
 func BenchmarkFixNoSD(b *testing.B) {
 	input := []byte("64 <13>1 2013-06-07T13:17:49.468822+00:00 host heroku web.7 - - hi\n67 <13>1 2013-06-07T13:17:49.468822+00:00 host heroku web.7 - - hello\n")
 	b.SetBytes(int64(len(input)))
+	b.ReportAllocs()
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		fix(simpleHttpRequest(), bytes.NewReader(input), "1.2.3.4", "", "", nil, make([]string, 0))
@@ -189,6 +191,7 @@ func BenchmarkFixNoSD(b *testing.B) {
 func BenchmarkFixSD(b *testing.B) {
 	input := []byte("106 <13>1 2013-06-07T13:17:49.468822+00:00 host heroku web.7 - [meta sequenceId=\"hello\"][foo bar=\"baz\"] hello\n")
 	b.SetBytes(int64(len(input)))
+	b.ReportAllocs()
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		fix(simpleHttpRequest(), bytes.NewReader(input), "1.2.3.4", "", "", nil, make([]string, 0))
