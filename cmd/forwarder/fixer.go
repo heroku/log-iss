@@ -26,12 +26,14 @@ const (
 var nilVal = []byte("- ")
 var queryParams = []string{"index", "source", "sourcetype"}
 
-var builderPool *sync.Pool = initPool()
+var metadataBuilderPool *sync.Pool = initPool(1024)
+var fieldsBuilderPool *sync.Pool = initPool(256)
 
-func initPool() *sync.Pool {
+func initPool(cap int) *sync.Pool {
 	return &sync.Pool{
 		New: func() interface{} {
 			var b strings.Builder
+			b.Grow(cap)
 			return &b
 		},
 	}
@@ -40,12 +42,12 @@ func initPool() *sync.Pool {
 // Get metadata from the http request.
 // Returns an empty byte array if there isn't any.
 func getMetadata(req *http.Request, cred *credential, metadataId string, queryFieldParams []string) (string, bool) {
-	var metadataWriter = builderPool.Get().(*strings.Builder)
+	var metadataWriter = metadataBuilderPool.Get().(*strings.Builder)
 	var foundMetadata bool
 
 	// Calculate metadata query parameters
 	if metadataId != "" {
-		var fieldsBuilder = builderPool.Get().(*strings.Builder)
+		var fieldsBuilder = fieldsBuilderPool.Get().(*strings.Builder)
 
 		metadataWriter.WriteString("[")
 		metadataWriter.WriteString(metadataId)
@@ -91,11 +93,11 @@ func getMetadata(req *http.Request, cred *credential, metadataId string, queryFi
 			metadataWriter.WriteString("]")
 		}
 		fieldsBuilder.Reset()
-		builderPool.Put(fieldsBuilder)
+		fieldsBuilderPool.Put(fieldsBuilder)
 	}
 	result := metadataWriter.String()
 	metadataWriter.Reset()
-	builderPool.Put(metadataWriter)
+	metadataBuilderPool.Put(metadataWriter)
 
 	return result, foundMetadata
 }
