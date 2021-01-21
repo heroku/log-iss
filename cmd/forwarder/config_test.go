@@ -18,7 +18,6 @@ func TestQueryFieldParams(t *testing.T) {
 		assert.FailNow(err.Error())
 	}
 
-	assert.IsType(make([]string, 0), config.QueryFieldParams)
 	assert.ElementsMatch([]string{"custom1", "custom2", "custom3"}, config.QueryFieldParams)
 }
 
