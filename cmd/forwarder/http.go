@@ -37,11 +37,12 @@ func NewPayload(sa string, ri string, b []byte) payload {
 //  * string - logplex drain token
 //  * metadataId - ID to use when adding metadata to logs
 //  * credential - the credential used to authenticate
+//  * []string - a slice of custom query paramters to look for in the request
 // FixerFunc returns:
-//	* boolean - indicating whether the request has query params (aka metadata).
+//  * boolean - indicating whether the request has query params (aka metadata).
 //  * int64  - number of log lines read from the stream
 //  * error - if something went wrong.
-type FixerFunc func(*http.Request, io.Reader, string, string, string, *credential) (fixResult, error)
+type FixerFunc func(*http.Request, io.Reader, string, string, string, *credential, []string) (fixResult, error)
 
 type httpServer struct {
 	Config                IssConfig
@@ -219,7 +220,7 @@ func (s *httpServer) process(req *http.Request, reader io.Reader, remoteAddr str
 	s.Add(1)
 	defer s.Done()
 
-	r, err := s.FixerFunc(req, reader, remoteAddr, logplexDrainToken, metadataId, cred)
+	r, err := s.FixerFunc(req, reader, remoteAddr, logplexDrainToken, metadataId, cred, s.Config.QueryFieldParams)
 	if err != nil {
 		return errors.New("Problem fixing body: " + err.Error()), http.StatusBadRequest
 	}

@@ -31,7 +31,7 @@ func TestFix(t *testing.T) {
 	}
 
 	for x, in := range input {
-		r, _ := fix(simpleHttpRequest(), bytes.NewReader(in), "1.2.3.4", "", "", nil)
+		r, _ := fix(simpleHttpRequest(), bytes.NewReader(in), "1.2.3.4", "", "", nil, make([]string, 0))
 		assert.Equal(string(output[x]), string(r.bytes))
 		assert.False(r.hasMetadata)
 	}
@@ -86,7 +86,7 @@ func TestTruncationOfFields(t *testing.T) {
 
 	for _, i := range tests {
 		t.Run(i.name, func(t *testing.T) {
-			r, err := fix(simpleHttpRequest(), bytes.NewReader(i.bytes), "", "", "", nil)
+			r, err := fix(simpleHttpRequest(), bytes.NewReader(i.bytes), "", "", "", nil, make([]string, 0))
 			assert.Equal(i.err, err)
 			assert.Equal(i.expected, r)
 		})
@@ -98,11 +98,40 @@ func TestFixWithQueryParameters(t *testing.T) {
 	var output = []byte("135 <13>1 2013-06-07T13:17:49.468822+00:00 host heroku web.7 - [origin ip=\"1.2.3.4\"][metadata@123 index=\"i\" source=\"s\" sourcetype=\"st\"] hi\n138 <13>1 2013-06-07T13:17:49.468822+00:00 host heroku web.7 - [origin ip=\"1.2.3.4\"][metadata@123 index=\"i\" source=\"s\" sourcetype=\"st\"] hello\n")
 
 	in := input[0]
-	r, _ := fix(httpRequestWithParams(), bytes.NewReader(in), "1.2.3.4", "", "metadata@123", nil)
+	r, _ := fix(httpRequestWithParams(), bytes.NewReader(in), "1.2.3.4", "", "metadata@123", nil, make([]string, 0))
 
 	assert.Equal(string(output), string(r.bytes))
 	assert.True(r.hasMetadata)
 	assert.Equal(int64(2), r.numLogs)
+}
+
+func TestFixWithCustomQueryParameters(t *testing.T) {
+	assert := assert.New(t)
+	var output = []byte("216 <13>1 2013-06-07T13:17:49.468822+00:00 host heroku web.7 - [origin ip=\"1.2.3.4\"][metadata@123 index=\"i\" source=\"s\" sourcetype=\"st\" fields=\"custom1=cq1,custom2=cq2,credential_deprecated=true,credential_name=cred\"] hi\n219 <13>1 2013-06-07T13:17:49.468822+00:00 host heroku web.7 - [origin ip=\"1.2.3.4\"][metadata@123 index=\"i\" source=\"s\" sourcetype=\"st\" fields=\"custom1=cq1,custom2=cq2,credential_deprecated=true,credential_name=cred\"] hello\n")
+
+	customQueryParams := []string{"custom1", "custom2"}
+
+	in := input[0]
+	cred := credential{Stage: "previous", Name: "cred", Deprecated: true}
+	r, _ := fix(httpRequestWithCustomParams(), bytes.NewReader(in), "1.2.3.4", "", "metadata@123", &cred, customQueryParams)
+
+	assert.Equal(string(output), string(r.bytes))
+	assert.True(r.hasMetadata)
+	assert.Equal(r.numLogs, int64(2))
+}
+
+func TestFixWithCustomQueryParametersNoCreds(t *testing.T) {
+	assert := assert.New(t)
+	var output = []byte("168 <13>1 2013-06-07T13:17:49.468822+00:00 host heroku web.7 - [origin ip=\"1.2.3.4\"][metadata@123 index=\"i\" source=\"s\" sourcetype=\"st\" fields=\"custom1=cq1,custom2=cq2\"] hi\n171 <13>1 2013-06-07T13:17:49.468822+00:00 host heroku web.7 - [origin ip=\"1.2.3.4\"][metadata@123 index=\"i\" source=\"s\" sourcetype=\"st\" fields=\"custom1=cq1,custom2=cq2\"] hello\n")
+
+	customQueryParams := []string{"custom1", "custom2"}
+
+	in := input[0]
+	r, _ := fix(httpRequestWithCustomParams(), bytes.NewReader(in), "1.2.3.4", "", "metadata@123", nil, customQueryParams)
+
+	assert.Equal(string(output), string(r.bytes))
+	assert.True(r.hasMetadata)
+	assert.Equal(r.numLogs, int64(2))
 }
 
 func TestFixWithDeprecatedCredential(t *testing.T) {
@@ -111,7 +140,7 @@ func TestFixWithDeprecatedCredential(t *testing.T) {
 
 	in := input[0]
 	cred := credential{Stage: "previous", Name: "cred", Deprecated: true}
-	r, _ := fix(httpRequestWithParams(), bytes.NewReader(in), "1.2.3.4", "", "metadata@123", &cred)
+	r, _ := fix(httpRequestWithParams(), bytes.NewReader(in), "1.2.3.4", "", "metadata@123", &cred, make([]string, 0))
 
 	assert.Equal(string(output), string(r.bytes))
 	assert.True(r.hasMetadata)
@@ -130,32 +159,52 @@ func TestFixWithLogplexDrainToken(t *testing.T) {
 		[]byte("152 <13>1 2013-06-07T13:17:49.468822+00:00 d.34bc219c-983b-463e-a17d-3d34ee7db812 heroku web.7 - [origin ip=\"1.2.3.4\"][60607e20-f12d-483e-aa89-ffaf954e7527]"),
 	}
 	for x, in := range input {
-		r, _ := fix(simpleHttpRequest(), bytes.NewReader(in), "1.2.3.4", testToken, "", nil)
+		r, _ := fix(simpleHttpRequest(), bytes.NewReader(in), "1.2.3.4", testToken, "", nil, make([]string, 0))
 		assert.Equal(string(output[x]), string(r.bytes))
 		assert.False(r.hasMetadata)
+	}
+}
+
+func BenchmarkGetMetadata(b *testing.B) {
+	input := []byte("106 <13>1 2013-06-07T13:17:49.468822+00:00 host heroku web.7 - [meta sequenceId=\"hello\"][foo bar=\"baz\"] hello\n")
+	customQueryParams := []string{"custom1", "custom2"}
+	cred := credential{Stage: "previous", Name: "cred", Deprecated: true}
+
+	b.SetBytes(int64(len(input)))
+	b.ReportAllocs()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		fix(httpRequestWithCustomParams(), bytes.NewReader(input), "1.2.3.4", "", "metadata@123", &cred, customQueryParams)
 	}
 }
 
 func BenchmarkFixNoSD(b *testing.B) {
 	input := []byte("64 <13>1 2013-06-07T13:17:49.468822+00:00 host heroku web.7 - - hi\n67 <13>1 2013-06-07T13:17:49.468822+00:00 host heroku web.7 - - hello\n")
 	b.SetBytes(int64(len(input)))
+	b.ReportAllocs()
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		fix(simpleHttpRequest(), bytes.NewReader(input), "1.2.3.4", "", "", nil)
+		fix(simpleHttpRequest(), bytes.NewReader(input), "1.2.3.4", "", "", nil, make([]string, 0))
 	}
 }
 
 func BenchmarkFixSD(b *testing.B) {
 	input := []byte("106 <13>1 2013-06-07T13:17:49.468822+00:00 host heroku web.7 - [meta sequenceId=\"hello\"][foo bar=\"baz\"] hello\n")
 	b.SetBytes(int64(len(input)))
+	b.ReportAllocs()
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		fix(simpleHttpRequest(), bytes.NewReader(input), "1.2.3.4", "", "", nil)
+		fix(simpleHttpRequest(), bytes.NewReader(input), "1.2.3.4", "", "", nil, make([]string, 0))
 	}
 }
 
 func httpRequestWithParams() *http.Request {
 	req, _ := http.NewRequest("POST", "/logs?index=i&source=s&sourcetype=st", nil)
+	return req
+}
+
+func httpRequestWithCustomParams() *http.Request {
+	req, _ := http.NewRequest("POST", "/logs?index=i&source=s&sourcetype=st&custom1=cq1&custom2=cq2", nil)
 	return req
 }
 
