@@ -134,6 +134,19 @@ func TestFixWithCustomQueryParametersNoCreds(t *testing.T) {
 	assert.Equal(r.numLogs, int64(2))
 }
 
+func TestFixWithMetricsDestination(t *testing.T) {
+	assert := assert.New(t)
+	var output = []byte("171 <13>1 2013-06-07T13:17:49.468822+00:00 host heroku web.7 - [origin ip=\"1.2.3.4\"][metadata@123 index=\"i\" source=\"s\" sourcetype=\"st\" metrics-destination=\"argus,librato\"] hi\n174 <13>1 2013-06-07T13:17:49.468822+00:00 host heroku web.7 - [origin ip=\"1.2.3.4\"][metadata@123 index=\"i\" source=\"s\" sourcetype=\"st\" metrics-destination=\"argus,librato\"] hello\n")
+
+	in := input[0]
+	r, _ := fix(httpRequestWithMetricsDestination(), bytes.NewReader(in), "1.2.3.4", "", "metadata@123", nil, nil)
+
+	assert.Equal(string(output), string(r.bytes))
+	assert.True(r.hasMetadata)
+	assert.Equal(r.numLogs, int64(2))
+
+}
+
 func TestFixWithDeprecatedCredential(t *testing.T) {
 	assert := assert.New(t)
 	var output = []byte("192 <13>1 2013-06-07T13:17:49.468822+00:00 host heroku web.7 - [origin ip=\"1.2.3.4\"][metadata@123 index=\"i\" source=\"s\" sourcetype=\"st\" fields=\"credential_deprecated=true,credential_name=cred\"] hi\n195 <13>1 2013-06-07T13:17:49.468822+00:00 host heroku web.7 - [origin ip=\"1.2.3.4\"][metadata@123 index=\"i\" source=\"s\" sourcetype=\"st\" fields=\"credential_deprecated=true,credential_name=cred\"] hello\n")
@@ -205,6 +218,11 @@ func httpRequestWithParams() *http.Request {
 
 func httpRequestWithCustomParams() *http.Request {
 	req, _ := http.NewRequest("POST", "/logs?index=i&source=s&sourcetype=st&custom1=cq1&custom2=cq2", nil)
+	return req
+}
+
+func httpRequestWithMetricsDestination() *http.Request {
+	req, _ := http.NewRequest("POST", "/logs?index=i&source=s&sourcetype=st&metrics-destination=argus,librato", nil)
 	return req
 }
 
