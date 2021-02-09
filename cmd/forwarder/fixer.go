@@ -23,7 +23,7 @@ const (
 )
 
 var nilVal = []byte("- ")
-var queryParams = []string{"index", "source", "sourcetype", "metrics-destination"}
+var queryParams = []string{"index", "source", "sourcetype", "metrics-destination", "log-destination"}
 
 // Get metadata from the http request.
 // Returns an empty byte array if there isn't any.

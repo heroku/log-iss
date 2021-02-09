@@ -144,7 +144,18 @@ func TestFixWithMetricsDestination(t *testing.T) {
 	assert.Equal(string(output), string(r.bytes))
 	assert.True(r.hasMetadata)
 	assert.Equal(r.numLogs, int64(2))
+}
 
+func TestFixWithLogDestination(t *testing.T) {
+	assert := assert.New(t)
+	var output = []byte("160 <13>1 2013-06-07T13:17:49.468822+00:00 host heroku web.7 - [origin ip=\"1.2.3.4\"][metadata@123 index=\"i\" source=\"s\" sourcetype=\"st\" log-destination=\"hs,mcs\"] hi\n163 <13>1 2013-06-07T13:17:49.468822+00:00 host heroku web.7 - [origin ip=\"1.2.3.4\"][metadata@123 index=\"i\" source=\"s\" sourcetype=\"st\" log-destination=\"hs,mcs\"] hello\n")
+
+	in := input[0]
+	r, _ := fix(httpRequestWithLogDestination(), bytes.NewReader(in), "1.2.3.4", "", "metadata@123", nil, nil)
+
+	assert.Equal(string(output), string(r.bytes))
+	assert.True(r.hasMetadata)
+	assert.Equal(r.numLogs, int64(2))
 }
 
 func TestFixWithDeprecatedCredential(t *testing.T) {
@@ -223,6 +234,11 @@ func httpRequestWithCustomParams() *http.Request {
 
 func httpRequestWithMetricsDestination() *http.Request {
 	req, _ := http.NewRequest("POST", "/logs?index=i&source=s&sourcetype=st&metrics-destination=argus,librato", nil)
+	return req
+}
+
+func httpRequestWithLogDestination() *http.Request {
+	req, _ := http.NewRequest("POST", "/logs?index=i&source=s&sourcetype=st&log-destination=hs,mcs", nil)
 	return req
 }
 
