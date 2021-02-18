@@ -23,11 +23,12 @@ const (
 )
 
 var nilVal = []byte("- ")
-var queryParams = []string{"index", "source", "sourcetype", "metrics-destination", "log-destination"}
+
+//var queryParams = []string{"index", "source", "sourcetype", "metrics-destination", "log-destination"}
 
 // Get metadata from the http request.
 // Returns an empty byte array if there isn't any.
-func getMetadata(req *http.Request, cred *credential, metadataId string, queryFieldParams []string) (string, bool) {
+func getMetadata(req *http.Request, cred *credential, metadataId string, config *IssConfig) (string, bool) {
 	var metadataWriter strings.Builder
 	var foundMetadata bool
 
@@ -42,10 +43,10 @@ func getMetadata(req *http.Request, cred *credential, metadataId string, queryFi
 		metadataWriter.WriteString("[")
 		metadataWriter.WriteString(metadataId)
 
-		for _, k := range append(queryParams, queryFieldParams...) {
+		for _, k := range append(config.QueryParams, config.QueryFieldParams...) {
 			v := req.FormValue(k)
 			if v != "" {
-				if containsString(queryFieldParams, k) {
+				if containsString(config.QueryFieldParams, k) {
 					if fieldsBuilder.Len() > 0 {
 						fieldsBuilder.WriteString(",")
 					}
@@ -115,11 +116,11 @@ type fixResult struct {
 // * integer representing the number of logplex frames parsed from the HTTP request.
 // * byte array of syslog data.
 // * error if something went wrong.
-func fix(req *http.Request, r io.Reader, remoteAddr string, logplexDrainToken string, metadataId string, cred *credential, queryFieldParams []string) (fixResult, error) {
+func fix(req *http.Request, r io.Reader, remoteAddr string, logplexDrainToken string, metadataId string, cred *credential, config *IssConfig) (fixResult, error) {
 	var messageWriter bytes.Buffer
 	var messageLenWriter bytes.Buffer
 
-	metadataString, hasMetadata := getMetadata(req, cred, metadataId, queryFieldParams)
+	metadataString, hasMetadata := getMetadata(req, cred, metadataId, config)
 
 	lp := lpx.NewReader(bufio.NewReader(r))
 	numLogs := int64(0)
