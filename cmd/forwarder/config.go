@@ -28,6 +28,7 @@ type IssConfig struct {
 	MetadataId                string        `env:"METADATA_ID"`
 	Debug                     bool          `env:"LOG_ISS_DEBUG"`
 	QueryFieldParams          []string      `env:"LOG_ISS_FIELD_PARAMS"`
+	QueryParams               []string      `env:"LOG_ISS_QUERY_PARAMS"`
 	TlsConfig                 *tls.Config
 	MetricsRegistry           metrics.Registry
 }

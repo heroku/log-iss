@@ -42,7 +42,7 @@ func NewPayload(sa string, ri string, b []byte) payload {
 //  * boolean - indicating whether the request has query params (aka metadata).
 //  * int64  - number of log lines read from the stream
 //  * error - if something went wrong.
-type FixerFunc func(*http.Request, io.Reader, string, string, string, *credential, []string) (fixResult, error)
+type FixerFunc func(*http.Request, io.Reader, string, string, string, *credential, *IssConfig) (fixResult, error)
 
 type httpServer struct {
 	Config                IssConfig
@@ -220,7 +220,7 @@ func (s *httpServer) process(req *http.Request, reader io.Reader, remoteAddr str
 	s.Add(1)
 	defer s.Done()
 
-	r, err := s.FixerFunc(req, reader, remoteAddr, logplexDrainToken, metadataId, cred, s.Config.QueryFieldParams)
+	r, err := s.FixerFunc(req, reader, remoteAddr, logplexDrainToken, metadataId, cred, &s.Config)
 	if err != nil {
 		return errors.New("Problem fixing body: " + err.Error()), http.StatusBadRequest
 	}
