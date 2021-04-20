@@ -172,7 +172,6 @@ func fix(req *http.Request, r io.Reader, remoteAddr string, logplexDrainToken st
 		if len(b) >= 2 && bytes.Equal(b[0:2], nilVal) {
 			messageWriter.Write(b[1:])
 		} else if len(b) > 0 {
-			messageWriter.WriteString(" ARGH ")
 			messageWriter.Write(b)
 		}
 
