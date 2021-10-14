@@ -55,7 +55,7 @@ $ echo "64 <13>1 2013-06-07T13:17:49.468822+00:00 host heroku web.7 - - hi" | cu
 
 ```bash
 $ DEPLOY=`whoami`
-$ heroku create log-iss-$DEPLOY -r $DEPLOY --buildpack https://codon-buildpacks.s3.amazonaws.com/buildpacks/kr/go.tgz
+$ heroku create log-iss-$DEPLOY -r $DEPLOY --buildpack heroku/go
 $ heroku config:set -r $DEPLOY DEPLOY=$DEPLOY ENFORCE_SSL=1 FORWARD_DEST=my-syslog-host.com:601 TOKEN_MAP=syslog:$(openssl rand -hex 20)
 $ heroku labs:enable -r $DEPLOY http-request-id
 $ heroku labs:enable -r $DEPLOY log-runtime-metrics
