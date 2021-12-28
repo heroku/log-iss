@@ -9,7 +9,7 @@ import (
 
 	"github.com/elliotchance/redismock"
 	"github.com/go-redis/redis"
-	metrics "github.com/rcrowley/go-metrics"
+	"github.com/heroku/go-metrics"
 	"github.com/stretchr/testify/assert"
 )
 

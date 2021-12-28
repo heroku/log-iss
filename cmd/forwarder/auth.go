@@ -14,7 +14,7 @@ import (
 	"time"
 
 	"github.com/go-redis/redis"
-	metrics "github.com/rcrowley/go-metrics"
+	"github.com/heroku/go-metrics"
 	log "github.com/sirupsen/logrus"
 )
 
