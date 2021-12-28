@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"github.com/heroku/go-metrics"
 	"os"
 	"os/signal"
 	"syscall"
@@ -65,7 +64,7 @@ func main() {
 		log.WithField("source", config.LibratoSource).Info("starting librato metrics reporting")
 		go librato.Librato(
 			context.Background(),
-			metrics.DefaultRegistry,
+			config.MetricsRegistry,
 			20*time.Second,
 			config.LibratoOwner,
 			config.LibratoToken,
