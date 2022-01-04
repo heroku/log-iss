@@ -25,8 +25,8 @@ func newForwarderSet(config IssConfig) *forwarderSet {
 	return &forwarderSet{
 		Config:  config,
 		Inbox:   make(chan payload, 1000),
-		timeout: metrics.GetOrRegisterCounter("log-iss.forwardset.deliver.timeout", config.MetricsRegistry),
-		full:    metrics.GetOrRegisterCounter("log-iss.forwardset.deliver.full", config.MetricsRegistry),
+		timeout: metrics.GetOrRegisterCounter("log-iss.forwardset.deliver.timeout.g", config.MetricsRegistry),
+		full:    metrics.GetOrRegisterCounter("log-iss.forwardset.deliver.full.g", config.MetricsRegistry),
 	}
 }
 
@@ -78,13 +78,13 @@ func newForwarder(config IssConfig, inbox chan payload, id int) *forwarder {
 		ID:           id,
 		Config:       config,
 		Inbox:        inbox,
-		duration:     metrics.GetOrRegisterTimer(me+".duration", config.MetricsRegistry),
-		cDisconnects: metrics.GetOrRegisterCounter(me+".disconnects", config.MetricsRegistry),
-		cSuccesses:   metrics.GetOrRegisterCounter(me+".connect.successes", config.MetricsRegistry),
-		cErrors:      metrics.GetOrRegisterCounter(me+".connect.errors", config.MetricsRegistry),
-		wErrors:      metrics.GetOrRegisterCounter(me+".write.errors", config.MetricsRegistry),
-		wSuccesses:   metrics.GetOrRegisterCounter(me+".write.successes", config.MetricsRegistry),
-		wBytes:       metrics.GetOrRegisterCounter(me+".write.bytes", config.MetricsRegistry),
+		duration:     metrics.GetOrRegisterTimer(me+".duration.g", config.MetricsRegistry),
+		cDisconnects: metrics.GetOrRegisterCounter(me+".disconnects.g", config.MetricsRegistry),
+		cSuccesses:   metrics.GetOrRegisterCounter(me+".connect.successes.g", config.MetricsRegistry),
+		cErrors:      metrics.GetOrRegisterCounter(me+".connect.errors.g", config.MetricsRegistry),
+		wErrors:      metrics.GetOrRegisterCounter(me+".write.errors.g", config.MetricsRegistry),
+		wSuccesses:   metrics.GetOrRegisterCounter(me+".write.successes.g", config.MetricsRegistry),
+		wBytes:       metrics.GetOrRegisterCounter(me+".write.bytes.g", config.MetricsRegistry),
 	}
 }
 

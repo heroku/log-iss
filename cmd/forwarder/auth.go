@@ -61,9 +61,9 @@ func newAuth(config AuthConfig, registry metrics.Registry) (*BasicAuth, error) {
 }
 
 func (auth *BasicAuth) startRefresh(client *redis.Client, config AuthConfig, registry metrics.Registry) {
-	pChanges := metrics.GetOrRegisterCounter("log-iss.auth_refresh.changes", registry)
-	pFailures := metrics.GetOrRegisterCounter("log-iss.auth_refresh.failures", registry)
-	pSuccesses := metrics.GetOrRegisterCounter("log-iss.auth_refresh.successes", registry)
+	pChanges := metrics.GetOrRegisterCounter("log-iss.auth_refresh.changes.g", registry)
+	pFailures := metrics.GetOrRegisterCounter("log-iss.auth_refresh.failures.g", registry)
+	pSuccesses := metrics.GetOrRegisterCounter("log-iss.auth_refresh.successes.g", registry)
 	ticker := time.NewTicker(config.RefreshInterval)
 
 	for ; true; <-ticker.C {
@@ -196,13 +196,13 @@ func (ba *BasicAuth) Authenticate(r *http.Request) *credential {
 
 	for _, c := range credentials {
 		if c.Hmac == hmacEncode(ba.hmacKey, pass) {
-			countName := fmt.Sprintf("log-iss.auth.%s.%s.successes", user, c.Stage)
+			countName := fmt.Sprintf("log-iss.auth.%s.%s.successes.g", user, c.Stage)
 			counter := metrics.GetOrRegisterCounter(countName, ba.registry)
 			counter.Inc(1)
 			return &c
 		}
 	}
-	countName := fmt.Sprintf("log-iss.auth.%s.failures", user)
+	countName := fmt.Sprintf("log-iss.auth.%s.failures.g", user)
 	counter := metrics.GetOrRegisterCounter(countName, ba.registry)
 	counter.Inc(1)
 	return nil
