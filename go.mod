@@ -12,6 +12,7 @@ require (
 	github.com/go-redis/redis v0.0.0-20190121142748-40336e5ef891
 	github.com/gomodule/redigo v2.0.0+incompatible // indirect
 	github.com/heroku/go-metrics-librato v0.0.0-20211022152347-534bef0d5ab9
+	github.com/heroku/go-metrics v0.0.0-20211022150449-c92400eb6c66
 	github.com/heroku/rollrus v0.0.0-20170818212624-8c4f82380151
 	github.com/joeshaw/envdecode v0.0.0-20180312135643-c9e015854467
 	github.com/onsi/ginkgo v1.8.0 // indirect
