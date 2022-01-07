@@ -1,13 +1,13 @@
 package main
 
 import (
+	"context"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
 
-	"github.com/rcrowley/go-metrics/librato"
-
+	librato "github.com/heroku/go-metrics-librato"
 	"github.com/heroku/rollrus"
 	log "github.com/sirupsen/logrus"
 )
@@ -63,13 +63,18 @@ func main() {
 	if config.LibratoOwner != "" && config.LibratoToken != "" {
 		log.WithField("source", config.LibratoSource).Info("starting librato metrics reporting")
 		go librato.Librato(
+			context.Background(),
 			config.MetricsRegistry,
 			20*time.Second,
 			config.LibratoOwner,
 			config.LibratoToken,
+			"",
 			config.LibratoSource,
 			[]float64{0.50, 0.95, 0.99},
 			time.Millisecond,
+			// Counters are Gauges now - we need heroku/go-metrics-librato to reset gauges upon submission
+			// so they don't constantly build up
+			true,
 		)
 	}
 

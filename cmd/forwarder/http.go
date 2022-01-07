@@ -10,7 +10,7 @@ import (
 	"sync"
 	"time"
 
-	metrics "github.com/rcrowley/go-metrics"
+	"github.com/heroku/go-metrics"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -76,20 +76,20 @@ func newHTTPServer(config IssConfig, auth *BasicAuth, fixerFunc FixerFunc, deliv
 		FixerFunc:             fixerFunc,
 		deliverer:             deliverer,
 		shutdownCh:            make(shutdownCh),
-		posts:                 metrics.GetOrRegisterTimer("log-iss.http.logs", config.MetricsRegistry),
-		healthChecks:          metrics.GetOrRegisterTimer("log-iss.http.healthchecks", config.MetricsRegistry),
-		pErrors:               metrics.GetOrRegisterCounter("log-iss.http.logs.errors", config.MetricsRegistry),
-		pSuccesses:            metrics.GetOrRegisterCounter("log-iss.http.logs.successes", config.MetricsRegistry),
-		pAuthErrors:           metrics.GetOrRegisterCounter("log-iss.auth.errors", config.MetricsRegistry),
-		pAuthSuccesses:        metrics.GetOrRegisterCounter("log-iss.auth.successes", config.MetricsRegistry),
-		pMetadataLogsReceived: metrics.GetOrRegisterCounter("log-iss.metadata_logs.received", config.MetricsRegistry),
-		pLogsReceived:         metrics.GetOrRegisterCounter("log-iss.logs.received", config.MetricsRegistry),
-		pMetadataLogsSent:     metrics.GetOrRegisterCounter("log-iss.metadata_logs.sent", config.MetricsRegistry),
-		pLogsSent:             metrics.GetOrRegisterCounter("log-iss.logs.sent", config.MetricsRegistry),
-		pHostnameTruncations:  metrics.GetOrRegisterCounter("log-iss.logs.hostname_truncations", config.MetricsRegistry),
-		pAppnameTruncations:   metrics.GetOrRegisterCounter("log-iss.logs.appname_truncations", config.MetricsRegistry),
-		pProcidTruncations:    metrics.GetOrRegisterCounter("log-iss.logs.procid_truncations", config.MetricsRegistry),
-		pMsgidTruncations:     metrics.GetOrRegisterCounter("log-iss.logs.msgid_truncations", config.MetricsRegistry),
+		posts:                 metrics.GetOrRegisterTimer("log-iss.http.logs.g", config.MetricsRegistry),
+		healthChecks:          metrics.GetOrRegisterTimer("log-iss.http.healthchecks.g", config.MetricsRegistry),
+		pErrors:               metrics.GetOrRegisterCounter("log-iss.http.logs.errors.g", config.MetricsRegistry),
+		pSuccesses:            metrics.GetOrRegisterCounter("log-iss.http.logs.successes.g", config.MetricsRegistry),
+		pAuthErrors:           metrics.GetOrRegisterCounter("log-iss.auth.errors.g", config.MetricsRegistry),
+		pAuthSuccesses:        metrics.GetOrRegisterCounter("log-iss.auth.successes.g", config.MetricsRegistry),
+		pMetadataLogsReceived: metrics.GetOrRegisterCounter("log-iss.metadata_logs.received.g", config.MetricsRegistry),
+		pLogsReceived:         metrics.GetOrRegisterCounter("log-iss.logs.received.g", config.MetricsRegistry),
+		pMetadataLogsSent:     metrics.GetOrRegisterCounter("log-iss.metadata_logs.sent.g", config.MetricsRegistry),
+		pLogsSent:             metrics.GetOrRegisterCounter("log-iss.logs.sent.g", config.MetricsRegistry),
+		pHostnameTruncations:  metrics.GetOrRegisterCounter("log-iss.logs.hostname_truncations.g", config.MetricsRegistry),
+		pAppnameTruncations:   metrics.GetOrRegisterCounter("log-iss.logs.appname_truncations.g", config.MetricsRegistry),
+		pProcidTruncations:    metrics.GetOrRegisterCounter("log-iss.logs.procid_truncations.g", config.MetricsRegistry),
+		pMsgidTruncations:     metrics.GetOrRegisterCounter("log-iss.logs.msgid_truncations.g", config.MetricsRegistry),
 		pAuthUsers:            make(map[string]metrics.Counter),
 		isShuttingDown:        false,
 	}
@@ -186,7 +186,7 @@ func (s *httpServer) Run() error {
 				if s.Config.Debug {
 					fmt.Printf("DEBUG: create: log-iss.auth.user.%s\n", authUser)
 				}
-				um = metrics.GetOrRegisterCounter(fmt.Sprintf("log-iss.auth.user.%s", authUser), s.Config.MetricsRegistry)
+				um = metrics.GetOrRegisterCounter(fmt.Sprintf("log-iss.auth.user.%s.g", authUser), s.Config.MetricsRegistry)
 				s.pAuthUsers[authUser] = um
 			}
 

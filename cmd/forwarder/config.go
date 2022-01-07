@@ -10,7 +10,7 @@ import (
 
 	"github.com/joeshaw/envdecode"
 
-	metrics "github.com/rcrowley/go-metrics"
+	"github.com/heroku/go-metrics"
 )
 
 type IssConfig struct {

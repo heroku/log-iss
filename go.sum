@@ -21,6 +21,10 @@ github.com/golang/protobuf v1.2.0 h1:P3YflyNX/ehuJFLhxviNdFxQPkGK5cDcApsge1SqnvM
 github.com/golang/protobuf v1.2.0/go.mod h1:6lQm79b+lXiMfvg/cZm0SGofjICqVBUtrP5yJMmIC1U=
 github.com/gomodule/redigo v2.0.0+incompatible h1:K/R+8tc58AaqLkqG2Ol3Qk+DR/TlNuhuh457pBFPtt0=
 github.com/gomodule/redigo v2.0.0+incompatible/go.mod h1:B4C85qUVwatsJoIUNIfCRsp7qO0iAmpGFZ4EELWSbC4=
+github.com/heroku/go-metrics v0.0.0-20211022150449-c92400eb6c66 h1:74BDlUM50Os6x1t6t7C8iZYhUB0JeWubpq5YHox6eco=
+github.com/heroku/go-metrics v0.0.0-20211022150449-c92400eb6c66/go.mod h1:nDTpwhz6t4K45HtuBeLCCtN+SLLdvmCAjBCIPkYeKSc=
+github.com/heroku/go-metrics-librato v0.0.0-20211022152347-534bef0d5ab9 h1:jUzfAObFNpYqzcDUghVFWaEQu1cwAt7a/hV47XSjclk=
+github.com/heroku/go-metrics-librato v0.0.0-20211022152347-534bef0d5ab9/go.mod h1:t21qg0yIcYK5rzhEek/oZEwuT9FoljsNA44JJlX74BE=
 github.com/heroku/rollrus v0.0.0-20170818212624-8c4f82380151 h1:Bu/PTVR0KAdSFvryQ6SKMwjmXKbUsUwD46nI0LeAXLI=
 github.com/heroku/rollrus v0.0.0-20170818212624-8c4f82380151/go.mod h1:BT+PgT529opmb6mcUY+Fg0IwVRRmwqFyavEMU17GnBg=
 github.com/hpcloud/tail v1.0.0 h1:nfCOvKYfkgYP8hkirhJocXT2+zOD8yUNjXaWfTlyFKI=
@@ -39,10 +43,10 @@ github.com/pkg/errors v0.0.0-20170910134614-2b3a18b5f0fb h1:jqgy5xL4OiYfjh8g+sui
 github.com/pkg/errors v0.0.0-20170910134614-2b3a18b5f0fb/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
-github.com/rcrowley/go-metrics v0.0.0-20150601143443-a5cfc242a56b h1:NbDcfLYHk2X7BX3Z3++nx7VRjNSnXW9puI4L0wLoo9o=
-github.com/rcrowley/go-metrics v0.0.0-20150601143443-a5cfc242a56b/go.mod h1:bCqnVzQkZxMG4s8nGwiZ5l3QUCyqpo9Y+/ZMZ9VjZe4=
+github.com/rcrowley/go-metrics v0.0.0-20201227073835-cf1acfcdf475/go.mod h1:bCqnVzQkZxMG4s8nGwiZ5l3QUCyqpo9Y+/ZMZ9VjZe4=
 github.com/sirupsen/logrus v0.0.0-20180207182717-9f91ab2ef975 h1:FAK/AHiew8UoxkhXXT8Dj5EmVU3CS+cc5hWT8QK4pf4=
 github.com/sirupsen/logrus v0.0.0-20180207182717-9f91ab2ef975/go.mod h1:pMByvHTf9Beacp5x1UXfOR9xyW/9antXMhjMPG0dEzc=
+github.com/stathat/go v1.0.0/go.mod h1:+9Eg2szqkcOGWv6gfheJmBBsmq9Qf5KDbzy8/aYYR0c=
 github.com/stretchr/objx v0.0.0-20180426105006-a5cfa15c000a h1:ewsAEJrQ3NvPfNz5eu3hdp/xp0Eas3JdUElq9gMshkY=
 github.com/stretchr/objx v0.0.0-20180426105006-a5cfa15c000a/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
 github.com/stretchr/testify v0.0.0-20180319223459-c679ae2cc0cb h1:Idl4I/YpJ3WG7+/dNrHOGfnClSTk6iesxWxAjzvemdg=

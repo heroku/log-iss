@@ -12,6 +12,10 @@ github.com/go-redis/redis/internal/hashtag
 github.com/go-redis/redis/internal/pool
 github.com/go-redis/redis/internal/proto
 github.com/go-redis/redis/internal/util
+# github.com/heroku/go-metrics v0.0.0-20211022150449-c92400eb6c66
+github.com/heroku/go-metrics
+# github.com/heroku/go-metrics-librato v0.0.0-20211022152347-534bef0d5ab9
+github.com/heroku/go-metrics-librato
 # github.com/heroku/rollrus v0.0.0-20170818212624-8c4f82380151
 github.com/heroku/rollrus
 # github.com/joeshaw/envdecode v0.0.0-20180312135643-c9e015854467
@@ -20,9 +24,6 @@ github.com/joeshaw/envdecode
 github.com/pkg/errors
 # github.com/pmezard/go-difflib v1.0.0
 github.com/pmezard/go-difflib/difflib
-# github.com/rcrowley/go-metrics v0.0.0-20150601143443-a5cfc242a56b
-github.com/rcrowley/go-metrics
-github.com/rcrowley/go-metrics/librato
 # github.com/sirupsen/logrus v0.0.0-20180207182717-9f91ab2ef975
 github.com/sirupsen/logrus
 # github.com/stretchr/objx v0.0.0-20180426105006-a5cfa15c000a

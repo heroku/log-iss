@@ -5,7 +5,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"net/http"
+	"os"
 )
 
 const Operations = "operations"
@@ -51,8 +53,6 @@ const (
 	// batch keys
 	Counters = "counters"
 	Gauges   = "gauges"
-
-	MetricsPostUrl = "https://metrics-api.librato.com/v1/metrics"
 )
 
 type Measurement map[string]interface{}
@@ -65,7 +65,24 @@ type Batch struct {
 	Source      string        `json:"source"`
 }
 
-func (self *LibratoClient) PostMetrics(batch Batch) (err error) {
+var client = http.DefaultClient
+
+func SetHTTPClient(c *http.Client) {
+	client = c
+}
+
+func MetricsPostUrl() string {
+	var uri string
+
+	uri, found := os.LookupEnv("LIBRATO_API_URL")
+	if !found {
+		uri = "https://metrics-api.librato.com/v1/metrics"
+	}
+
+	return uri
+}
+
+func (lc *LibratoClient) PostMetrics(batch Batch) (err error) {
 	var (
 		js   []byte
 		req  *http.Request
@@ -80,23 +97,29 @@ func (self *LibratoClient) PostMetrics(batch Batch) (err error) {
 		return
 	}
 
-	if req, err = http.NewRequest("POST", MetricsPostUrl, bytes.NewBuffer(js)); err != nil {
+	_, found := os.LookupEnv("DEBUG")
+	if found {
+		log.Printf("at=post-metrics body=%s", js)
+	}
+
+	if req, err = http.NewRequest("POST", MetricsPostUrl(), bytes.NewBuffer(js)); err != nil {
 		return
 	}
 
 	req.Header.Set("Content-Type", "application/json")
-	req.SetBasicAuth(self.Email, self.Token)
+	req.SetBasicAuth(lc.Email, lc.Token)
 
-	if resp, err = http.DefaultClient.Do(req); err != nil {
+	if resp, err = client.Do(req); err != nil {
 		return
 	}
+	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusOK {
+	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
 		var body []byte
 		if body, err = ioutil.ReadAll(resp.Body); err != nil {
 			body = []byte(fmt.Sprintf("(could not fetch response body for error: %s)", err))
 		}
-		err = fmt.Errorf("Unable to post to Librato: %d %s %s", resp.StatusCode, resp.Status, string(body))
+		err = fmt.Errorf("unable to post to Librato: %d %s %s", resp.StatusCode, resp.Status, string(body))
 	}
 	return
 }
