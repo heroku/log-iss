@@ -1,0 +1,19 @@
+# Snyk (https://snyk.io) policy file, patches or ignores known vulnerabilities.
+version: v1.22.1
+# ignores vulnerabilities until expiry date; change duration by modifying expiry date
+ignore:
+  SNYK-GOLANG-GOPKGINYAMLV2-1083943:
+    - '*':
+        reason: >-
+          grpc is used as a client, not a server, so is not vulnerable to the
+          DoS attacks
+        expires: 2022-01-15T17:00:00.000Z
+        created: 2021-09-28T23:26:53.053Z
+  SNYK-GOLANG-GOPKGINYAMLV2-1533594:
+    - '*':
+        reason: >-
+          grpc is used as a client, not a server, so is not vulnerable to the
+          DoS attacks
+        expires: 2022-01-15T17:00:00.000Z
+        created: 2021-09-28T23:27:29.563Z
+patch: {}

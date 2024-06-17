@@ -1,0 +1,17 @@
+FROM golang:1.18-alpine AS builder
+RUN apk add --no-cache bash tree
+RUN mkdir -p /build/lib
+RUN mkdir -p /build/server
+COPY . /build/lib
+COPY examples/server/go.* examples/server/*.go /build/server
+WORKDIR /build/server
+RUN go mod edit -replace github.com/heroku/telemetry-go=/build/lib
+RUN go mod edit -replace github.com/heroku/telemetry-go/internal/sdk=/build/lib/internal/sdk
+RUN go build -o server
+
+FROM alpine
+RUN adduser -D appuser
+USER appuser
+COPY --from=builder /build/server /app/
+WORKDIR /app
+CMD ["./server"]

@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"os/signal"
 	"syscall"
@@ -10,6 +11,7 @@ import (
 	librato "github.com/heroku/go-metrics-librato"
 	"github.com/heroku/rollrus"
 	log "github.com/sirupsen/logrus"
+	"github.com/heroku/telemetry-go"
 )
 
 type shutdownCh chan struct{}
@@ -27,6 +29,20 @@ func awaitShutdownSignals(chs ...shutdownCh) {
 
 func main() {
 	rollrus.SetupLogging(os.Getenv("ROLLBAR_TOKEN"), os.Getenv("ENVIRONMENT"))
+
+	if err := telemetry.Configure(
+		telemetry.WithConfig(telemetry.Config{
+			Team:        "Heroku Tools",
+			Component:   "log-iss",
+			Environment: "staging",
+		}),
+		telemetry.WithLogWriter(os.Stdout),
+		telemetry.WithHoneycombApiKey(os.Getenv("HONEYCOMB_LOG-ISS_STAGING")),
+	); err != nil {
+		panic(fmt.Sprintf("unable to configure telemetry: %s", err.Error()))
+	}
+
+	defer telemetry.Close()
 
 	config, err := NewIssConfig()
 	if err != nil {
