@@ -32,12 +32,12 @@ func main() {
 
 	if err := telemetry.Configure(
 		telemetry.WithConfig(telemetry.Config{
-			Team:        "Heroku Tools",
+			Team:        "Observability",
 			Component:   "log-iss",
 			Environment: "staging",
 		}),
 		telemetry.WithLogWriter(os.Stdout),
-		telemetry.WithHoneycombApiKey(os.Getenv("HONEYCOMB_LOG-ISS_STAGING")),
+		telemetry.WithHoneycombApiKey(os.Getenv("HONEYCOMB_API_KEY")),
 	); err != nil {
 		panic(fmt.Sprintf("unable to configure telemetry: %s", err.Error()))
 	}
