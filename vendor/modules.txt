@@ -1,10 +1,18 @@
+# github.com/alicebob/gopher-json v0.0.0-20180125190556-5a6b3ba71ee6
+## explicit
+# github.com/alicebob/miniredis v2.4.6+incompatible
+## explicit
 # github.com/bmizerany/lpx v0.0.0-20130503172629-af85cf24c156
+## explicit
 github.com/bmizerany/lpx
 # github.com/davecgh/go-spew v1.1.1
+## explicit
 github.com/davecgh/go-spew/spew
 # github.com/elliotchance/redismock v1.4.0
+## explicit
 github.com/elliotchance/redismock
 # github.com/go-redis/redis v0.0.0-20190121142748-40336e5ef891
+## explicit
 github.com/go-redis/redis
 github.com/go-redis/redis/internal
 github.com/go-redis/redis/internal/consistenthash
@@ -12,29 +20,57 @@ github.com/go-redis/redis/internal/hashtag
 github.com/go-redis/redis/internal/pool
 github.com/go-redis/redis/internal/proto
 github.com/go-redis/redis/internal/util
+# github.com/gomodule/redigo v2.0.0+incompatible
+## explicit
 # github.com/heroku/go-metrics v0.0.0-20211022150449-c92400eb6c66
+## explicit; go 1.17
 github.com/heroku/go-metrics
 # github.com/heroku/go-metrics-librato v0.0.0-20211022152347-534bef0d5ab9
+## explicit; go 1.17
 github.com/heroku/go-metrics-librato
 # github.com/heroku/rollrus v0.0.0-20170818212624-8c4f82380151
+## explicit
 github.com/heroku/rollrus
 # github.com/joeshaw/envdecode v0.0.0-20180312135643-c9e015854467
+## explicit
 github.com/joeshaw/envdecode
+# github.com/onsi/ginkgo v1.8.0
+## explicit
+# github.com/onsi/gomega v1.5.0
+## explicit
 # github.com/pkg/errors v0.0.0-20170910134614-2b3a18b5f0fb
+## explicit
 github.com/pkg/errors
 # github.com/pmezard/go-difflib v1.0.0
+## explicit
 github.com/pmezard/go-difflib/difflib
 # github.com/sirupsen/logrus v0.0.0-20180207182717-9f91ab2ef975
+## explicit
 github.com/sirupsen/logrus
 # github.com/stretchr/objx v0.0.0-20180426105006-a5cfa15c000a
+## explicit
 github.com/stretchr/objx
 # github.com/stretchr/testify v0.0.0-20180319223459-c679ae2cc0cb
+## explicit
 github.com/stretchr/testify/assert
 github.com/stretchr/testify/mock
 # github.com/stvp/roll v0.0.0-20170522205222-3627a5cbeaea
+## explicit
 github.com/stvp/roll
-# golang.org/x/crypto v0.0.0-20180206190813-d9133f546934
+# github.com/yuin/gopher-lua v0.0.0-20190206043414-8bfc7677f583
+## explicit
+# golang.org/x/crypto v0.45.0
+## explicit; go 1.24.0
 golang.org/x/crypto/ssh/terminal
-# golang.org/x/sys v0.0.0-20190204203706-41f3e6584952
+# golang.org/x/sys v0.38.0
+## explicit; go 1.24.0
+golang.org/x/sys/plan9
 golang.org/x/sys/unix
 golang.org/x/sys/windows
+# golang.org/x/term v0.37.0
+## explicit; go 1.24.0
+golang.org/x/term
+# gopkg.in/airbrake/gobrake.v2 v2.0.9
+## explicit
+# gopkg.in/gemnasium/logrus-airbrake-hook.v2 v2.1.2
+## explicit
