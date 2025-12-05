@@ -24,17 +24,18 @@ github.com/joeshaw/envdecode
 github.com/pkg/errors
 # github.com/pmezard/go-difflib v1.0.0
 github.com/pmezard/go-difflib/difflib
-# github.com/sirupsen/logrus v0.0.0-20180207182717-9f91ab2ef975
+# github.com/sirupsen/logrus v1.8.3
 github.com/sirupsen/logrus
-# github.com/stretchr/objx v0.0.0-20180426105006-a5cfa15c000a
+# github.com/stretchr/objx v0.1.0
 github.com/stretchr/objx
-# github.com/stretchr/testify v0.0.0-20180319223459-c679ae2cc0cb
+# github.com/stretchr/testify v1.7.0
 github.com/stretchr/testify/assert
 github.com/stretchr/testify/mock
 # github.com/stvp/roll v0.0.0-20170522205222-3627a5cbeaea
 github.com/stvp/roll
-# golang.org/x/crypto v0.0.0-20180206190813-d9133f546934
-golang.org/x/crypto/ssh/terminal
-# golang.org/x/sys v0.0.0-20190204203706-41f3e6584952
+# golang.org/x/sys v0.0.0-20220715151400-c0bba94af5f8
+golang.org/x/sys/internal/unsafeheader
 golang.org/x/sys/unix
 golang.org/x/sys/windows
+# gopkg.in/yaml.v3 v3.0.0-20200313102051-9f266ea9e77c
+gopkg.in/yaml.v3
